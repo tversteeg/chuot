@@ -25,7 +25,7 @@ use winit::{
 /// * `updates_per_second` - Request interval for the update function to be called.
 /// * `update` - Function called every update tick, arguments are the state and the time between this and the previous tick.
 /// * `render` - Function called every render tick, arguments are the state and the time between this and the previous tick.
-pub async fn run<G, U, R>(
+pub async fn window<G, U, R>(
     game_state: G,
     buffer_size: Extent2<usize>,
     updates_per_second: u32,
