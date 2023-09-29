@@ -1,0 +1,91 @@
+name: CI
+on:
+  push:
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
+  pull_request:
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
+
+jobs:
+  # Check for formatting
+  rustfmt:
+    name: Formatter check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          components: rustfmt
+          override: true
+
+      - run: rustup component add rustfmt
+      - uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+  # Run compile check on Linux, macOS, and Windows
+  compile:
+    name: Compile
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest, macOS-latest, windows-latest]
+    steps:
+      # Checkout the branch being tested
+      - uses: actions/checkout@v4
+
+      # Install rust stable
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+
+      # Cache the built dependencies
+      - uses: Swatinem/rust-cache@v2.7.0
+        with:
+          save-if: ${{ github.event_name == 'push' }}
+
+      # Install cargo-hack
+      - uses: taiki-e/install-action@cargo-hack
+
+      # Compile all feature combinations on the target platform
+      - name: Compile
+        run: cargo hack --feature-powerset check
+
+  # Build the WASM target & push it to GitHub pages
+  wasm:
+    name: WASM build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Install rust stable
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+          targets: wasm32-unknown-unknown
+
+      # Cache the built dependencies
+      - uses: Swatinem/rust-cache@v2.7.0
+        with:
+          save-if: ${{ github.event_name == 'push' }}
+
+      # Build the WASM 
+      - name: Build
+        run: cargo run --package run-wasm -- --example window --no-default-features --release --build-only
+
+      # Deploy to GitHub pages
+      - name: Deploy to GitHub Pages
+        uses: s0/git-publish-subdir-action@master
+        env:
+          REPO: self
+          BRANCH: gh-pages
+          FOLDER: target/wasm-examples/window
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,47 @@
+[package]
+name = "pixel-game-lib"
+version = "0.1.0"
+edition = "2021"
+authors = ["Thomas Versteeg <t@versteeg.email>"]
+license = "AGPL-3.0"
+homepage = "https://github.com/tversteeg/pixel-game-lib"
+readme = "README.md"
+description = "Utility library for 2D pixel-based games"
+documentation = "https://docs.rs/pixel-game-lib"
+repository = "https://github.com/tversteeg/pixel-game-lib.git"
+keywords = ["gamedev", "utility"]
+categories = [
+	"games",
+	"game-engines",
+]
+
+[features]
+# Open a desktop or web-based WASM window with a game-loop.
+window = [
+	"dep:game-loop",
+	"dep:pixels",
+	"dep:winit",
+	"dep:tokio",
+	"dep:web-sys",
+	"dep:wasm-bindgen",
+	"dep:wasm-bindgen-futures",
+	"dep:console_log",
+	"dep:console_error_panic_hook"
+]
+
+[dependencies]
+game-loop = { version = "1", features = ["winit"], optional = true }
+miette = "5.10.0"
+pixels = { version = "0.13", optional = true }
+vek = "0.16.1"
+winit = { version = "0.28", optional = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { version = "1", features = ["macros", "sync", "rt-multi-thread"], optional = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+web-sys = { version = "0.3", features = ["CanvasRenderingContext2d", "Document", "Element", "HtmlCanvasElement", "ImageData", "Window"], optional = true }
+wasm-bindgen = { version = "0.2", optional = true }
+wasm-bindgen-futures = { version = "0.4", optional = true }
+console_log = { version = "1", features = ["wasm-bindgen", "color"], optional = true }
+console_error_panic_hook = { version = "0.1", optional = true }
