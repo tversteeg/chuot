@@ -16,19 +16,50 @@ use winit::{
     event_loop::EventLoop,
 };
 
+/// Window configuration.
+#[derive(Debug, Clone)]
+pub struct WindowConfig {
+    /// Amount of pixels for the canvas.
+    ///
+    /// Defaults to `(320, 280)`.
+    pub buffer_size: Extent2<usize>,
+    /// Name in the title bar.
+    ///
+    /// On WASM this will display as a header underneath the rendered content.
+    ///
+    /// Defaults to `"Pixel Game"`.
+    pub title: String,
+    /// Updates per second for the update loop.
+    ///
+    /// Defaults to `60`.
+    pub updates_per_second: u32,
+}
+
+impl Default for WindowConfig {
+    fn default() -> Self {
+        Self {
+            buffer_size: Extent2::new(320, 280),
+            title: "Pixel Game".to_string(),
+            updates_per_second: 60,
+        }
+    }
+}
+
 /// Create a new window with an event loop and run the game.
 ///
 /// # Arguments
 ///
 /// * `game_state` - Global state passed around in the render and update functions.
-/// * `buffer_size` - Pixel dimensions, automatically upscaled.
-/// * `updates_per_second` - Request interval for the update function to be called.
+/// * `window_config` - Configuration options for the window.
 /// * `update` - Function called every update tick, arguments are the state and the time between this and the previous tick.
 /// * `render` - Function called every render tick, arguments are the state and the time between this and the previous tick.
-pub async fn window<G, U, R>(
+pub fn window<G, U, R>(
     game_state: G,
-    buffer_size: Extent2<usize>,
-    updates_per_second: u32,
+    WindowConfig {
+        buffer_size,
+        title,
+        updates_per_second,
+    }: WindowConfig,
     mut update: U,
     mut render: R,
 ) -> Result<()>
@@ -45,7 +76,7 @@ where
     let logical_size = LogicalSize::new(buffer_size.w as f64, buffer_size.h as f64);
     #[allow(unused_mut)]
     let mut window_builder = WindowBuilder::new()
-        .with_title("DINOJAM3 - Darwin's Ascent")
+        .with_title(title)
         .with_inner_size(logical_size)
         .with_min_inner_size(logical_size);
 
@@ -62,11 +93,19 @@ where
     let pixels = {
         let surface_texture =
             SurfaceTexture::new(buffer_size.w as u32 * 2, buffer_size.h as u32 * 2, &window);
-        PixelsBuilder::new(buffer_size.w as u32, buffer_size.h as u32, surface_texture)
-            .clear_color(Color::WHITE)
-            .blend_state(BlendState::REPLACE)
-            .build_async()
-            .await
+        let builder =
+            PixelsBuilder::new(buffer_size.w as u32, buffer_size.h as u32, surface_texture)
+                .clear_color(Color::WHITE)
+                .blend_state(BlendState::REPLACE);
+
+        #[cfg(target_arch = "wasm32")]
+        {
+            builder.build_async().await
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            builder.build()
+        }
     }
     .into_diagnostic()?;
 
@@ -110,43 +149,7 @@ where
                 g.exit();
             }
         },
-        move |g, ev| {
-            match ev {
-                // Handle close event
-                Event::WindowEvent {
-                    event: WindowEvent::CloseRequested,
-                    ..
-                } => g.exit(),
-
-                // Resize the window
-                Event::WindowEvent {
-                    event: WindowEvent::Resized(new_size),
-                    ..
-                } => {
-                    g.game
-                        .1
-                        .resize_surface(new_size.width, new_size.height)
-                        .into_diagnostic()
-                        .unwrap();
-                }
-
-                // Handle key presses
-                Event::WindowEvent {
-                    event:
-                        WindowEvent::KeyboardInput {
-                            input:
-                                KeyboardInput {
-                                    virtual_keycode: Some(VirtualKeyCode::Escape),
-                                    ..
-                                },
-                            ..
-                        },
-                    ..
-                } => g.exit(),
-
-                _ => (),
-            }
-        },
+        move |g, ev| {},
     );
 }
 
@@ -158,8 +161,6 @@ mod wasm {
 
     /// Attach the winit window to a canvas.
     pub fn setup_canvas() -> HtmlCanvasElement {
-        log::debug!("Binding window to HTML canvas");
-
         let window = web_sys::window().unwrap();
 
         let document = window.document().unwrap();

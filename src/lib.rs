@@ -14,7 +14,7 @@
 #[cfg(feature = "window")]
 mod window;
 #[cfg(feature = "window")]
-pub use window::window;
+pub use window::{window, WindowConfig};
 
 #[cfg(feature = "font")]
 pub mod font;
