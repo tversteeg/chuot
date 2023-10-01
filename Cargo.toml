@@ -27,7 +27,6 @@ window = [
 	"dep:web-sys",
 	"dep:wasm-bindgen",
 	"dep:wasm-bindgen-futures",
-	"dep:console_log",
 	"dep:console_error_panic_hook",
 ]
 # Render a bitmap pixel font.
@@ -48,7 +47,6 @@ tokio = { version = "1", features = ["macros", "sync", "rt-multi-thread"], optio
 web-sys = { version = "0.3", features = ["CanvasRenderingContext2d", "Document", "Element", "HtmlCanvasElement", "ImageData", "Window"], optional = true }
 wasm-bindgen = { version = "0.2", optional = true }
 wasm-bindgen-futures = { version = "0.4", optional = true }
-console_log = { version = "1", features = ["wasm-bindgen", "color"], optional = true }
 console_error_panic_hook = { version = "0.1", optional = true }
 
 [[example]]

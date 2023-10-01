@@ -1,5 +1,4 @@
 use pixel_game_lib::WindowConfig;
-use vek::Extent2;
 
 /// Define a game state with a simple counter.
 struct GameState {
@@ -25,9 +24,9 @@ fn main() {
         state,
         window_config.clone(),
         // Update loop exposing input events we can handle, this is where you would handle the game logic
-        |state, dt| {},
+        |_state, _dt| {},
         // Render loop exposing the pixel buffer we can mutate
-        move |state, canvas, dt| {
+        move |state, canvas, _dt| {
             // Ensure that we don't draw pixels outside of the canvas
             let max_pixels_to_draw = window_config.buffer_size.product();
             let pixels_to_draw = state.pixels_to_draw.min(max_pixels_to_draw);

@@ -5,17 +5,13 @@ mod web;
 
 use std::sync::Arc;
 
-use game_loop::{GameLoop, Time, TimeTrait};
+use game_loop::{GameLoop, Time};
 use miette::{IntoDiagnostic, Result};
-use pixels::{
-    wgpu::{BlendState, Color},
-    Pixels, PixelsBuilder, SurfaceTexture,
-};
+use pixels::Pixels;
 use vek::Extent2;
 use winit::{
     dpi::LogicalSize,
     event::{Event, KeyboardInput, VirtualKeyCode, WindowEvent},
-    event_loop::EventLoop,
     window::{Window, WindowBuilder},
 };
 
@@ -26,6 +22,10 @@ pub struct WindowConfig {
     ///
     /// Defaults to `(320, 280)`.
     pub buffer_size: Extent2<usize>,
+    /// How many times the buffer should be scaled to fit the window.
+    ///
+    /// Defaults to `1`.
+    pub scaling: usize,
     /// Name in the title bar.
     ///
     /// On WASM this will display as a header underneath the rendered content.
@@ -42,6 +42,7 @@ impl Default for WindowConfig {
     fn default() -> Self {
         Self {
             buffer_size: Extent2::new(320, 280),
+            scaling: 1,
             title: "Pixel Game".to_string(),
             updates_per_second: 60,
         }
@@ -92,7 +93,6 @@ where
     {
         // Show panics in the browser console log
         std::panic::set_hook(Box::new(console_error_panic_hook::hook));
-        console_log::init_with_level(log::Level::Info).expect("Error initializing logger");
 
         // Web window function is async, so we need to spawn it into a local async runtime
         wasm_bindgen_futures::spawn_local(async {
@@ -105,6 +105,7 @@ where
                 winit_handler,
             )
             .await
+            .expect("Error opening WASM window")
         });
 
         Ok(())

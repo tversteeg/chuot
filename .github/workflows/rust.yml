@@ -30,9 +30,9 @@ jobs:
           command: fmt
           args: --all -- --check
 
-  # Run compile check on Linux, macOS, and Windows
+  # Run test check on Linux, macOS, and Windows
   compile:
-    name: Compile
+    name: Test
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true
@@ -55,13 +55,13 @@ jobs:
       # Install cargo-hack
       - uses: taiki-e/install-action@cargo-hack
 
-      # Compile all feature combinations on the target platform
+      # Test all feature combinations on the target platform
       - name: Compile
-        run: cargo hack --feature-powerset check
+        run: cargo hack --feature-powerset test
 
   # Build the WASM target & push it to GitHub pages
   wasm:
-    name: WASM build
+    name: WASM test & build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -79,7 +79,7 @@ jobs:
 
       # Build the WASM 
       - name: Build
-        run: cargo run --package run-wasm -- --example window --no-default-features --release --build-only
+        run: cargo run --package run-wasm -- --example window --no-default-features --features window --release --build-only
 
       # Deploy to GitHub pages
       - name: Deploy to GitHub Pages

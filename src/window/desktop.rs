@@ -1,15 +1,14 @@
 use std::sync::Arc;
 
-use game_loop::{GameLoop, Time, TimeTrait};
+use game_loop::{GameLoop, Time};
 use miette::{Context, IntoDiagnostic, Result};
 use pixels::{
     wgpu::{BlendState, Color},
     Pixels, PixelsBuilder, SurfaceTexture,
 };
-use vek::Extent2;
+
 use winit::{
-    dpi::LogicalSize,
-    event::{Event, KeyboardInput, VirtualKeyCode, WindowEvent},
+    event::Event,
     event_loop::EventLoop,
     window::{Window, WindowBuilder},
 };
@@ -22,12 +21,13 @@ pub(crate) fn window<G, U, R, H>(
     game_state: G,
     WindowConfig {
         buffer_size,
-        title,
+        scaling,
+        title: _,
         updates_per_second,
     }: WindowConfig,
     mut update: U,
     mut render: R,
-    mut event: H,
+    event: H,
 ) -> Result<()>
 where
     G: 'static,
@@ -42,7 +42,11 @@ where
         .wrap_err("Error setting up window")?;
 
     // Setup the pixel surface
-    let surface_texture = SurfaceTexture::new(buffer_size.w as u32, buffer_size.h as u32, &window);
+    let surface_texture = SurfaceTexture::new(
+        (buffer_size.w * scaling) as u32,
+        (buffer_size.h * scaling) as u32,
+        &window,
+    );
     let pixels = PixelsBuilder::new(buffer_size.w as u32, buffer_size.h as u32, surface_texture)
         .clear_color(Color::WHITE)
         .blend_state(BlendState::REPLACE)
