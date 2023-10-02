@@ -19,5 +19,11 @@ pub use window::{window, WindowConfig};
 #[cfg(feature = "font")]
 pub mod font;
 
-/// Re-export vek.
-pub use vek;
+/// Re-export vek types.
+pub use vek::*;
+/// Re-export winit types.
+#[cfg(feature = "window")]
+pub use winit::{dpi::PhysicalSize, event::VirtualKeyCode as Key};
+/// Re-export winit_input_helper key type.
+#[cfg(feature = "window")]
+pub use winit_input_helper::TextChar;

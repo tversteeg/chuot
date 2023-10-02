@@ -8,12 +8,13 @@ use std::sync::Arc;
 use game_loop::{GameLoop, Time};
 use miette::{IntoDiagnostic, Result};
 use pixels::Pixels;
-use vek::Extent2;
+use vek::{Extent2, Vec2};
 use winit::{
     dpi::LogicalSize,
-    event::{Event, KeyboardInput, VirtualKeyCode, WindowEvent},
+    event::{Event, WindowEvent},
     window::{Window, WindowBuilder},
 };
+use winit_input_helper::WinitInputHelper;
 
 /// Window configuration.
 #[derive(Debug, Clone)]
@@ -55,7 +56,7 @@ impl Default for WindowConfig {
 ///
 /// * `game_state` - Global state passed around in the render and update functions.
 /// * `window_config` - Configuration options for the window.
-/// * `update` - Function called every update tick, arguments are the state and the time between this and the previous tick.
+/// * `update` - Function called every update tick, arguments are the state, window input event that can be used to handle input events, mouse position in pixels and the time between this and the previous tick. When `true` is returned the window will be closed.
 /// * `render` - Function called every render tick, arguments are the state and the time between this and the previous tick.
 pub fn window<G, U, R>(
     game_state: G,
@@ -65,7 +66,7 @@ pub fn window<G, U, R>(
 ) -> Result<()>
 where
     G: 'static,
-    U: FnMut(&mut G, f32) + 'static,
+    U: FnMut(&mut G, &WinitInputHelper, Option<Vec2<usize>>, f32) -> bool + 'static,
     R: FnMut(&mut G, &mut [u32], f32) + 'static,
 {
     // Build the window builder with the event loop the user supplied
@@ -113,8 +114,10 @@ where
 }
 
 /// Handle winit events.
-fn winit_handler<G>(game_loop_state: &mut GameLoop<(G, Pixels), Time, Arc<Window>>, ev: &Event<()>)
-where
+fn winit_handler<G>(
+    game_loop_state: &mut GameLoop<(G, Pixels, WinitInputHelper), Time, Arc<Window>>,
+    ev: &Event<()>,
+) where
     G: 'static,
 {
     match ev {
@@ -137,20 +140,9 @@ where
                 .unwrap();
         }
 
-        // Handle key presses
-        Event::WindowEvent {
-            event:
-                WindowEvent::KeyboardInput {
-                    input:
-                        KeyboardInput {
-                            virtual_keycode: Some(VirtualKeyCode::Escape),
-                            ..
-                        },
-                    ..
-                },
-            ..
-        } => game_loop_state.exit(),
-
         _ => (),
     }
+
+    // Update input events
+    game_loop_state.game.2.update(ev);
 }

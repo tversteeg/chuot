@@ -7,11 +7,13 @@ use pixels::{
     Pixels, PixelsBuilder, SurfaceTexture,
 };
 
+use vek::Vec2;
 use winit::{
     event::Event,
     event_loop::EventLoop,
     window::{Window, WindowBuilder},
 };
+use winit_input_helper::WinitInputHelper;
 
 use super::WindowConfig;
 
@@ -31,9 +33,10 @@ pub(crate) fn window<G, U, R, H>(
 ) -> Result<()>
 where
     G: 'static,
-    U: FnMut(&mut G, f32) + 'static,
+    U: FnMut(&mut G, &WinitInputHelper, Option<Vec2<usize>>, f32) -> bool + 'static,
     R: FnMut(&mut G, &mut [u32], f32) + 'static,
-    H: FnMut(&mut GameLoop<(G, Pixels), Time, Arc<Window>>, &Event<'_, ()>) + 'static,
+    H: FnMut(&mut GameLoop<(G, Pixels, WinitInputHelper), Time, Arc<Window>>, &Event<'_, ()>)
+        + 'static,
 {
     let event_loop = EventLoop::new();
     let window = window_builder
@@ -57,14 +60,34 @@ where
     // Open the window and run the event loop
     let mut buffer = vec![0u32; buffer_size.w * buffer_size.h];
 
+    // Handle input
+    let input = WinitInputHelper::new();
+
     game_loop::game_loop(
         event_loop,
         Arc::new(window),
-        (game_state, pixels),
+        (game_state, pixels, input),
         updates_per_second,
         0.1,
         move |g| {
-            update(&mut g.game.0, (updates_per_second as f32).recip());
+            // Calculate mouse in pixels
+            let mouse = g.game.2.mouse().and_then(|mouse| {
+                g.game
+                    .1
+                    .window_pos_to_pixel(mouse)
+                    .map(|(x, y)| Vec2::new(x, y))
+                    .ok()
+            });
+
+            // Call update and exit when it returns true
+            if update(
+                &mut g.game.0,
+                &g.game.2,
+                mouse,
+                (updates_per_second as f32).recip(),
+            ) {
+                g.exit();
+            }
         },
         move |g| {
             let frame_time = g.last_frame_time();

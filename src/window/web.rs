@@ -6,7 +6,7 @@ use pixels::{
     wgpu::{BlendState, Color},
     Pixels, PixelsBuilder, SurfaceTexture,
 };
-use vek::Extent2;
+use vek::{Extent2, Vec2};
 use wasm_bindgen::JsCast;
 use web_sys::HtmlCanvasElement;
 use winit::{
@@ -16,6 +16,7 @@ use winit::{
     platform::web::WindowBuilderExtWebSys,
     window::{Window, WindowBuilder},
 };
+use winit_input_helper::WinitInputHelper;
 
 use super::WindowConfig;
 
@@ -35,9 +36,10 @@ pub(crate) async fn window<G, U, R, H>(
 ) -> Result<()>
 where
     G: 'static,
-    U: FnMut(&mut G, f32) + 'static,
+    U: FnMut(&mut G, &WinitInputHelper, Option<Vec2<usize>>, f32) -> bool + 'static,
     R: FnMut(&mut G, &mut [u32], f32) + 'static,
-    H: FnMut(&mut GameLoop<(G, Pixels), Time, Arc<Window>>, &Event<'_, ()>) + 'static,
+    H: FnMut(&mut GameLoop<(G, Pixels, WinitInputHelper), Time, Arc<Window>>, &Event<'_, ()>)
+        + 'static,
 {
     // Create a canvas the winit window can be attached to
     let window = web_sys::window().ok_or_else(|| miette::miette!("Error finding web window"))?;
@@ -99,14 +101,34 @@ where
     // Open the window and run the event loop
     let mut buffer = vec![0u32; buffer_size.w * buffer_size.h];
 
+    // Handle input
+    let input = WinitInputHelper::new();
+
     game_loop::game_loop(
         event_loop,
         Arc::new(window),
-        (game_state, pixels),
+        (game_state, pixels, input),
         updates_per_second,
         0.1,
         move |g| {
-            update(&mut g.game.0, (updates_per_second as f32).recip());
+            // Calculate mouse in pixels
+            let mouse = g.game.2.mouse().and_then(|mouse| {
+                g.game
+                    .1
+                    .window_pos_to_pixel(mouse)
+                    .map(|(x, y)| Vec2::new(x, y))
+                    .ok()
+            });
+
+            // Call update and exit when it returns true
+            if update(
+                &mut g.game.0,
+                &g.game.2,
+                mouse,
+                (updates_per_second as f32).recip(),
+            ) {
+                g.exit();
+            }
         },
         move |g| {
             let frame_time = g.last_frame_time();

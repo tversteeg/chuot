@@ -23,6 +23,7 @@ window = [
 	"dep:game-loop",
 	"dep:pixels",
 	"dep:winit",
+	"dep:winit_input_helper",
 	"dep:tokio",
 	"dep:web-sys",
 	"dep:wasm-bindgen",
@@ -34,20 +35,21 @@ font = ["dep:blit"]
 
 [dependencies]
 blit = { version = "0.8.3", optional = true, default-features = false }
-game-loop = { version = "1", features = ["winit"], optional = true }
-miette = "5"
-pixels = { version = "0.13", optional = true }
-vek = "0.16"
-winit = { version = "0.28", optional = true }
+game-loop = { version = "1.0.0", features = ["winit"], optional = true }
+miette = "5.10.0"
+pixels = { version = "0.13.0", optional = true }
+vek = "0.16.1"
+winit = { version = "0.28.7", optional = true }
+winit_input_helper = { version = "0.14.1", optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-tokio = { version = "1", features = ["macros", "sync", "rt-multi-thread"], optional = true }
+tokio = { version = "1.32.0", features = ["macros", "sync", "rt-multi-thread"], optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-web-sys = { version = "0.3", features = ["CanvasRenderingContext2d", "Document", "Element", "HtmlCanvasElement", "ImageData", "Window"], optional = true }
-wasm-bindgen = { version = "0.2", optional = true }
-wasm-bindgen-futures = { version = "0.4", optional = true }
-console_error_panic_hook = { version = "0.1", optional = true }
+web-sys = { version = "0.3.64", features = ["CanvasRenderingContext2d", "Document", "Element", "HtmlCanvasElement", "ImageData", "Window"], optional = true }
+wasm-bindgen = { version = "0.2.87", optional = true }
+wasm-bindgen-futures = { version = "0.4.37", optional = true }
+console_error_panic_hook = { version = "0.1.7", optional = true }
 
 [[example]]
 name = "window"
