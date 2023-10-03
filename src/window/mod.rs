@@ -3,6 +3,11 @@ mod desktop;
 #[cfg(target_arch = "wasm32")]
 mod web;
 
+/// Re-export winit types.
+pub use winit::{dpi::PhysicalSize, event::VirtualKeyCode as Key};
+/// Re-export winit_input_helper type.
+pub use winit_input_helper::TextChar;
+
 use std::sync::Arc;
 
 use game_loop::{GameLoop, Time};

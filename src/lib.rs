@@ -16,18 +16,12 @@
 //! Implements [`Default`] for [`font::Font`] with a font that's embedded into memory.
 
 #[cfg(feature = "window")]
-mod window;
+pub mod window;
 #[cfg(feature = "window")]
-pub use window::{window, WindowConfig};
+pub use window::window;
 
 #[cfg(feature = "font")]
 pub mod font;
 
 /// Re-export vek types.
-pub use vek::*;
-/// Re-export winit types.
-#[cfg(feature = "window")]
-pub use winit::{dpi::PhysicalSize, event::VirtualKeyCode as Key};
-/// Re-export winit_input_helper key type.
-#[cfg(feature = "window")]
-pub use winit_input_helper::TextChar;
+pub use vek;

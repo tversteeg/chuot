@@ -1,4 +1,8 @@
-use pixel_game_lib::{font::Font, Key, Vec2, WindowConfig};
+use pixel_game_lib::{
+    font::Font,
+    vek::Vec2,
+    window::{Key, WindowConfig},
+};
 
 /// Open an empty window.
 fn main() {

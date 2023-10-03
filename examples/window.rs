@@ -1,4 +1,7 @@
-use pixel_game_lib::{Extent2, Key, WindowConfig};
+use pixel_game_lib::{
+    vek::Extent2,
+    window::{Key, WindowConfig},
+};
 
 /// Define a game state with a simple counter.
 struct GameState {
