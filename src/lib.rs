@@ -2,14 +2,18 @@
 //!
 //! # Features
 //!
-//! ### `window`
+//! ### `window` (default)
 //!
 //! Creates a desktop window and a WASM based web "window" for drawing pixels.
 //! Runs a configurable game loop which splits a render and an update function.
 //!
-//! ### `font`
+//! ### `font` (default)
 //!
 //! Render a simple ASCII bitmap font.
+//!
+//! ### `default-font`
+//!
+//! Implements [`Default`] for [`font::Font`] with a font that's embedded into memory.
 
 #[cfg(feature = "window")]
 mod window;

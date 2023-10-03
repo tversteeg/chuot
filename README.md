@@ -1,5 +1,6 @@
 # pixel-game-lib
-A Rust utility library for creating pixel based tools, not a game engine
+
+A Rust utility library for creating pixel based games, not a game engine
 
 [![Build Status](https://github.com/tversteeg/pixel-game-lib/workflows/CI/badge.svg)](https://github.com/tversteeg/pixel-game-lib/actions?workflow=CI)
 [![Crates.io](https://img.shields.io/crates/v/pixel-game-lib.svg)](https://crates.io/crates/pixel-game-lib)
@@ -15,5 +16,5 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-pixel-game-lib = "0.1"
+pixel-game-lib = "0.2"
 ```

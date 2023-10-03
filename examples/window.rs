@@ -9,7 +9,6 @@ struct GameState {
 }
 
 /// Open an empty window.
-/// Entry point starting either a WASM future or a Tokio runtime.
 fn main() {
     // Active modifiable state
     let state = GameState { pixels_to_draw: 0 };

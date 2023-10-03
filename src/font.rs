@@ -112,3 +112,17 @@ impl Font {
         )
     }
 }
+
+#[cfg(feature = "default-font")]
+impl Default for Font {
+    fn default() -> Self {
+        let image = image::load_from_memory(include_bytes!("../assets/Beachball.png"))
+            .expect("Error loading default font image from memory")
+            .into_rgba8();
+
+        let sprite = image.to_blit_buffer_with_alpha(127);
+        let char_size = Extent2::new(10, 10);
+
+        Self { sprite, char_size }
+    }
+}

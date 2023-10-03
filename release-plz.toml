@@ -1,3 +1,13 @@
+[workspace]
+# Disable the changelog for all packages
+changelog_update = false
+
+[[package]]
+name = "pixel-game-lib"
+# Only use the changelog for this package
+changelog_update = true
+changelog_path = "./CHANGELOG.md"
+
 # Ignore run-wasm
 [[package]]
 name = "run-wasm"
