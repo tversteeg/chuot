@@ -16,7 +16,7 @@ categories = [
 ]
 
 [features]
-default = ["window", "font"]
+default = ["window", "font", "hot-reloading-assets"]
 
 # Open a desktop or web-based WASM window with a game-loop.
 window = [
@@ -30,10 +30,22 @@ window = [
 	"dep:wasm-bindgen-futures",
 	"dep:console_error_panic_hook",
 ]
+
 # Render a bitmap pixel font.
 font = ["dep:blit"]
 # Embed a default pixel font.
 default-font = ["font", "dep:image", "blit/image"]
+
+# Simplify loading of external assets.
+assets = []
+# Hot-reload assets from disk when they are saved.
+#
+# Has no effect when building for the web.
+hot-reloading-assets = ["assets", "assets_manager/hot-reloading"]
+# Include all assets in the binary.
+#
+# Always enabled when building for the web.
+embedded-assets = ["assets", "assets_manager/embedded"]
 
 [dependencies]
 blit = { version = "0.8.3", optional = true, default-features = false }
@@ -47,12 +59,14 @@ winit_input_helper = { version = "0.14.1", optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { version = "1.32.0", features = ["macros", "sync", "rt-multi-thread"], optional = true }
+assets_manager = { version = "0.10.2", default-features = false, features = ["toml", "png"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 web-sys = { version = "0.3.64", features = ["CanvasRenderingContext2d", "Document", "Element", "HtmlCanvasElement", "ImageData", "Window"], optional = true }
 wasm-bindgen = { version = "0.2.87", optional = true }
 wasm-bindgen-futures = { version = "0.4.37", optional = true }
 console_error_panic_hook = { version = "0.1.7", optional = true }
+assets_manager = { version = "0.10.2", default-features = false, features = ["toml", "png", "embedded"] }
 
 [[example]]
 name = "window"
