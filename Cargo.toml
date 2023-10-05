@@ -16,7 +16,7 @@ categories = [
 ]
 
 [features]
-default = ["window", "font", "hot-reloading-assets"]
+default = ["window", "hot-reloading-assets"]
 
 # Open a desktop or web-based WASM window with a game-loop.
 window = [
@@ -31,13 +31,11 @@ window = [
 	"dep:console_error_panic_hook",
 ]
 
-# Render a bitmap pixel font.
-font = ["dep:blit"]
 # Embed a default pixel font.
-default-font = ["font", "dep:image", "blit/image"]
+default-font = []
 
 # Simplify loading of external assets.
-assets = []
+assets = ["dep:assets_manager", "dep:serde"]
 # Hot-reload assets from disk when they are saved.
 #
 # Has no effect when building for the web.
@@ -48,25 +46,27 @@ hot-reloading-assets = ["assets", "assets_manager/hot-reloading"]
 embedded-assets = ["assets", "assets_manager/embedded"]
 
 [dependencies]
-blit = { version = "0.8.3", optional = true, default-features = false }
-game-loop = { version = "1.0.0", features = ["winit"], optional = true }
-image = { version = "0.24.7", optional = true }
+blit = "0.8.3"
+image = "0.24.7"
 miette = "5.10.0"
-pixels = { version = "0.13.0", optional = true }
 vek = "0.16.1"
+
+game-loop = { version = "1.0.0", features = ["winit"], optional = true }
+pixels = { version = "0.13.0", optional = true }
+serde = { version = "1.0.188", optional = true, features = ["derive"] }
 winit = { version = "0.28.7", optional = true }
 winit_input_helper = { version = "0.14.1", optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { version = "1.32.0", features = ["macros", "sync", "rt-multi-thread"], optional = true }
-assets_manager = { version = "0.10.2", default-features = false, features = ["toml", "png"] }
+assets_manager = { version = "0.10.2", default-features = false, features = ["toml", "png"], optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 web-sys = { version = "0.3.64", features = ["CanvasRenderingContext2d", "Document", "Element", "HtmlCanvasElement", "ImageData", "Window"], optional = true }
 wasm-bindgen = { version = "0.2.87", optional = true }
 wasm-bindgen-futures = { version = "0.4.37", optional = true }
 console_error_panic_hook = { version = "0.1.7", optional = true }
-assets_manager = { version = "0.10.2", default-features = false, features = ["toml", "png", "embedded"] }
+assets_manager = { version = "0.10.2", default-features = false, features = ["toml", "png", "embedded"], optional = true }
 
 [[example]]
 name = "window"
@@ -74,7 +74,7 @@ required-features = ["window"]
 
 [[example]]
 name = "font"
-required-features = ["font", "default-font", "window"]
+required-features = ["default-font", "window"]
 
 [workspace]
 members = ["run-wasm"]

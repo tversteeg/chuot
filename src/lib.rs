@@ -6,11 +6,7 @@
 //!
 //! Creates a desktop window and a WASM based web "window" for drawing pixels.
 //! Runs a configurable game loop which splits a render and an update function.
-//!
-//! ### `font` (default)
-//!
-//! Render a simple ASCII bitmap font.
-//!
+
 //! ### `default-font`
 //!
 //! Implements [`Default`] for [`font::Font`] with a font that's embedded into memory.
@@ -30,13 +26,13 @@
 //! Bake _all_ assets in the `assets/` folder in the binary.
 //! When creating a release binary this feature flag should be enabled.
 
+pub mod font;
+pub mod sprite;
+
 #[cfg(feature = "window")]
 pub mod window;
 #[cfg(feature = "window")]
 pub use window::window;
-
-#[cfg(feature = "font")]
-pub mod font;
 
 #[cfg(feature = "assets")]
 pub mod assets;

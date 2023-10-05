@@ -9,9 +9,9 @@ use vek::{Extent2, Vec2};
 #[derive(Debug)]
 pub struct Font {
     /// Image to render.
-    sprite: BlitBuffer,
+    pub(crate) sprite: BlitBuffer,
     /// Size of a single character.
-    char_size: Extent2<u8>,
+    pub(crate) char_size: Extent2<u8>,
 }
 
 impl Font {
