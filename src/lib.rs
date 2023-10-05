@@ -36,6 +36,8 @@ pub use window::window;
 
 #[cfg(feature = "assets")]
 pub mod assets;
+#[cfg(feature = "assets")]
+pub use assets::{asset, asset_owned};
 
 /// Re-export vek types.
 pub use vek;

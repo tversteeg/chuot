@@ -1,0 +1,4 @@
+# Horizontal pixels of a single glyph
+char_width = 10
+# Vertical pixels of a single glyph
+char_height = 10

@@ -7,7 +7,7 @@ use pixel_game_lib::{
 /// Load the font from disk or embedded if using the `assets` feature flag.
 #[cfg(feature = "assets")]
 fn font() -> Font {
-    todo!()
+    pixel_game_lib::asset_owned("Beachball")
 }
 /// Use the default font if using the `default-font` feature flag.
 #[cfg(all(not(feature = "assets"), feature = "default-font"))]
@@ -16,7 +16,7 @@ fn font() -> Font {
 }
 /// Throw an error when both features are not loaded.
 #[cfg(not(any(feature = "assets", feature = "default-font")))]
-compile_error!("Either feature \"assets\" or \"default-font\" must be enabled for this crate.");
+compile_error!("Either feature \"assets\" or \"default-font\" must be enabled for this example.");
 
 /// Open an empty window.
 fn main() {

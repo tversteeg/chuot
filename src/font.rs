@@ -126,3 +126,22 @@ impl Default for Font {
         Self { sprite, char_size }
     }
 }
+
+#[cfg(feature = "assets")]
+impl assets_manager::Compound for Font {
+    fn load(
+        cache: assets_manager::AnyCache,
+        id: &assets_manager::SharedString,
+    ) -> Result<Self, assets_manager::BoxedError> {
+        // Load the sprite
+        let sprite = cache
+            .load_owned::<crate::sprite::Sprite>(id)?
+            .into_blit_buffer();
+
+        // Load the metadata
+        let metadata = cache.load::<crate::assets::font::FontMetadata>(id)?.read();
+        let char_size = Extent2::new(metadata.char_width, metadata.char_height);
+
+        Ok(Self { sprite, char_size })
+    }
+}

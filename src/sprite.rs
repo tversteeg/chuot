@@ -2,7 +2,7 @@
 //!
 //! Can be loaded as an asset when the `asset` feature flag is set.
 
-use blit::{Blit, BlitBuffer, BlitOptions, ToBlitBuffer};
+use blit::{Blit, BlitBuffer, BlitOptions};
 use vek::{Extent2, Vec2};
 
 /// Sprite that can be drawn on the  canvas.
@@ -66,6 +66,23 @@ impl Sprite {
     pub fn pixels_mut(&mut self) -> &mut [u32] {
         self.sprite.pixels_mut()
     }
+}
+
+impl Default for Sprite {
+    fn default() -> Self {
+        let sprite = BlitBuffer::from_buffer(&[0], 1, 0);
+        let offset = Vec2::zero();
+
+        Self { sprite, offset }
+    }
+}
+
+#[cfg(feature = "assets")]
+impl assets_manager::Asset for Sprite {
+    // We only support PNG images currently
+    const EXTENSION: &'static str = "png";
+
+    type Loader = crate::assets::sprite::SpriteLoader;
 }
 
 /// Center of the sprite.

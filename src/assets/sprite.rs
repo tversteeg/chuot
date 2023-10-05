@@ -1,27 +1,11 @@
-use std::{borrow::Cow, f64::consts::TAU, num::NonZeroU16};
+use std::borrow::Cow;
 
-use assets_manager::{loader::Loader, AnyCache, Asset, BoxedError, Compound, SharedString};
-use blit::{BlitBuffer, ToBlitBuffer};
+use assets_manager::loader::Loader;
+use blit::ToBlitBuffer;
 use image::ImageFormat;
 use vek::Vec2;
 
 use crate::sprite::Sprite;
-
-impl Asset for Sprite {
-    // We only support PNG images currently
-    const EXTENSION: &'static str = "png";
-
-    type Loader = SpriteLoader;
-}
-
-impl Default for Sprite {
-    fn default() -> Self {
-        let sprite = BlitBuffer::from_buffer(&[0], 1, 0);
-        let offset = Vec2::zero();
-
-        Self { sprite, offset }
-    }
-}
 
 /// Sprite asset loader.
 pub struct SpriteLoader;
