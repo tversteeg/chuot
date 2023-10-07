@@ -1,6 +1,4 @@
 //! Render a simple ASCII bitmap font.
-//!
-//! Requires the `font` feature flag.
 
 use blit::{prelude::SubRect, Blit, BlitBuffer, BlitOptions, ToBlitBuffer};
 use vek::{Extent2, Vec2};

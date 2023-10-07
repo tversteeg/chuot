@@ -6,15 +6,14 @@
 //!
 //! Creates a desktop window and a WASM based web "window" for drawing pixels.
 //! Runs a configurable game loop which splits a render and an update function.
-
+//!
+//! ### `gui`
+//!
+//! Draw GUI widgets with flexbox based layouting using the [`taffy`](https://docs.rs/taffy) crate.
+//!
 //! ### `default-font`
 //!
 //! Implements [`Default`] for [`font::Font`] with a font that's embedded into memory.
-//!
-//! ### `assets` (default)
-//!
-//! Allow loading of external assets.
-//! All assets should reside in a `assets/` folder in the root directory of the project.
 //!
 //! ### `hot-reloading-assets` (default)
 //!
@@ -39,5 +38,11 @@ pub mod assets;
 #[cfg(feature = "assets")]
 pub use assets::{asset, asset_owned};
 
+#[cfg(feature = "gui")]
+pub mod gui;
+
+/// Re-export taffy types.
+#[cfg(feature = "gui")]
+pub use taffy;
 /// Re-export vek types.
 pub use vek;
