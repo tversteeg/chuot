@@ -125,7 +125,7 @@ impl Default for Font {
     }
 }
 
-#[cfg(feature = "assets")]
+#[cfg(any(feature = "hot-reloading-assets", feature = "embedded-assets"))]
 impl assets_manager::Compound for Font {
     fn load(
         cache: assets_manager::AnyCache,

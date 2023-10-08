@@ -1,43 +1,63 @@
+use miette::{IntoDiagnostic, Result};
 use pixel_game_lib::{
     font::Font,
+    gui::{button::Button, Gui, GuiBuilder},
     vek::Vec2,
     window::{Key, WindowConfig},
 };
+use taffy::{prelude::Size, style::Style};
 
 /// Open an empty window.
-fn main() {
+fn main() -> Result<()> {
     // Window configuration with default pixel size and scaling
     let window_config = WindowConfig {
         ..Default::default()
     };
 
-    // Load a font for the widgets
+    // Load the font depending on the feature flag
     let font = Font::default();
+
+    // Create a new Gui
+    let mut gui = GuiBuilder::new(Style {
+        // Use the amount of pixels as the calculation size
+        size: Size::from_points(
+            window_config.buffer_size.w as f32,
+            window_config.buffer_size.h as f32,
+        ),
+        ..Default::default()
+    });
+
+    // Create a button attached to the root
+    let button_node = gui.add_widget(
+        Button {
+            ..Default::default()
+        },
+        Style {
+            size: Size::from_points(
+                window_config.buffer_size.w as f32,
+                window_config.buffer_size.h as f32,
+            ),
+            ..Default::default()
+        },
+        gui.root(),
+    )?;
 
     // Open the window and start the game-loop
     pixel_game_lib::window(
-        // We don't use any state so we pass a zero-sized type
-        (),
+        // Use the gui as the state
+        gui.build(),
         window_config.clone(),
         // Update loop exposing input events we can handle, this is where you would handle the game logic
-        |_state, input, _mouse, _dt| {
+        move |gui, input, _mouse, _dt| {
+            let button: &mut Button = gui.widget_mut(button_node).unwrap();
+            button.update();
+
             // Exit when escape is pressed
             input.key_pressed(Key::Escape)
         },
         // Render loop exposing the pixel buffer we can mutate
-        move |_state, canvas, _dt| {
-            // Draw the text at the center of the screen
-            font.render_centered(
-                "pixel-game-lib font example",
-                Vec2::new(
-                    window_config.buffer_size.w / 2,
-                    window_config.buffer_size.h / 2,
-                )
-                .as_(),
-                canvas,
-                window_config.buffer_size,
-            );
-        },
-    )
-    .expect("Error opening window");
+        move |gui, canvas, _dt| {},
+    )?;
+
+    Ok(())
 }

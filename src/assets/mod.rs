@@ -5,15 +5,8 @@ use std::sync::OnceLock;
 
 use assets_manager::{AssetCache, AssetGuard, Compound};
 
-/// Throw an error when neither features are set.
-#[cfg(not(any(feature = "hot-reloading-assets", feature = "embedded-assets")))]
-compile_error!("Either feature \"hot-reloading-assets\" or \"embedded-assets\" must be enabled in conjunction with the `assets` feature.");
-/// Throw an error when both features are set.
-#[cfg(all(feature = "hot-reloading-assets", feature = "embedded-assets"))]
-compile_error!("Feature \"hot-reloading-assets\" or \"embedded-assets\" can not both be enabled at the same time.");
-
 /// How the assets are loaded.
-#[cfg(feature = "hot-reloading-assets")]
+#[cfg(all(feature = "hot-reloading-assets", not(feature = "embedded-assets")))]
 type Assets = AssetCache<assets_manager::source::FileSystem>;
 /// How the assets are loaded.
 #[cfg(feature = "embedded-assets")]
@@ -58,7 +51,7 @@ where
 fn asset_cache() -> &'static Assets {
     let cache = ASSETS.get_or_init(|| {
         // Load the assets from disk, allows hot-reloading
-        #[cfg(feature = "hot-reloading-assets")]
+        #[cfg(all(feature = "hot-reloading-assets", not(feature = "embedded-assets")))]
         let source = assets_manager::source::FileSystem::new("assets").unwrap();
 
         // Embed all assets into the binary

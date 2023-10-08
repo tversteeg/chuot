@@ -32,6 +32,17 @@ impl Sprite {
         );
     }
 
+    /// Draw the sprite as with custom blitting options.
+    pub fn render_options(
+        &self,
+        canvas: &mut [u32],
+        canvas_size: Extent2<usize>,
+        blit_options: &BlitOptions,
+    ) {
+        self.sprite
+            .blit(canvas, canvas_size.into_tuple().into(), blit_options);
+    }
+
     /// Whether a pixel on the image is transparent.
     pub fn is_pixel_transparent(&self, pixel: Vec2<u32>) -> bool {
         let offset: Vec2<i32> = pixel.as_() + self.offset;
@@ -77,7 +88,7 @@ impl Default for Sprite {
     }
 }
 
-#[cfg(feature = "assets")]
+#[cfg(any(feature = "hot-reloading-assets", feature = "embedded-assets"))]
 impl assets_manager::Asset for Sprite {
     // We only support PNG images currently
     const EXTENSION: &'static str = "png";

@@ -37,19 +37,16 @@ default-font = []
 # Simple to use GUI widgets and layout.
 gui = ["dep:taffy"]
 
-# Hot-reload assets from disk when they are saved.
+# Enable assets and hot-reload assets from disk when they are saved.
 #
 # Has no effect when building for the web.
-hot-reloading-assets = ["assets", "assets_manager/hot-reloading"]
-# Include all assets in the binary.
+hot-reloading-assets = ["assets_manager/hot-reloading", "dep:assets_manager", "dep:serde"]
+# Enable assets and include them all in the binary.
 #
 # Always enabled when building for the web.
-embedded-assets = ["assets", "assets_manager/embedded"]
-
-# Simplify loading of external assets.
 #
-# Feature should not be used directly but by choosing either `hot-reloading-assets` or `embedded-assets`.
-assets = ["dep:assets_manager", "dep:serde"]
+# This feature takes precedence over `hot-reloading-assets` when both are set.
+embedded-assets = ["assets_manager/embedded", "dep:assets_manager", "dep:serde"]
 
 [dependencies]
 blit = "0.8.3"

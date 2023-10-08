@@ -33,9 +33,9 @@ pub mod window;
 #[cfg(feature = "window")]
 pub use window::window;
 
-#[cfg(feature = "assets")]
+#[cfg(any(feature = "hot-reloading-assets", feature = "embedded-assets"))]
 pub mod assets;
-#[cfg(feature = "assets")]
+#[cfg(any(feature = "hot-reloading-assets", feature = "embedded-assets"))]
 pub use assets::{asset, asset_owned};
 
 #[cfg(feature = "gui")]
