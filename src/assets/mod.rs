@@ -1,6 +1,3 @@
-pub(crate) mod font;
-pub(crate) mod sprite;
-
 use std::sync::OnceLock;
 
 use assets_manager::{AssetCache, AssetGuard, Compound};

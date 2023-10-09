@@ -48,15 +48,20 @@ fn main() -> Result<()> {
         gui.build(),
         window_config.clone(),
         // Update loop exposing input events we can handle, this is where you would handle the game logic
-        move |gui, input, _mouse, _dt| {
+        move |gui, input, mouse_pos, _dt| {
+            // Update the button manually
             let button: &mut Button = gui.widget_mut(button_node).unwrap();
-            button.update();
+            button.update(input, mouse_pos);
 
             // Exit when escape is pressed
             input.key_pressed(Key::Escape)
         },
         // Render loop exposing the pixel buffer we can mutate
-        move |gui, canvas, _dt| {},
+        move |gui, canvas, _dt| {
+            // Render the button manually
+            let button: &Button = gui.widget(button_node).unwrap();
+            button.render(canvas, window_config.buffer_size.as_());
+        },
     )?;
 
     Ok(())

@@ -2,7 +2,11 @@
 //!
 //! Can be loaded as an asset when the `asset` feature flag is set.
 
-use blit::{Blit, BlitBuffer, BlitOptions};
+use std::borrow::Cow;
+
+use assets_manager::{loader::Loader, Asset, BoxedError};
+use blit::{Blit, BlitBuffer, BlitOptions, ToBlitBuffer};
+use image::ImageFormat;
 use vek::{Extent2, Vec2};
 
 /// Sprite that can be drawn on the  canvas.
@@ -88,18 +92,15 @@ impl Default for Sprite {
     }
 }
 
-#[cfg(any(feature = "hot-reloading-assets", feature = "embedded-assets"))]
-impl assets_manager::Asset for Sprite {
+impl Asset for Sprite {
     // We only support PNG images currently
     const EXTENSION: &'static str = "png";
 
-    type Loader = crate::assets::sprite::SpriteLoader;
+    type Loader = SpriteLoader;
 }
 
 /// Center of the sprite.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
-#[cfg_attr(feature = "serde", derive(Deserialize))]
-#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 pub enum SpriteOffset {
     /// Middle of the sprite will be rendered at `(0, 0)`.
     #[default]
@@ -123,5 +124,20 @@ impl SpriteOffset {
             SpriteOffset::LeftTop => Vec2::zero(),
             SpriteOffset::Custom(offset) => *offset,
         }
+    }
+}
+
+/// Sprite asset loader.
+pub struct SpriteLoader;
+
+impl Loader<Sprite> for SpriteLoader {
+    fn load(content: Cow<[u8]>, _ext: &str) -> Result<Sprite, BoxedError> {
+        let sprite = image::load_from_memory_with_format(&content, ImageFormat::Png)?
+            .into_rgba8()
+            .to_blit_buffer_with_alpha(127);
+
+        let offset = Vec2::zero();
+
+        Ok(Sprite { sprite, offset })
     }
 }

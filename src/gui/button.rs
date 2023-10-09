@@ -7,6 +7,7 @@ use super::Widget;
 use blit::BlitOptions;
 use taffy::prelude::{Layout, Node};
 use vek::{Extent2, Rect, Vec2};
+use winit_input_helper::WinitInputHelper;
 
 /// A simple button widget.
 #[derive(Debug)]
@@ -31,7 +32,7 @@ impl Button {
     /// Handle the input.
     ///
     /// Return when the button is released.
-    pub fn update(&mut self) -> bool {
+    pub fn update(&mut self, input: &WinitInputHelper, mouse_pos: Option<Vec2<usize>>) -> bool {
         let mut rect = Rect::new(self.offset.x, self.offset.y, self.size.w, self.size.h);
         if let Some(mut click_region) = self.click_region {
             click_region.x += self.offset.x;
@@ -39,7 +40,36 @@ impl Button {
             rect = rect.union(click_region);
         }
 
-        todo!()
+        match self.state {
+            State::Normal => {
+                if let Some(mouse_pos) = mouse_pos {
+                    if !input.mouse_held(0) && rect.contains_point(mouse_pos.as_()) {
+                        self.state = State::Hover;
+                    }
+                }
+
+                false
+            }
+            State::Hover => {
+                if let Some(mouse_pos) = mouse_pos {
+                    if !rect.contains_point(mouse_pos.as_()) {
+                        self.state = State::Normal;
+                    } else if input.mouse_pressed(0) {
+                        self.state = State::Down;
+                    }
+                }
+
+                false
+            }
+            State::Down => {
+                if input.mouse_released(0) {
+                    self.state = State::Normal;
+                    true
+                } else {
+                    false
+                }
+            }
+        }
     }
 
     /// Render the slider.
@@ -65,8 +95,6 @@ impl Button {
             );
         }
         */
-
-        todo!()
     }
 
     /// Update from layout changes.

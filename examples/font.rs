@@ -5,25 +5,15 @@ use pixel_game_lib::{
 };
 
 /// Load the font from disk or embedded if using external assets.
-#[cfg(any(feature = "hot-reloading-assets", feature = "embedded-assets"))]
+#[cfg(not(feature = "default-font"))]
 fn font() -> Font {
     pixel_game_lib::asset_owned("Beachball")
 }
 /// Use the default font if using the `default-font` feature flag.
-#[cfg(all(
-    not(any(feature = "hot-reloading-assets", feature = "embedded-assets")),
-    feature = "default-font"
-))]
+#[cfg(feature = "default-font")]
 fn font() -> Font {
     Font::default()
 }
-/// Throw an error when none of the features are loaded.
-#[cfg(not(any(
-    feature = "hot-reloading-assets",
-    feature = "embedded-assets",
-    feature = "default-font"
-)))]
-compile_error!("Either feature \"assets\" or \"default-font\" must be enabled for this example.");
 
 /// Open an empty window.
 fn main() {
