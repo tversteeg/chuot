@@ -45,8 +45,8 @@ winit_input_helper = "0.14.1"
 taffy = "0.3.15"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-tokio = { version = "1.32.0", features = ["macros", "sync", "rt-multi-thread"] }
 assets_manager = { version = "0.10.2", default-features = false, features = ["toml", "png", "embedded"] }
+tokio = { version = "1.33.0", features = ["macros", "sync", "rt-multi-thread"], optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 web-sys = { version = "0.3.64", features = ["CanvasRenderingContext2d", "Document", "Element", "HtmlCanvasElement", "ImageData", "Window"] }
