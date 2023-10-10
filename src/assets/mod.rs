@@ -3,7 +3,7 @@ use std::sync::OnceLock;
 use assets_manager::{AssetCache, AssetGuard, Compound};
 
 /// How the assets are loaded.
-#[cfg(all(feature = "hot-reloading-assets", not(feature = "embedded-assets")))]
+#[cfg(not(feature = "embedded-assets"))]
 type Assets = AssetCache<assets_manager::source::FileSystem>;
 /// How the assets are loaded.
 #[cfg(feature = "embedded-assets")]
@@ -48,7 +48,7 @@ where
 fn asset_cache() -> &'static Assets {
     let cache = ASSETS.get_or_init(|| {
         // Load the assets from disk, allows hot-reloading
-        #[cfg(all(feature = "hot-reloading-assets", not(feature = "embedded-assets")))]
+        #[cfg(not(feature = "embedded-assets"))]
         let source = assets_manager::source::FileSystem::new("assets").unwrap();
 
         // Embed all assets into the binary
