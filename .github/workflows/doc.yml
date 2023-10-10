@@ -12,9 +12,8 @@ jobs:
           # Needed for the amend
           fetch-depth: 2
 
-      - uses: cargo-bins/cargo-binstall@main
-
       - name: Install cargo-rdme
+        uses: cargo-bins/cargo-binstall@main
         run: cargo binstall cargo-rdme -y
 
       - name: Get last commit message
@@ -23,7 +22,7 @@ jobs:
           echo "msg=$(git log -1 --pretty=%s)" >> $GITHUB_OUTPUT
 
       - name: Run cargo-rdme
-        run: cargo rdme --heading-base-level 1
+        run: cargo rdme
 
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:

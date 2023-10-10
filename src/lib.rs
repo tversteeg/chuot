@@ -1,4 +1,4 @@
-//! Utility library for game, not a game engines.
+//! Utility library for games, not a game engines.
 //!
 //! # Features
 //!

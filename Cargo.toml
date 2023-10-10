@@ -60,11 +60,11 @@ name = "window"
 
 [[example]]
 name = "font"
-required-features = ["default-font"]
+required-features = []
 
 [[example]]
 name = "gui"
-required-features = ["default-font", "gui", "window"]
+required-features = ["default-font"]
 
 [workspace]
 members = ["run-wasm"]
