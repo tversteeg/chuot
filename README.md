@@ -1,6 +1,6 @@
 # pixel-game-lib
 
-A Rust utility library for creating pixel based games, not a game engine
+A Rust utility library for creating pixel based games, not a game engine.
 
 [![Build Status](https://github.com/tversteeg/pixel-game-lib/workflows/CI/badge.svg)](https://github.com/tversteeg/pixel-game-lib/actions?workflow=CI)
 [![Crates.io](https://img.shields.io/crates/v/pixel-game-lib.svg)](https://crates.io/crates/pixel-game-lib)
@@ -10,11 +10,24 @@ A Rust utility library for creating pixel based games, not a game engine
 
 ### [Documentation](https://docs.rs/pixel-game-lib/)
 
-## Usage
+<!-- cargo-rdme start -->
 
-Add this to your `Cargo.toml`:
+Utility library for games.
 
-```toml
-[dependencies]
-pixel-game-lib = "0.2"
-```
+#### Features
+
+###### `default-font`
+
+Implements [`Default`] for [`font::Font`] with a font that's embedded into memory.
+
+###### `hot-reloading-assets` (default)
+
+Hot-reload assets from disk when they are saved.
+Has no effect on the web target.
+
+###### `embedded-assets` (default on web)
+
+Bake _all_ assets in the `assets/` folder in the binary.
+When creating a release binary this feature flag should be enabled.
+
+<!-- cargo-rdme end -->
