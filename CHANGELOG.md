@@ -6,6 +6,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.2.0...pixel-game-lib-v0.3.0) - 2023-10-10
+
+### Added
+- base structure for gui feature
+- implement font & sprite asset loading
+- assets features
+- default-font feature loading image from memory
+
+### Fixed
+- *(assets)* feature flags
+
+### Other
+- *(ci)* fix
+- merge main
+- *(ci)* generate README.md from lib.rs
+- [**breaking**] remove all feature flags
+- [**breaking**] remove `assets` feature flag
+- [**breaking**] overhaul all feature flags
+- [**breaking**] re-export less in the crate root
+
 ## [0.2.0](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.1.0...pixel-game-lib-v0.2.0) - 2023-10-02
 
 ### Added
