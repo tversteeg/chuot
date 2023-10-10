@@ -27,7 +27,7 @@ jobs:
           args: --all -- --check
 
   # Run test check on Linux, macOS, and Windows
-  compile:
+  test:
     name: Test
     runs-on: ${{ matrix.os }}
     strategy:
@@ -52,7 +52,7 @@ jobs:
       - uses: taiki-e/install-action@cargo-hack
 
       # Test all feature combinations on the target platform
-      - name: Compile
+      - name: Test
         run: cargo hack --feature-powerset test
 
   # Build the WASM target & push it to GitHub pages
