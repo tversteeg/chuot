@@ -1,7 +1,5 @@
 # pixel-game-lib
 
-A Rust utility library for creating pixel based games, not a game engine.
-
 [![Build Status](https://github.com/tversteeg/pixel-game-lib/workflows/CI/badge.svg)](https://github.com/tversteeg/pixel-game-lib/actions?workflow=CI)
 [![Crates.io](https://img.shields.io/crates/v/pixel-game-lib.svg)](https://crates.io/crates/pixel-game-lib)
 [![Documentation](https://docs.rs/pixel-game-lib/badge.svg)](https://docs.rs/pixel-game-lib)
@@ -12,9 +10,16 @@ A Rust utility library for creating pixel based games, not a game engine.
 
 <!-- cargo-rdme start -->
 
-Utility library for games, not a game engines.
+Utility library for games, not a game engine.
 
 ## Features
+
+- Window creation with game loop and pixel buffer.
+- Asset management.
+- Bitmap font drawing.
+- Sprite loading.
+
+## Feature Flags
 
 #### `default-font`
 

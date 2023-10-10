@@ -1,6 +1,13 @@
-//! Utility library for games, not a game engines.
+//! Utility library for games, not a game engine.
 //!
 //! # Features
+//!
+//! - Window creation with game loop and pixel buffer.
+//! - Asset management.
+//! - Bitmap font drawing.
+//! - Sprite loading.
+//!
+//! # Feature Flags
 //!
 //! ### `default-font`
 //!
