@@ -1,9 +1,5 @@
 name: Readme
-on:
-  push:
-    paths-ignore:
-      - "docs/**"
-      - "**.md"
+on: push
 
 jobs:
   # Generate the readme from lib.rs
