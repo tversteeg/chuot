@@ -16,51 +16,55 @@ categories = [
 ]
 
 [features]
-default = ["window", "font"]
+default = ["hot-reloading-assets"]
 
-# Open a desktop or web-based WASM window with a game-loop.
-window = [
-	"dep:game-loop",
-	"dep:pixels",
-	"dep:winit",
-	"dep:winit_input_helper",
-	"dep:tokio",
-	"dep:web-sys",
-	"dep:wasm-bindgen",
-	"dep:wasm-bindgen-futures",
-	"dep:console_error_panic_hook",
-]
-# Render a bitmap pixel font.
-font = ["dep:blit"]
 # Embed a default pixel font.
-default-font = ["font", "dep:image", "blit/image"]
+default-font = []
+
+# Enable assets and hot-reload assets from disk when they are saved.
+#
+# Has no effect when building for the web.
+hot-reloading-assets = ["assets_manager/hot-reloading"]
+# Enable assets and include them all in the binary.
+#
+# Always enabled when building for the web.
+#
+# This feature takes precedence over `hot-reloading-assets` when both are set.
+embedded-assets = ["assets_manager/embedded"]
 
 [dependencies]
-blit = { version = "0.8.3", optional = true, default-features = false }
-game-loop = { version = "1.0.0", features = ["winit"], optional = true }
-image = { version = "0.24.7", optional = true }
+blit = "0.8.3"
+image = "0.24.7"
 miette = "5.10.0"
-pixels = { version = "0.13.0", optional = true }
 vek = "0.16.1"
-winit = { version = "0.28.7", optional = true }
-winit_input_helper = { version = "0.14.1", optional = true }
+game-loop = { version = "1.0.0", features = ["winit"] }
+pixels = "0.13.0"
+serde = { version = "1.0.188", features = ["derive"] }
+winit = "0.28.7"
+winit_input_helper = "0.14.1"
+taffy = "0.3.15"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+assets_manager = { version = "0.10.2", default-features = false, features = ["toml", "png", "embedded"] }
 tokio = { version = "1.33.0", features = ["macros", "sync", "rt-multi-thread"], optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-web-sys = { version = "0.3.64", features = ["CanvasRenderingContext2d", "Document", "Element", "HtmlCanvasElement", "ImageData", "Window"], optional = true }
-wasm-bindgen = { version = "0.2.87", optional = true }
-wasm-bindgen-futures = { version = "0.4.37", optional = true }
-console_error_panic_hook = { version = "0.1.7", optional = true }
+web-sys = { version = "0.3.64", features = ["CanvasRenderingContext2d", "Document", "Element", "HtmlCanvasElement", "ImageData", "Window"] }
+wasm-bindgen = "0.2.87"
+wasm-bindgen-futures = "0.4.37"
+console_error_panic_hook = "0.1.7"
+assets_manager = { version = "0.10.2", default-features = false, features = ["toml", "png", "embedded"] }
 
 [[example]]
 name = "window"
-required-features = ["window"]
 
 [[example]]
 name = "font"
-required-features = ["font", "default-font", "window"]
+required-features = ["default-font"]
+
+[[example]]
+name = "gui"
+required-features = ["default-font", "gui", "window"]
 
 [workspace]
 members = ["run-wasm"]

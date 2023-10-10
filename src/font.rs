@@ -1,17 +1,17 @@
 //! Render a simple ASCII bitmap font.
-//!
-//! Requires the `font` feature flag.
 
+use assets_manager::{loader::TomlLoader, AnyCache, Asset, BoxedError, Compound, SharedString};
 use blit::{prelude::SubRect, Blit, BlitBuffer, BlitOptions, ToBlitBuffer};
+use serde::Deserialize;
 use vek::{Extent2, Vec2};
 
 /// Pixel font loaded from an image.
 #[derive(Debug)]
 pub struct Font {
     /// Image to render.
-    sprite: BlitBuffer,
+    pub(crate) sprite: BlitBuffer,
     /// Size of a single character.
-    char_size: Extent2<u8>,
+    pub(crate) char_size: Extent2<u8>,
 }
 
 impl Font {
@@ -125,4 +125,34 @@ impl Default for Font {
 
         Self { sprite, char_size }
     }
+}
+
+impl Compound for Font {
+    fn load(cache: AnyCache, id: &SharedString) -> Result<Self, BoxedError> {
+        // Load the sprite
+        let sprite = cache
+            .load_owned::<crate::sprite::Sprite>(id)?
+            .into_blit_buffer();
+
+        // Load the metadata
+        let metadata = cache.load::<FontMetadata>(id)?.read();
+        let char_size = Extent2::new(metadata.char_width, metadata.char_height);
+
+        Ok(Self { sprite, char_size })
+    }
+}
+
+/// Font metadata to load.
+#[derive(Deserialize)]
+pub(crate) struct FontMetadata {
+    /// Width of a single character.
+    pub(crate) char_width: u8,
+    /// Height of a single character.
+    pub(crate) char_height: u8,
+}
+
+impl Asset for FontMetadata {
+    const EXTENSION: &'static str = "toml";
+
+    type Loader = TomlLoader;
 }

@@ -4,10 +4,6 @@ on:
     paths-ignore:
       - "docs/**"
       - "**.md"
-  pull_request:
-    paths-ignore:
-      - "docs/**"
-      - "**.md"
 
 jobs:
   # Check for formatting
@@ -79,13 +75,14 @@ jobs:
 
       # Build the WASM 
       - name: Build
-        run: cargo run --package run-wasm -- --example window --no-default-features --features window --release --build-only
+        run: cargo run --package run-wasm -- --example window --release --build-only
 
       # Deploy to GitHub pages
       - name: Deploy to GitHub Pages
-        uses: s0/git-publish-subdir-action@master
+        uses: peaceiris/actions-gh-pages@v3
+        if: github.ref == 'refs/heads/main'
         env:
-          REPO: self
-          BRANCH: gh-pages
-          FOLDER: target/wasm-examples/window
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./target/wasm-examples/window
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          cname: tversteeg.nl
+          force_orphan: true

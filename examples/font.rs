@@ -4,6 +4,17 @@ use pixel_game_lib::{
     window::{Key, WindowConfig},
 };
 
+/// Load the font from disk or embedded if using external assets.
+#[cfg(not(feature = "default-font"))]
+fn font() -> Font {
+    pixel_game_lib::asset_owned("Beachball")
+}
+/// Use the default font if using the `default-font` feature flag.
+#[cfg(feature = "default-font")]
+fn font() -> Font {
+    Font::default()
+}
+
 /// Open an empty window.
 fn main() {
     // Window configuration with default pixel size and scaling
@@ -11,8 +22,8 @@ fn main() {
         ..Default::default()
     };
 
-    // Load the default font, requires 'default-font' feature to be on
-    let font = Font::default();
+    // Load a font for the widgets
+    let font = font();
 
     // Open the window and start the game-loop
     pixel_game_lib::window(
