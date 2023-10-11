@@ -1,6 +1,10 @@
 use std::any::Any;
 
-use crate::sprite::Sprite;
+use crate::{
+    assets::{AssetOrPath, LoadedAsset},
+    font::Font,
+    sprite::Sprite,
+};
 
 use super::Widget;
 
@@ -26,6 +30,8 @@ pub struct Button {
     pub state: State,
     /// Taffy layout node.
     pub node: Node,
+    /// Where to load the assets.
+    pub assets: ButtonAssetPaths,
 }
 
 impl Button {
@@ -72,29 +78,31 @@ impl Button {
         }
     }
 
-    /// Render the slider.
-    pub fn render(&self, canvas: &mut [u32], canvas_size: Extent2<f64>) {
-        /*
-        let button = crate::asset::<Sprite, _>(match self.state {
-            State::Normal => "button-normal",
-            State::Hover => "button-hover",
-            State::Down => "button-down",
-        });
+    /// Render the button.
+    pub fn render(&self, canvas: &mut [u32], canvas_size: Extent2<usize>) {
+        let button: LoadedAsset<Sprite> = match self.state {
+            State::Normal => &self.assets.normal,
+            State::Hover => &self.assets.hover,
+            State::Down => &self.assets.down,
+        }
+        .into();
         button.render_options(
             canvas,
+            canvas_size,
             &BlitOptions::new_position(self.offset.x, self.offset.y)
                 .with_slice9((2, 2, 1, 2))
                 .with_area((self.size.w, self.size.h)),
         );
 
         if let Some(label) = &self.label {
-            crate::font().render_centered(
+            let font: LoadedAsset<Font> = (&self.assets.font).into();
+            font.render_centered(
                 label,
                 self.offset + (self.size.w / 2.0, self.size.h / 2.0),
                 canvas,
+                canvas_size,
             );
         }
-        */
     }
 
     /// Update from layout changes.
@@ -125,6 +133,7 @@ impl Default for Button {
             state: State::default(),
             click_region: None,
             node: Node::default(),
+            assets: ButtonAssetPaths::default(),
         }
     }
 }
@@ -139,4 +148,31 @@ pub enum State {
     Hover,
     /// Button is hold down.
     Down,
+}
+
+/// Asset paths for the sprites used for drawing a button.
+#[derive(Debug)]
+pub struct ButtonAssetPaths {
+    /// Normal background, when not hovering or pressing.
+    pub normal: AssetOrPath<Sprite>,
+    /// Hover background, when the mouse is over the button but not pressing it.
+    pub hover: AssetOrPath<Sprite>,
+    /// Down background, when the mouse is pressing on the button.
+    pub down: AssetOrPath<Sprite>,
+    /// Font asset path.
+    pub font: AssetOrPath<Font>,
+}
+
+impl Default for ButtonAssetPaths {
+    fn default() -> Self {
+        Self {
+            normal: "button-normal".into(),
+            hover: "button-hover".into(),
+            down: "button-down".into(),
+            #[cfg(feature = "default-font")]
+            font: AssetOrPath::Owned(Font::default()),
+            #[cfg(not(feature = "default-font"))]
+            font: "font".into(),
+        }
+    }
 }

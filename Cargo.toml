@@ -42,7 +42,8 @@ pixels = "0.13.0"
 serde = { version = "1.0.188", features = ["derive"] }
 winit = "0.28.7"
 winit_input_helper = "0.14.1"
-taffy = "0.3.15"
+taffy = "0.3.16"
+derive-where = "1.2.5"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 assets_manager = { version = "0.10.2", default-features = false, features = ["toml", "png", "embedded"] }
