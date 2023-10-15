@@ -60,7 +60,7 @@ fn main() -> Result<()> {
         move |gui, canvas, _dt| {
             // Render the button manually
             let button: &Button = gui.widget(button_node).unwrap();
-            button.render(canvas, window_config.buffer_size.as_());
+            button.render(canvas);
         },
     )?;
 

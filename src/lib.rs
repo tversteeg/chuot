@@ -23,6 +23,7 @@
 //! Bake _all_ assets in the `assets/` folder in the binary.
 //! When creating a release binary this feature flag should be enabled.
 
+pub mod canvas;
 pub mod font;
 pub mod sprite;
 

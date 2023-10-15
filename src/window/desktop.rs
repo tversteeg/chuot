@@ -15,6 +15,8 @@ use winit::{
 };
 use winit_input_helper::WinitInputHelper;
 
+use crate::canvas::Canvas;
+
 use super::WindowConfig;
 
 /// Desktop implementation of opening a window.
@@ -34,7 +36,7 @@ pub(crate) fn window<G, U, R, H>(
 where
     G: 'static,
     U: FnMut(&mut G, &WinitInputHelper, Option<Vec2<usize>>, f32) -> bool + 'static,
-    R: FnMut(&mut G, &mut [u32], f32) + 'static,
+    R: FnMut(&mut G, &mut Canvas, f32) + 'static,
     H: FnMut(&mut GameLoop<(G, Pixels, WinitInputHelper), Time, Arc<Window>>, &Event<'_, ()>)
         + 'static,
 {
@@ -91,7 +93,13 @@ where
         },
         move |g| {
             let frame_time = g.last_frame_time();
-            render(&mut g.game.0, &mut buffer, frame_time as f32);
+
+            // Wrap the buffer in a canvas with the size
+            let buffer = buffer.as_mut_slice();
+            let size = buffer_size;
+            let mut canvas = Canvas { size, buffer };
+
+            render(&mut g.game.0, &mut canvas, frame_time as f32);
 
             // Blit draws the pixels in RGBA format, but the pixels crate expects BGRA, so convert it
             g.game

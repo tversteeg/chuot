@@ -21,6 +21,8 @@ use winit::{
 };
 use winit_input_helper::WinitInputHelper;
 
+use crate::canvas::Canvas;
+
 /// Window configuration.
 #[derive(Debug, Clone)]
 pub struct WindowConfig {
@@ -72,7 +74,7 @@ pub fn window<G, U, R>(
 where
     G: 'static,
     U: FnMut(&mut G, &WinitInputHelper, Option<Vec2<usize>>, f32) -> bool + 'static,
-    R: FnMut(&mut G, &mut [u32], f32) + 'static,
+    R: FnMut(&mut G, &mut Canvas, f32) + 'static,
 {
     // Build the window builder with the event loop the user supplied
     let logical_size = LogicalSize::new(

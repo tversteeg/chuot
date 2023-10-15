@@ -2,6 +2,7 @@ use std::any::Any;
 
 use crate::{
     assets::{AssetOrPath, LoadedAsset},
+    canvas::Canvas,
     font::Font,
     sprite::Sprite,
 };
@@ -79,20 +80,14 @@ impl Button {
     }
 
     /// Render the button.
-    pub fn render(&self, canvas: &mut [u32], canvas_size: Extent2<usize>) {
+    pub fn render(&self, canvas: &mut Canvas) {
         let button: LoadedAsset<Sprite> = match self.state {
             State::Normal => &self.assets.normal,
             State::Hover => &self.assets.hover,
             State::Down => &self.assets.down,
         }
         .into();
-        button.render_options(
-            canvas,
-            canvas_size,
-            &BlitOptions::new_position(self.offset.x, self.offset.y)
-                .with_slice9((2, 2, 1, 2))
-                .with_area((self.size.w, self.size.h)),
-        );
+        button.render_area(self.offset, self.size.as_(), canvas);
 
         if let Some(label) = &self.label {
             let font: LoadedAsset<Font> = (&self.assets.font).into();
@@ -100,7 +95,6 @@ impl Button {
                 label,
                 self.offset + (self.size.w / 2.0, self.size.h / 2.0),
                 canvas,
-                canvas_size,
             );
         }
     }

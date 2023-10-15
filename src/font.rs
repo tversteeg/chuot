@@ -5,6 +5,8 @@ use blit::{prelude::SubRect, Blit, BlitBuffer, BlitOptions, ToBlitBuffer};
 use serde::Deserialize;
 use vek::{Extent2, Vec2};
 
+use crate::canvas::Canvas;
+
 /// Pixel font loaded from an image.
 #[derive(Debug)]
 pub struct Font {
@@ -42,13 +44,7 @@ impl Font {
     /// Render ASCII text on a pixel buffer.
     ///
     /// Start from the top-left.
-    pub fn render(
-        &self,
-        text: &str,
-        position: Vec2<f64>,
-        canvas: &mut [u32],
-        canvas_size: Extent2<usize>,
-    ) {
+    pub fn render(&self, text: &str, position: Vec2<f64>, canvas: &mut Canvas) {
         // First character in the image
         let char_start = '!';
         let char_end = '~';
@@ -78,8 +74,8 @@ impl Font {
 
             // Draw the character
             self.sprite.blit(
-                canvas,
-                canvas_size.into_tuple().into(),
+                canvas.buffer,
+                canvas.size.into_tuple().into(),
                 &BlitOptions::new_position(x, y).with_sub_rect(SubRect::new(
                     char_offset,
                     0,
@@ -93,13 +89,7 @@ impl Font {
     ///
     /// Center the text around the point.
     /// Currently does not support multi-line strings yet.
-    pub fn render_centered(
-        &self,
-        text: &str,
-        position: Vec2<f64>,
-        canvas: &mut [u32],
-        canvas_size: Extent2<usize>,
-    ) {
+    pub fn render_centered(&self, text: &str, position: Vec2<f64>, canvas: &mut Canvas) {
         self.render(
             text,
             position
@@ -108,7 +98,6 @@ impl Font {
                     self.char_size.h as f64 / 2.0,
                 ),
             canvas,
-            canvas_size,
         )
     }
 }
@@ -142,7 +131,7 @@ impl Compound for Font {
     }
 }
 
-/// Font metadata to load.
+/// Font metadata to load from TOML.
 #[derive(Deserialize)]
 pub(crate) struct FontMetadata {
     /// Width of a single character.

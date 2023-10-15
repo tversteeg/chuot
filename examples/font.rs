@@ -46,7 +46,6 @@ fn main() {
                 )
                 .as_(),
                 canvas,
-                window_config.buffer_size,
             );
         },
     )

@@ -33,7 +33,7 @@ hot-reloading-assets = ["assets_manager/hot-reloading"]
 embedded-assets = ["assets_manager/embedded"]
 
 [dependencies]
-blit = "0.8.3"
+blit = { version = "0.8.4", features = ["serde"] }
 image = "0.24.7"
 miette = "5.10.0"
 vek = "0.16.1"
