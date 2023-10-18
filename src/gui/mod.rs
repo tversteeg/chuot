@@ -7,7 +7,13 @@ pub mod button;
 use std::{any::Any, collections::HashMap};
 
 use miette::{Context, IntoDiagnostic, Result};
-use taffy::{prelude::Node, style::Style, Taffy};
+use taffy::{
+    prelude::{Node, Size},
+    style::Style,
+    style_helpers::TaffyMaxContent,
+    tree::LayoutTree,
+    Taffy,
+};
 use vek::{Extent2, Vec2};
 
 /// Allow calling function on widgets in a simple way.
@@ -37,7 +43,7 @@ impl GuiBuilder {
     ///
     /// # Arguments
     ///
-    /// * `root_layout` - Layout for the root node.
+    /// * `root_layout` - Layout for the root node. Size will be automatically set by the [`Widget::update_layout`] trait call.
     pub fn new(root_layout: Style) -> Self {
         let widgets = HashMap::new();
         let mut layout = Taffy::new();
@@ -164,5 +170,63 @@ impl Gui {
                     )
                 })
             })
+    }
+}
+
+impl Widget for Gui {
+    fn update_layout(&mut self, location: Vec2<f64>, size: Extent2<f64>) {
+        // Update root node layout
+        let mut root_style = self.layout.style(self.root).unwrap().clone();
+        root_style.size = Size::from_points(size.w as f32, size.h as f32);
+        self.layout.set_style(self.root, root_style).unwrap();
+
+        // Compute the new layout
+        self.layout
+            .compute_layout(self.root, Size::MAX_CONTENT)
+            .expect("Computing layout failed");
+
+        // Update all child widget layouts
+        self.widgets
+            .iter_mut()
+            // We need to calculate the location recursively
+            .map(|(node, widget)| {
+                // Find the absolute location of this node by traversing the node tree
+                let layout = self.layout.layout(*node).unwrap().location;
+                let mut widget_location = Vec2::new(layout.x as f64, layout.y as f64);
+
+                // Offset by the root offset
+                widget_location += location;
+
+                let mut previous_node = *node;
+                while let Some(parent) = self.layout.parent(previous_node) {
+                    let layout = self.layout.layout(parent).unwrap().location;
+                    widget_location.x += layout.x as f64;
+                    widget_location.y += layout.y as f64;
+
+                    previous_node = parent;
+                }
+
+                (node, widget, widget_location)
+            })
+            // Update the layout of all widgets
+            .for_each(|(node, widget, location)| {
+                // The size is stored
+                let size = self
+                    .layout
+                    .layout(*node)
+                    .expect("Could not get layout for widget node")
+                    .size;
+
+                // Can't use iter_mut above because of mutable borrow
+                widget.update_layout(location, Extent2::new(size.width, size.height).as_());
+            });
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
     }
 }

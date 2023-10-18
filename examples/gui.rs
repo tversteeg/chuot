@@ -1,7 +1,7 @@
 use miette::{IntoDiagnostic, Result};
 use pixel_game_lib::{
     font::Font,
-    gui::{button::Button, Gui, GuiBuilder},
+    gui::{button::Button, Gui, GuiBuilder, Widget},
     vek::Vec2,
     window::{Key, WindowConfig},
 };
@@ -33,10 +33,7 @@ fn main() -> Result<()> {
             ..Default::default()
         },
         Style {
-            size: Size::from_points(
-                window_config.buffer_size.w as f32,
-                window_config.buffer_size.h as f32,
-            ),
+            size: Size::from_points(30.0, 30.0),
             ..Default::default()
         },
         gui.root(),
@@ -49,6 +46,9 @@ fn main() -> Result<()> {
         window_config.clone(),
         // Update loop exposing input events we can handle, this is where you would handle the game logic
         move |gui, input, mouse_pos, _dt| {
+            // Update the GUI to fill the screen
+            gui.update_layout(Vec2::zero(), window_config.buffer_size.as_());
+
             // Update the button manually
             let button: &mut Button = gui.widget_mut(button_node).unwrap();
             button.update(input, mouse_pos);
@@ -58,6 +58,9 @@ fn main() -> Result<()> {
         },
         // Render loop exposing the pixel buffer we can mutate
         move |gui, canvas, _dt| {
+            // Reset the canvas
+            canvas.fill(0xFFFFFFFF);
+
             // Render the button manually
             let button: &Button = gui.widget(button_node).unwrap();
             button.render(canvas);

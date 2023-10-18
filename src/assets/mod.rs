@@ -46,7 +46,7 @@ impl<T: Compound> Deref for LoadedAsset<'_, T> {
     fn deref(&self) -> &Self::Target {
         match &self {
             LoadedAsset::Guard(guard) => guard.deref(),
-            LoadedAsset::Ref(reference) => *reference,
+            LoadedAsset::Ref(reference) => reference,
         }
     }
 }

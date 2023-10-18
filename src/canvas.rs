@@ -25,6 +25,12 @@ impl<'a> Canvas<'a> {
         }
     }
 
+    /// Fill the canvas with a single color.
+    #[inline]
+    pub fn fill(&mut self, color: u32) {
+        self.buffer.fill(color);
+    }
+
     /// Get the raw buffer of pixels.
     #[inline]
     pub fn raw_buffer(&mut self) -> &mut [u32] {

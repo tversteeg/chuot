@@ -98,9 +98,6 @@ impl Button {
             );
         }
     }
-
-    /// Update from layout changes.
-    pub fn update_layout(&mut self, location: Vec2<f64>, layout: &Layout) {}
 }
 
 impl Widget for Button {
