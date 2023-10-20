@@ -9,8 +9,7 @@ use crate::{
 
 use super::Widget;
 
-use blit::BlitOptions;
-use taffy::prelude::{Layout, Node};
+use taffy::prelude::Node;
 use vek::{Extent2, Rect, Vec2};
 use winit_input_helper::WinitInputHelper;
 

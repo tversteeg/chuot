@@ -44,7 +44,7 @@ fn main() {
             let pixels_to_draw = state.pixels_to_draw.min(max_pixels_to_draw);
 
             // Draw a red color for each pixel
-            canvas[0..pixels_to_draw].fill(0xFFFF0000);
+            canvas.raw_buffer()[0..pixels_to_draw].fill(0xFFFF0000);
         },
     )
     .expect("Error opening window");
