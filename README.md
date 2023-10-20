@@ -12,25 +12,25 @@
 
 Utility library for games, not a game engine.
 
-## Features
+#### Features
 
 - Window creation with game loop and pixel buffer.
 - Asset management.
 - Bitmap font drawing.
 - Sprite loading.
 
-## Feature Flags
+#### Feature Flags
 
-#### `default-font`
+###### `default-font`
 
 Implements [`Default`] for [`font::Font`] with a font that's embedded into memory.
 
-#### `hot-reloading-assets` (default)
+###### `hot-reloading-assets` (default)
 
 Hot-reload assets from disk when they are saved.
 Has no effect on the web target.
 
-#### `embedded-assets` (default on web)
+###### `embedded-assets` (default on web)
 
 Bake _all_ assets in the `assets/` folder in the binary.
 When creating a release binary this feature flag should be enabled.

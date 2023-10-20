@@ -75,7 +75,7 @@ jobs:
 
       # Build the WASM 
       - name: Build
-        run: cargo run --package run-wasm -- --example window --release --build-only
+        run: cargo run --package run-wasm -- --example gui --features default-font --release --build-only
 
       # Deploy to GitHub pages
       - name: Deploy to GitHub Pages
@@ -83,5 +83,5 @@ jobs:
         env:
           REPO: self
           BRANCH: gh-pages
-          FOLDER: target/wasm-examples/window
+          FOLDER: target/wasm-examples/gui
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
