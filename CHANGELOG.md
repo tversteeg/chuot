@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.3.1](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.3.0...pixel-game-lib-v0.3.1) - 2023-10-21
 
 ### Other
-- *(window)* re-export winit_input_helper::WinitInputHelper as window::Input
+- *(window)* re-export `winit_input_helper::WinitInputHelper` as `window::Input`
 
 ## [0.3.0](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.2.0...pixel-game-lib-v0.3.0) - 2023-10-20
 
