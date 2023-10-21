@@ -6,7 +6,7 @@ mod web;
 /// Re-export winit types.
 pub use winit::{dpi::PhysicalSize, event::VirtualKeyCode as Key};
 /// Re-export winit_input_helper type.
-pub use winit_input_helper::TextChar;
+pub use winit_input_helper::{TextChar, WinitInputHelper as Input};
 
 use std::sync::Arc;
 
