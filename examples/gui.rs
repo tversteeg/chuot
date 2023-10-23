@@ -1,7 +1,11 @@
 use miette::{IntoDiagnostic, Result};
 use pixel_game_lib::{
     font::Font,
-    gui::{button::Button, label::Label, Gui, GuiBuilder, Widget},
+    gui::{
+        button::{Button, ButtonRef},
+        label::{Label, LabelRef},
+        Gui, GuiBuilder, Widget,
+    },
     vek::Vec2,
     window::{Key, WindowConfig},
 };
@@ -33,7 +37,7 @@ fn main() -> Result<()> {
     });
 
     // Create a button attached to the root
-    let button_node = gui.add_widget(
+    let button_node = gui.add_widget::<ButtonRef>(
         Button {
             label: Some("Press me!".to_string()),
             ..Default::default()
@@ -46,7 +50,7 @@ fn main() -> Result<()> {
     )?;
 
     // Create a label showing how many times the button is pressed
-    let label_node = gui.add_widget(
+    let label_node = gui.add_widget::<LabelRef>(
         Label {
             label: "Button not pressed yet".to_string(),
             ..Default::default()

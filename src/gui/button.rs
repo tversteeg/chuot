@@ -7,7 +7,7 @@ use crate::{
     sprite::Sprite,
 };
 
-use super::Widget;
+use super::{Widget, WidgetRef};
 
 use taffy::prelude::Node;
 use vek::{Extent2, Rect, Vec2};
@@ -165,5 +165,27 @@ impl Default for ButtonAssetPaths {
             #[cfg(not(feature = "default-font"))]
             font: "font".into(),
         }
+    }
+}
+
+/// Gui reference for retrieving constructed buttons.
+///
+/// See [`WidgetRef`].
+#[derive(Copy, Clone)]
+pub struct ButtonRef(Node);
+
+impl WidgetRef for ButtonRef {
+    type Widget = Button;
+}
+
+impl From<ButtonRef> for Node {
+    fn from(val: ButtonRef) -> Self {
+        val.0
+    }
+}
+
+impl From<Node> for ButtonRef {
+    fn from(value: Node) -> Self {
+        Self(value)
     }
 }

@@ -6,7 +6,7 @@ use crate::{
     font::Font,
 };
 
-use super::Widget;
+use super::{Widget, WidgetRef};
 
 use taffy::prelude::Node;
 use vek::{Extent2, Vec2};
@@ -65,5 +65,27 @@ impl Default for Label {
             #[cfg(not(feature = "default-font"))]
             font_asset: "font".into(),
         }
+    }
+}
+
+/// Gui reference for retrieving constructed labels.
+///
+/// See [`WidgetRef`].
+#[derive(Copy, Clone)]
+pub struct LabelRef(Node);
+
+impl WidgetRef for LabelRef {
+    type Widget = Label;
+}
+
+impl From<LabelRef> for Node {
+    fn from(val: LabelRef) -> Self {
+        val.0
+    }
+}
+
+impl From<Node> for LabelRef {
+    fn from(value: Node) -> Self {
+        Self(value)
     }
 }

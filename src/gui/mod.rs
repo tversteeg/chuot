@@ -29,6 +29,14 @@ pub trait Widget {
     fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 
+/// Reference to a widget after it has been constructed.
+///
+/// Can be passed to [`Gui::widget`] and [`Gui::widget_mut`] to get the original widget back in update and render functions.
+pub trait WidgetRef: Into<Node> + From<Node> + Copy {
+    /// The original widget that can be returned from this ref.
+    type Widget: Widget;
+}
+
 /// Construct a GUI from a tree of widgets defined by the layout.
 pub struct GuiBuilder {
     /// References to all widgets, so they can be updated.
@@ -63,6 +71,7 @@ impl GuiBuilder {
     /// Register a widget.
     ///
     /// This will automatically update the widget size and location when it changes.
+    /// The generic type passed must be reference type of the [`Widget`] passed, usually this is just the widget name with a `Ref` postfix.
     ///
     /// # Arguments
     ///
@@ -74,9 +83,14 @@ impl GuiBuilder {
     ///
     /// A Taffy node type that can be used to create a hierarchy of nodes.
     /// This can be used in the update or draw loop to get a reference to the widget itself.
-    pub fn add_widget<W>(&mut self, widget: W, layout: Style, parent: Node) -> Result<Node>
+    pub fn add_widget<W>(
+        &mut self,
+        widget: W::Widget,
+        layout: Style,
+        parent: impl Into<Node>,
+    ) -> Result<W>
     where
-        W: Widget + 'static,
+        W: WidgetRef + 'static,
     {
         // Create a new Taffy layout node
         let node = self
@@ -90,11 +104,11 @@ impl GuiBuilder {
 
         // Attach the child to the parent
         self.layout
-            .add_child(parent, node)
+            .add_child(parent.into(), node)
             .into_diagnostic()
             .wrap_err("Error adding child layout node to parent")?;
 
-        Ok(node)
+        Ok(W::from(node))
     }
 
     /// Build the GUI.
@@ -132,19 +146,19 @@ pub struct Gui {
 
 impl Gui {
     /// Get a reference to the boxed widget based on the node.
-    pub fn widget<W>(&self, widget_node: Node) -> Result<&W>
+    pub fn widget<W>(&self, widget_node: W) -> Result<&W::Widget>
     where
-        W: Widget + 'static,
+        W: WidgetRef + 'static,
     {
         self.widgets
-            .get(&widget_node)
+            .get(&widget_node.into())
             .ok_or_else(|| {
                 miette::miette!(
             "Error getting the widget based on the node, are you sure you added it to the builder?"
         )
             })
             .and_then(|boxed| {
-                boxed.as_any().downcast_ref::<W>().ok_or_else(|| {
+                boxed.as_any().downcast_ref::<W::Widget>().ok_or_else(|| {
                     miette::miette!(
                         "Error casting widget to original type, did you use the proper type?"
                     )
@@ -153,23 +167,26 @@ impl Gui {
     }
 
     /// Get a mutable reference to the boxed widget based on the node.
-    pub fn widget_mut<W>(&mut self, widget_node: Node) -> Result<&mut W>
+    pub fn widget_mut<W>(&mut self, widget_node: W) -> Result<&mut W::Widget>
     where
-        W: Widget + 'static,
+        W: WidgetRef + 'static,
     {
         self.widgets
-            .get_mut(&widget_node)
+            .get_mut(&widget_node.into())
             .ok_or_else(|| {
                 miette::miette!(
             "Error getting the widget based on the node, are you sure you added it to the builder?"
         )
             })
             .and_then(|boxed| {
-                boxed.as_any_mut().downcast_mut::<W>().ok_or_else(|| {
-                    miette::miette!(
-                        "Error casting widget to original type, did you use the proper type?"
-                    )
-                })
+                boxed
+                    .as_any_mut()
+                    .downcast_mut::<W::Widget>()
+                    .ok_or_else(|| {
+                        miette::miette!(
+                            "Error casting widget to original type, did you use the proper type?"
+                        )
+                    })
             })
     }
 }
