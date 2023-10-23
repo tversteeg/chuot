@@ -3,6 +3,7 @@
 //! Requires the `gui` feature flag.
 
 pub mod button;
+pub mod label;
 
 use std::{any::Any, collections::HashMap};
 

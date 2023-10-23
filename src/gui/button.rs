@@ -70,6 +70,7 @@ impl Button {
             State::Down => {
                 if input.mouse_released(0) {
                     self.state = State::Normal;
+
                     true
                 } else {
                     false
