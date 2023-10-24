@@ -1,4 +1,3 @@
-use parry2d_f64::na::{Isometry2, Vector2};
 use vek::Vec2;
 
 use super::Rotation;
@@ -49,10 +48,11 @@ impl From<(Vec2<f64>, Rotation)> for Iso {
     }
 }
 
-impl From<Iso> for Isometry2<f64> {
+#[cfg(feature = "physics")]
+impl From<Iso> for parry2d_f64::na::Isometry2<f64> {
     fn from(value: Iso) -> Self {
-        Isometry2::new(
-            Vector2::new(value.pos.x, value.pos.y),
+        parry2d_f64::na::Isometry2::new(
+            parry2d_f64::na::Vector2::new(value.pos.x, value.pos.y),
             value.rot.to_radians(),
         )
     }
