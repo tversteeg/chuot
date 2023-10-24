@@ -22,6 +22,10 @@
 //!
 //! Bake _all_ assets in the `assets/` folder in the binary.
 //! When creating a release binary this feature flag should be enabled.
+//!
+//! ### `physics`
+//!
+//! Enable the 2D XPBD-based physics engine.
 
 pub mod canvas;
 pub mod font;
@@ -34,6 +38,11 @@ pub mod assets;
 pub use assets::{asset, asset_owned};
 
 pub mod gui;
+
+pub mod math;
+
+#[cfg(feature = "physics")]
+pub mod physics;
 
 /// Re-export taffy types.
 pub use taffy;
