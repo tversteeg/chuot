@@ -35,4 +35,8 @@ Has no effect on the web target.
 Bake _all_ assets in the `assets/` folder in the binary.
 When creating a release binary this feature flag should be enabled.
 
+###### `physics`
+
+Enable the 2D XPBD-based physics engine.
+
 <!-- cargo-rdme end -->
