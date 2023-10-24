@@ -2,16 +2,14 @@ use line_drawing::Bresenham;
 use miette::Result;
 use pixel_game_lib::{
     canvas::Canvas,
-    gui::{
-        button::{Button, ButtonRef},
-        label::{Label, LabelRef},
-        Gui, GuiBuilder, Widget,
+    physics::{
+        collision::shape::Shape,
+        rigidbody::{RigidBodyBuilder, RigidBodyHandle},
+        Physics, PhysicsSettings,
     },
-    physics::{collision::shape::Shape, rigidbody::RigidBodyBuilder, Physics, PhysicsSettings},
     vek::Vec2,
     window::{Key, WindowConfig},
 };
-use taffy::{prelude::Size, style::Style};
 use vek::Extent2;
 
 /// Game state passed around the update and render functions.
@@ -19,6 +17,8 @@ use vek::Extent2;
 pub struct State {
     /// Physics engine state.
     physics: Physics,
+    /// All spawned boxes.
+    boxes: Vec<RigidBodyHandle>,
 }
 
 /// Open an empty window.
@@ -56,6 +56,21 @@ fn main() -> Result<()> {
         // Update loop exposing input events we can handle, this is where you would handle the game logic
         move |state, input, mouse_pos, dt| {
             state.physics.step(dt as f64, &PhysicsSettings::default());
+
+            // Spawn a box when the mouse is pressed
+            if input.mouse_released(0) {
+                if let Some(mouse_pos) = mouse_pos {
+                    // Spawn a falling box
+                    let rigidbody = RigidBodyBuilder::new(mouse_pos.as_())
+                        .with_collider(Shape::rectangle(Extent2::new(20.0, 20.0)))
+                        .with_density(0.001)
+                        .with_friction(0.3)
+                        .with_restitution(0.2)
+                        .spawn(&mut state.physics);
+
+                    state.boxes.push(rigidbody);
+                }
+            }
 
             // Exit when escape is pressed
             input.key_pressed(Key::Escape)
