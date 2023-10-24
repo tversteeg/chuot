@@ -16,7 +16,7 @@ categories = [
 ]
 
 [features]
-default = ["hot-reloading-assets"]
+default = ["hot-reloading-assets", "physics"]
 
 # Embed a default pixel font.
 default-font = []
@@ -25,12 +25,16 @@ default-font = []
 #
 # Has no effect when building for the web.
 hot-reloading-assets = ["assets_manager/hot-reloading"]
+
 # Enable assets and include them all in the binary.
 #
 # Always enabled when building for the web.
 #
 # This feature takes precedence over `hot-reloading-assets` when both are set.
 embedded-assets = ["assets_manager/embedded"]
+
+# Enable the 2D physics engine.
+physics = ["dep:hecs", "dep:bvh-arena", "dep:parry2d-f64"]
 
 [dependencies]
 blit = { version = "0.8.4", features = ["serde"] }
@@ -44,6 +48,13 @@ winit = "0.28.7"
 winit_input_helper = "0.14.1"
 taffy = "0.3.16"
 derive-where = "1.2.5"
+puffin = "0.17.0"
+
+# `physics` feature
+
+bvh-arena = { version = "1.1.3", optional = true }
+hecs = { version = "0.10.3", optional = true, features = ["macros"] }
+parry2d-f64 = { version = "0.13.5", features = ["simd-stable"], optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 assets_manager = { version = "0.10.2", default-features = false, features = ["toml", "png", "embedded"] }
@@ -67,5 +78,12 @@ required-features = []
 name = "gui"
 required-features = ["default-font"]
 
+[[example]]
+name = "physics"
+required-features = ["default-font", "physics"]
+
 [workspace]
 members = ["run-wasm"]
+
+[dev-dependencies]
+line_drawing = "1.0.0"

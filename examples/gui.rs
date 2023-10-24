@@ -1,6 +1,5 @@
-use miette::{IntoDiagnostic, Result};
+use miette::Result;
 use pixel_game_lib::{
-    font::Font,
     gui::{
         button::{Button, ButtonRef},
         label::{Label, LabelRef},
