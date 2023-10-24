@@ -18,7 +18,7 @@ impl<'a> Canvas<'a> {
     /// This is quite a slow operation because it needs to calculate the index of the coordinate, if setting multiple pixels it might be more efficient to create a sprite from them.
     #[inline]
     pub fn set_pixel(&mut self, position: Vec2<usize>, color: u32) {
-        let index = position.product();
+        let index = position.x + position.y * self.size.w;
 
         if index < self.buffer.len() {
             self.buffer[index] = color;
