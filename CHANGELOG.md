@@ -6,6 +6,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.3.0...pixel-game-lib-v0.3.1) - 2023-10-25
+
+### Added
+- *(physics)* add XPBD-based physics engine
+- *(gui)* add label widget
+
+### Fixed
+- *(math)* conditionally implement From<Isometry2> for Iso
+- *(canvas)* set_pixel coordinate calculation
+- *(gui)* enforce type soundness with a reference type for each widget
+
+### Other
+- *(ci)* test every feature instead of all combinations of features
+- *(example)* spawn objects on mouse click in physics example
+- *(deps)* update swatinem/rust-cache action to v2.7.1
+- *(window)* re-export winit_input_helper::WinitInputHelper as window::Input
+
 ## [0.3.0](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.2.0...pixel-game-lib-v0.3.0) - 2023-10-20
 
 ### Added
