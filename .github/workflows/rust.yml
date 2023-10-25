@@ -53,7 +53,7 @@ jobs:
 
       # Test all feature combinations on the target platform
       - name: Test
-        run: cargo hack --feature-powerset test
+        run: cargo hack --each-feature test
 
   # Build the WASM target & push it to GitHub pages
   wasm:
