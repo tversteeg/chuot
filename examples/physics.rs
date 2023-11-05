@@ -8,7 +8,7 @@ use pixel_game_lib::{
         Physics, PhysicsSettings,
     },
     vek::Vec2,
-    window::{Key, WindowConfig},
+    window::{KeyCode, WindowConfig},
 };
 use vek::Extent2;
 
@@ -73,7 +73,7 @@ fn main() -> Result<()> {
             }
 
             // Exit when escape is pressed
-            input.key_pressed(Key::Escape)
+            input.key_pressed(KeyCode::Escape)
         },
         // Render loop exposing the pixel buffer we can mutate
         move |state, canvas, _dt| {

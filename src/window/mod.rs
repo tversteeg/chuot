@@ -4,19 +4,20 @@ mod desktop;
 mod web;
 
 /// Re-export winit types.
-pub use winit::{dpi::PhysicalSize, event::VirtualKeyCode as Key};
+pub use winit::{dpi::PhysicalSize, keyboard::KeyCode};
 /// Re-export winit_input_helper type.
 pub use winit_input_helper::{TextChar, WinitInputHelper as Input};
 
 use std::sync::Arc;
 
 use game_loop::{GameLoop, Time};
-use miette::{IntoDiagnostic, Result};
+use miette::{Context, IntoDiagnostic, Result};
 use pixels::Pixels;
 use vek::{Extent2, Vec2};
 use winit::{
     dpi::LogicalSize,
     event::{Event, WindowEvent},
+    event_loop::{ControlFlow, EventLoop},
     window::{Window, WindowBuilder},
 };
 use winit_input_helper::WinitInputHelper;
@@ -88,14 +89,7 @@ where
 
     #[cfg(not(target_arch = "wasm32"))]
     {
-        desktop::window(
-            window_builder,
-            game_state,
-            window_config,
-            update,
-            render,
-            winit_handler,
-        )
+        desktop::window(window_builder, game_state, window_config, update, render)
     }
     #[cfg(target_arch = "wasm32")]
     {
@@ -104,52 +98,155 @@ where
 
         // Web window function is async, so we need to spawn it into a local async runtime
         wasm_bindgen_futures::spawn_local(async {
-            web::window(
-                window_builder,
-                game_state,
-                window_config,
-                update,
-                render,
-                winit_handler,
-            )
-            .await
-            .expect("Error opening WASM window")
+            web::window(window_builder, game_state, window_config, update, render)
+                .await
+                .expect("Error opening WASM window")
         });
 
         Ok(())
     }
 }
 
-/// Handle winit events.
-fn winit_handler<G>(
-    game_loop_state: &mut GameLoop<(G, Pixels, WinitInputHelper), Time, Arc<Window>>,
-    ev: &Event<()>,
-) where
-    G: 'static,
+/// Open a winit window with an event loop.
+fn winit_start<G, U, R>(
+    event_loop: EventLoop<()>,
+    window: Arc<Window>,
+    pixels: Pixels,
+    game_state: G,
+    mut update: U,
+    mut render: R,
+    WindowConfig {
+        buffer_size,
+        updates_per_second,
+        ..
+    }: WindowConfig,
+) -> Result<()>
+where
+    U: FnMut(&mut G, &WinitInputHelper, Option<Vec2<usize>>, f32) -> bool + 'static,
+    R: FnMut(&mut G, &mut Canvas, f32) + 'static,
 {
-    match ev {
-        // Handle close event
-        Event::WindowEvent {
-            event: WindowEvent::CloseRequested,
-            ..
-        } => game_loop_state.exit(),
+    // Helper for input handling
+    let mut input = WinitInputHelper::new();
 
-        // Resize the window
-        Event::WindowEvent {
-            event: WindowEvent::Resized(new_size),
-            ..
-        } => {
-            game_loop_state
-                .game
-                .1
-                .resize_surface(new_size.width, new_size.height)
-                .into_diagnostic()
-                .unwrap();
-        }
-
-        _ => (),
+    /// Pass multiple fields to the game state.
+    struct State<G> {
+        /// User passed game state.
+        game_state: G,
+        /// Pixels to draw.
+        buffer: Vec<u32>,
+        /// Pixels itself.
+        pixels: Pixels,
     }
 
-    // Update input events
-    game_loop_state.game.2.update(ev);
+    // Buffer for pixels
+    let buffer = vec![0u32; buffer_size.w * buffer_size.h];
+
+    let state = State {
+        game_state,
+        buffer,
+        pixels,
+    };
+
+    // Setup the game loop
+    let mut game_loop: GameLoop<_, Time, _> =
+        GameLoop::new(state, updates_per_second, 0.1, window.clone());
+
+    event_loop
+        .run(move |event, elwt| {
+            // Don't wait for winit events to run the next tick
+            elwt.set_control_flow(ControlFlow::Poll);
+
+            // Update the input helper
+            input.update(&event);
+
+            match event {
+                // Handle close event
+                Event::WindowEvent { event, window_id } if window_id == window.id() => {
+                    match event {
+                        // Set the occluded state in the game loop
+                        WindowEvent::Occluded(occluded) => game_loop.window_occluded = occluded,
+                        // Resize pixels surface if window resized
+                        WindowEvent::Resized(new_size) => game_loop
+                            .game
+                            .pixels
+                            .resize_surface(new_size.width, new_size.height)
+                            .into_diagnostic()
+                            .unwrap(),
+                        // Draw the next frame
+                        WindowEvent::RedrawRequested => {
+                            // Update loop
+                            let loop_update = |g: &mut GameLoop<State<G>, _, _>| {
+                                // Calculate mouse in pixels
+                                let mouse = input.cursor().and_then(|mouse| {
+                                    g.game
+                                        .pixels
+                                        .window_pos_to_pixel(mouse)
+                                        .map(|(x, y)| Vec2::new(x, y))
+                                        .ok()
+                                });
+
+                                // Call update and exit when it returns true
+                                if update(
+                                    &mut g.game.game_state,
+                                    &input,
+                                    mouse,
+                                    (updates_per_second as f32).recip(),
+                                ) {
+                                    g.exit();
+                                }
+                            };
+
+                            // Render loop
+                            let loop_render = |g: &mut GameLoop<State<G>, _, _>| {
+                                let frame_time = g.last_frame_time();
+
+                                // Wrap the buffer in a canvas with the size
+                                let buffer = g.game.buffer.as_mut_slice();
+                                let size = buffer_size;
+                                let mut canvas = Canvas { size, buffer };
+
+                                render(&mut g.game.game_state, &mut canvas, frame_time as f32);
+
+                                // Blit draws the pixels in RGBA format, but the pixels crate expects BGRA, so convert it
+                                g.game
+                                    .pixels
+                                    .frame_mut()
+                                    .chunks_exact_mut(4)
+                                    .zip(buffer.iter())
+                                    .for_each(|(target, source)| {
+                                        let source = source.to_ne_bytes();
+                                        target[0] = source[2];
+                                        target[1] = source[1];
+                                        target[2] = source[0];
+                                        target[3] = source[3];
+                                    });
+
+                                // Render the pixel buffer
+                                if let Err(err) = g.game.pixels.render() {
+                                    dbg!(err);
+                                    // TODO: properly handle error
+                                    g.exit();
+                                }
+                            };
+
+                            if !game_loop.next_frame(loop_update, loop_render) {
+                                elwt.exit();
+                            }
+                        }
+                        _ => (),
+                    }
+                }
+
+                // Never wait for events
+                Event::AboutToWait => {
+                    game_loop.window.request_redraw();
+                }
+
+                _ => (),
+            }
+        })
+        .into_diagnostic()
+        .wrap_err("Error running main loop")?;
+
+    Ok(())
 }

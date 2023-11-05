@@ -1,6 +1,6 @@
 use pixel_game_lib::{
     vek::Extent2,
-    window::{Key, WindowConfig},
+    window::{KeyCode, WindowConfig},
 };
 
 /// Define a game state with a simple counter.
@@ -35,7 +35,7 @@ fn main() {
             }
 
             // Exit when escape is pressed
-            input.key_pressed(Key::Escape)
+            input.key_pressed(KeyCode::Escape)
         },
         // Render loop exposing the pixel buffer we can mutate
         move |state, canvas, _dt| {

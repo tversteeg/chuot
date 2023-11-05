@@ -1,7 +1,7 @@
 use pixel_game_lib::{
     font::Font,
     vek::Vec2,
-    window::{Key, WindowConfig},
+    window::{KeyCode, WindowConfig},
 };
 
 /// Load the font from disk or embedded if using external assets.
@@ -33,7 +33,7 @@ fn main() {
         // Update loop exposing input events we can handle, this is where you would handle the game logic
         |_state, input, _mouse, _dt| {
             // Exit when escape is pressed
-            input.key_pressed(Key::Escape)
+            input.key_pressed(KeyCode::Escape)
         },
         // Render loop exposing the pixel buffer we can mutate
         move |_state, canvas, _dt| {

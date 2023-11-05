@@ -1,21 +1,14 @@
 use std::sync::Arc;
 
-use game_loop::{GameLoop, Time, TimeTrait};
 use miette::{Context, IntoDiagnostic, Result};
 use pixels::{
     wgpu::{BlendState, Color},
-    Pixels, PixelsBuilder, SurfaceTexture,
+    PixelsBuilder, SurfaceTexture,
 };
-use vek::{Extent2, Vec2};
+use vek::Vec2;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlCanvasElement;
-use winit::{
-    dpi::LogicalSize,
-    event::{Event, KeyboardInput, VirtualKeyCode, WindowEvent},
-    event_loop::EventLoop,
-    platform::web::WindowBuilderExtWebSys,
-    window::{Window, WindowBuilder},
-};
+use winit::{event_loop::EventLoop, platform::web::WindowBuilderExtWebSys, window::WindowBuilder};
 use winit_input_helper::WinitInputHelper;
 
 use crate::canvas::Canvas;
@@ -23,25 +16,17 @@ use crate::canvas::Canvas;
 use super::WindowConfig;
 
 /// Desktop implementation of opening a window.
-pub(crate) async fn window<G, U, R, H>(
+pub(crate) async fn window<G, U, R>(
     window_builder: WindowBuilder,
     game_state: G,
-    WindowConfig {
-        buffer_size,
-        scaling,
-        title,
-        updates_per_second,
-    }: WindowConfig,
-    mut update: U,
-    mut render: R,
-    mut event: H,
+    window_config: WindowConfig,
+    update: U,
+    render: R,
 ) -> Result<()>
 where
     G: 'static,
     U: FnMut(&mut G, &WinitInputHelper, Option<Vec2<usize>>, f32) -> bool + 'static,
     R: FnMut(&mut G, &mut Canvas, f32) + 'static,
-    H: FnMut(&mut GameLoop<(G, Pixels, WinitInputHelper), Time, Arc<Window>>, &Event<'_, ()>)
-        + 'static,
 {
     // Create a canvas the winit window can be attached to
     let window = web_sys::window().ok_or_else(|| miette::miette!("Error finding web window"))?;
@@ -65,12 +50,14 @@ where
     let header = document
         .create_element("h2")
         .map_err(|err| miette::miette!("Error creating h2 element: {err:?}"))?;
-    header.set_text_content(Some(title.as_str()));
+    header.set_text_content(Some(window_config.title.as_str()));
     body.append_child(&header)
         .map_err(|err| miette::miette!("Error appending header to body: {err:?}"))?;
 
     // Create the window
-    let event_loop = EventLoop::new();
+    let event_loop = EventLoop::new()
+        .into_diagnostic()
+        .wrap_err("Error setting up event loop for window")?;
     let window = window_builder
         .with_canvas(Some(canvas.clone()))
         .build(&event_loop)
@@ -79,90 +66,38 @@ where
 
     // Setup the pixel surface
     let surface_texture = SurfaceTexture::new(
-        (buffer_size.w * scaling) as u32,
-        (buffer_size.h * scaling) as u32,
+        (window_config.buffer_size.w * window_config.scaling) as u32,
+        (window_config.buffer_size.h * window_config.scaling) as u32,
         &window,
     );
-    let pixels = PixelsBuilder::new(buffer_size.w as u32, buffer_size.h as u32, surface_texture)
-        .clear_color(Color::WHITE)
-        .blend_state(BlendState::REPLACE)
-        .build_async()
-        .await
-        .into_diagnostic()
-        .wrap_err("Error setting up pixels buffer")?;
+    let pixels = PixelsBuilder::new(
+        window_config.buffer_size.w as u32,
+        window_config.buffer_size.h as u32,
+        surface_texture,
+    )
+    .clear_color(Color::WHITE)
+    .blend_state(BlendState::REPLACE)
+    .build_async()
+    .await
+    .into_diagnostic()
+    .wrap_err("Error setting up pixels buffer")?;
 
     // Ensure the pixels are not rendered with wrong filtering and that the size is correct
     canvas.style().set_css_text(&format!(
         "display:block; margin: auto; image-rendering: pixelated; width: {}px; height: {}px",
-        buffer_size.w * scaling,
-        buffer_size.h * scaling
+        window_config.buffer_size.w * window_config.scaling,
+        window_config.buffer_size.h * window_config.scaling
     ));
-    canvas.set_width((buffer_size.w * scaling) as u32);
-    canvas.set_height((buffer_size.h * scaling) as u32);
+    canvas.set_width((window_config.buffer_size.w * window_config.scaling) as u32);
+    canvas.set_height((window_config.buffer_size.h * window_config.scaling) as u32);
 
-    // Open the window and run the event loop
-    let mut buffer = vec![0u32; buffer_size.w * buffer_size.h];
-
-    // Handle input
-    let input = WinitInputHelper::new();
-
-    game_loop::game_loop(
+    crate::window::winit_start(
         event_loop,
         Arc::new(window),
-        (game_state, pixels, input),
-        updates_per_second,
-        0.1,
-        move |g| {
-            // Calculate mouse in pixels
-            let mouse = g.game.2.mouse().and_then(|mouse| {
-                g.game
-                    .1
-                    .window_pos_to_pixel(mouse)
-                    .map(|(x, y)| Vec2::new(x, y))
-                    .ok()
-            });
-
-            // Call update and exit when it returns true
-            if update(
-                &mut g.game.0,
-                &g.game.2,
-                mouse,
-                (updates_per_second as f32).recip(),
-            ) {
-                g.exit();
-            }
-        },
-        move |g| {
-            let frame_time = g.last_frame_time();
-
-            // Wrap the buffer in a canvas with the size
-            let buffer = buffer.as_mut_slice();
-            let size = buffer_size;
-            let mut canvas = Canvas { size, buffer };
-
-            render(&mut g.game.0, &mut canvas, frame_time as f32);
-
-            // Blit draws the pixels in RGBA format, but the pixels crate expects BGRA, so convert it
-            g.game
-                .1
-                .frame_mut()
-                .chunks_exact_mut(4)
-                .zip(buffer.iter())
-                .for_each(|(target, source)| {
-                    let source = source.to_ne_bytes();
-                    target[0] = source[2];
-                    target[1] = source[1];
-                    target[2] = source[0];
-                    target[3] = source[3];
-                });
-
-            // Render the pixel buffer
-            if let Err(err) = g.game.1.render() {
-                dbg!(err);
-                // TODO: properly handle error
-                g.exit();
-            }
-        },
-        event,
-    );
+        pixels,
+        game_state,
+        update,
+        render,
+        window_config,
+    )
 }

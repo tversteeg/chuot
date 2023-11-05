@@ -41,12 +41,12 @@ blit = { version = "0.8.4", features = ["serde"] }
 image = "0.24.7"
 miette = "5.10.0"
 vek = "0.16.1"
-game-loop = { version = "1.0.0", features = ["winit"] }
+game-loop = "1.0.0"
 pixels = "0.13.0"
 serde = { version = "1.0.190", features = ["derive"] }
-winit = "0.28.7"
-winit_input_helper = "0.14.1"
-taffy = "0.3.16"
+winit = { version = "0.29.3", features = ["rwh_05"] }
+winit_input_helper = "0.15.0"
+taffy = "0.3.18"
 derive-where = "1.2.5"
 puffin = "0.17.0"
 

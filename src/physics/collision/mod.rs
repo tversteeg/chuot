@@ -61,6 +61,12 @@ impl<K> CollisionState<K> {
     }
 }
 
+impl<K> Default for CollisionState<K> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Response for a collision.
 #[derive(Debug, Clone, PartialEq)]
 pub struct CollisionResponse {

@@ -6,7 +6,7 @@ use pixel_game_lib::{
         Gui, GuiBuilder, Widget,
     },
     vek::Vec2,
-    window::{Key, WindowConfig},
+    window::{KeyCode, WindowConfig},
 };
 use taffy::{prelude::Size, style::Style};
 
@@ -91,7 +91,7 @@ fn main() -> Result<()> {
             }
 
             // Exit when escape is pressed
-            input.key_pressed(Key::Escape)
+            input.key_pressed(KeyCode::Escape)
         },
         // Render loop exposing the pixel buffer we can mutate
         move |state, canvas, _dt| {
