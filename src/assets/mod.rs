@@ -52,10 +52,10 @@ impl<T: Compound> Deref for LoadedAsset<'_, T> {
 }
 
 /// How the assets are loaded.
-#[cfg(not(feature = "embedded-assets"))]
+#[cfg(not(any(target_arch = "wasm32", feature = "embedded-assets")))]
 type Assets = AssetCache<assets_manager::source::FileSystem>;
 /// How the assets are loaded.
-#[cfg(feature = "embedded-assets")]
+#[cfg(any(target_arch = "wasm32", feature = "embedded-assets"))]
 type Assets = AssetCache<assets_manager::source::Embedded<'static>>;
 
 /// All external data.
@@ -97,11 +97,11 @@ where
 fn asset_cache() -> &'static Assets {
     let cache = ASSETS.get_or_init(|| {
         // Load the assets from disk, allows hot-reloading
-        #[cfg(not(feature = "embedded-assets"))]
+        #[cfg(not(any(target_arch = "wasm32", feature = "embedded-assets")))]
         let source = assets_manager::source::FileSystem::new("assets").unwrap();
 
         // Embed all assets into the binary
-        #[cfg(feature = "embedded-assets")]
+        #[cfg(any(target_arch = "wasm32", feature = "embedded-assets"))]
         let source =
             assets_manager::source::Embedded::from(assets_manager::source::embed!("assets"));
 
