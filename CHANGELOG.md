@@ -6,6 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.3.1...pixel-game-lib-v0.4.0) - 2023-11-14
+
+### Fixed
+- *(deps)* update rust crate winit_input_helper to 0.15.1
+- *(deps)* update rust crate hecs to 0.10.4
+- *(deps)* update rust crate tokio to 1.34.0
+- *(deps)* update rust crate serde to 1.0.192
+- *(assets)* always embed on web
+- *(deps)* update rust-wasm-bindgen monorepo
+- *(deps)* update rust crate serde to 1.0.190
+
+### Other
+- *(deps)* [**breaking**] update winit to 0.29
+
 ## [0.3.1](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.3.0...pixel-game-lib-v0.3.1) - 2023-10-25
 
 ### Added
