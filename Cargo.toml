@@ -48,7 +48,7 @@ winit = { version = "0.29.3", features = ["rwh_05"] }
 winit_input_helper = "0.15.1"
 taffy = "0.3.18"
 derive-where = "1.2.5"
-puffin = "0.17.0"
+puffin = "0.18.0"
 
 # `physics` feature
 
