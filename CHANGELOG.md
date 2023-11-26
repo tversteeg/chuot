@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.4.0...pixel-game-lib-v0.4.1) - 2023-11-26
+
+### Fixed
+- *(deps)* update rust crate winit to 0.29.4
+- *(deps)* update rust crate puffin to 0.18.0
+- *(deps)* update rust crate serde to 1.0.193
+
+### Other
+- set MSRV
+
 ## [0.4.0](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.3.1...pixel-game-lib-v0.4.0) - 2023-11-14
 
 ### Fixed
