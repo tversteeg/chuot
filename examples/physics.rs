@@ -103,18 +103,8 @@ fn draw_vertices(vertices: &[Vec2<f64>], canvas: &mut Canvas) {
         .iter()
         .chain(std::iter::once(&vertices[0]))
         .reduce(|prev, cur| {
-            draw_line(prev.as_(), cur.as_(), canvas);
+            canvas.draw_line(prev.as_(), cur.as_(), 0);
 
             cur
         });
-}
-
-/// Draw a line using the bresenham algorithm.
-fn draw_line(start: Vec2<f64>, end: Vec2<f64>, canvas: &mut Canvas) {
-    for (x, y) in Bresenham::new(
-        (start.x as i32, start.y as i32),
-        (end.x as i32, end.y as i32),
-    ) {
-        canvas.set_pixel(Vec2::new(x, y).as_(), 0)
-    }
 }

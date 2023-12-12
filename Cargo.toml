@@ -50,6 +50,7 @@ winit_input_helper = "0.15.1"
 taffy = "0.3.18"
 derive-where = "1.2.6"
 puffin = "0.18.0"
+line_drawing = "1.0.0"
 
 # `physics` feature
 

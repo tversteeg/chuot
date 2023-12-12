@@ -1,5 +1,6 @@
 //! Wrapper around a pixel buffer.
 
+use line_drawing::Bresenham;
 use vek::{Extent2, Vec2};
 
 /// Simple wrapper around a pixel buffer that can be passed around to rendering calls.
@@ -29,6 +30,18 @@ impl<'a> Canvas<'a> {
         let index = position.x as usize + position.y as usize * self.size.w;
         if index < self.buffer.len() {
             self.buffer[index] = color;
+        }
+    }
+
+    /// Draw a line using Bresenham's line algorithm.
+    #[inline]
+    pub fn draw_line(&mut self, start: Vec2<f64>, end: Vec2<f64>, color: u32) {
+        // PERF: optimize
+        for (x, y) in Bresenham::new(
+            (start.x as i32, start.y as i32),
+            (end.x as i32, end.y as i32),
+        ) {
+            self.set_pixel(Vec2::new(x, y).as_(), color);
         }
     }
 
