@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.4.1...pixel-game-lib-v0.4.2) - 2023-12-13
+
+### Added
+- *(canvas)* add unoptimized 'draw_line' method
+
+### Fixed
+- *(deps)* update rust crate puffin to 0.18.1
+- *(deps)* update rust crate tokio to 1.35.0
+- *(deps)* update rust crate derive-where to 1.2.6
+- *(deps)* update rust-wasm-bindgen monorepo
+
 ## [0.4.1](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.4.0...pixel-game-lib-v0.4.1) - 2023-11-26
 
 ### Fixed
