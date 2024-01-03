@@ -44,7 +44,7 @@ miette = "5.10.0"
 vek = "0.16.1"
 game-loop = "1.0.0"
 pixels = "0.13.0"
-serde = { version = "1.0.193", features = ["derive"] }
+serde = { version = "1.0.194", features = ["derive"] }
 winit = { version = "0.29.8", features = ["rwh_05"] }
 winit_input_helper = "0.15.1"
 taffy = "0.3.18"
