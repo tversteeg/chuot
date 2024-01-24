@@ -56,7 +56,7 @@ line_drawing = "1.0.0"
 
 bvh-arena = { version = "1.1.3", optional = true }
 hecs = { version = "0.10.4", optional = true, features = ["macros"] }
-parry2d-f64 = { version = "0.13.5", features = ["simd-stable"], optional = true }
+parry2d-f64 = { version = "0.13.6", features = ["simd-stable"], optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 assets_manager = { version = "0.10.2", default-features = false, features = ["toml", "png", "embedded"] }
