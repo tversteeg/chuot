@@ -59,7 +59,7 @@ hecs = { version = "0.10.4", optional = true, features = ["macros"] }
 parry2d-f64 = { version = "0.13.6", features = ["simd-stable"], optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-assets_manager = { version = "0.10.2", default-features = false, features = ["toml", "png", "embedded"] }
+assets_manager = { version = "0.11.2", default-features = false, features = ["toml", "png", "embedded"] }
 tokio = { version = "1.35.1", features = ["macros", "sync", "rt-multi-thread"], optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
@@ -67,7 +67,7 @@ web-sys = { version = "0.3.67", features = ["CanvasRenderingContext2d", "Documen
 wasm-bindgen = "0.2.90"
 wasm-bindgen-futures = "0.4.40"
 console_error_panic_hook = "0.1.7"
-assets_manager = { version = "0.10.2", default-features = false, features = ["toml", "png", "embedded"] }
+assets_manager = { version = "0.11.2", default-features = false, features = ["toml", "png", "embedded"] }
 
 [[example]]
 name = "window"
