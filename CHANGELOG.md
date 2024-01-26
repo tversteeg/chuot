@@ -6,6 +6,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.4](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.4.3...pixel-game-lib-v0.4.4) - 2024-01-26
+
+### Fixed
+- *(deps)* update rust crate assets_manager to 0.11.2
+- *(deps)* update rust crate parry2d-f64 to 0.13.6
+- *(deps)* update rust crate puffin to 0.19.0
+- *(deps)* update rust crate winit_input_helper to 0.15.3
+- *(deps)* update rust crate game-loop to 1.0.1
+- *(deps)* update rust crate winit to 0.29.10
+- *(deps)* update rust crate image to 0.24.8
+- *(deps)* update rust crate winit_input_helper to 0.15.2
+- *(deps)* update rust-wasm-bindgen monorepo
+- *(deps)* update rust crate serde to 1.0.195
+- *(deps)* update rust crate winit to 0.29.9
+- *(deps)* update rust crate serde to 1.0.194
+- *(deps)* update rust crate winit to 0.29.8
+- *(deps)* update rust crate winit to 0.29.7
+- *(deps)* update rust crate winit to 0.29.6
+
+### Other
+- *(deps)* update swatinem/rust-cache action to v2.7.3
+- *(deps)* update swatinem/rust-cache action to v2.7.2
+
 ## [0.4.3](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.4.2...pixel-game-lib-v0.4.3) - 2023-12-23
 
 ### Fixed
