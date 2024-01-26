@@ -4,12 +4,10 @@
 
 use std::borrow::Cow;
 
-use assets_manager::{
-    loader::{Loader, TomlLoader},
-    AnyCache, Asset, BoxedError, Compound, SharedString,
-};
+use assets_manager::{loader::Loader, AnyCache, Asset, BoxedError, Compound, SharedString};
 use blit::{slice::Slice, Blit, BlitBuffer, BlitOptions, ToBlitBuffer};
 use image::ImageFormat;
+use miette::{Context, IntoDiagnostic};
 use serde::Deserialize;
 use vek::{Extent2, Vec2};
 
@@ -118,10 +116,18 @@ impl Default for Sprite {
 impl Compound for Sprite {
     fn load(cache: AnyCache, id: &SharedString) -> Result<Self, BoxedError> {
         // Load the sprite
-        let sprite = cache.load_owned::<Image>(id)?;
+        let sprite = cache
+            .load_owned::<Image>(id)
+            .into_diagnostic()
+            .wrap_err("Error loading image for sprite")?;
 
         // Load the metadata
-        let metadata = cache.load::<SpriteMetadata>(id)?.read().clone();
+        let metadata = cache
+            .load::<SpriteMetadata>(id)
+            .into_diagnostic()
+            .wrap_err("Error loading metadata for sprite")?
+            .read()
+            .clone();
 
         Ok(Self { sprite, metadata })
     }
@@ -156,21 +162,18 @@ impl SpriteOffset {
 }
 
 /// Sprite metadata to load from TOML.
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize, Asset)]
+#[asset_format = "toml"]
 pub(crate) struct SpriteMetadata {
     /// Slices to render for scaling the image.
+    #[serde(default)]
     pub(crate) vertical_slice: Option<Slice>,
     /// Slices to render for scaling the image.
+    #[serde(default)]
     pub(crate) horizontal_slice: Option<Slice>,
     /// Pixel offset to render at.
     #[serde(default)]
     pub(crate) offset: SpriteOffset,
-}
-
-impl Asset for SpriteMetadata {
-    const EXTENSION: &'static str = "toml";
-
-    type Loader = TomlLoader;
 }
 
 /// Core of a sprite loaded from disk.

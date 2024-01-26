@@ -1,6 +1,6 @@
 use std::{ops::Deref, sync::OnceLock};
 
-use assets_manager::{AssetCache, AssetGuard, Compound};
+use assets_manager::{AssetCache, AssetReadGuard, Compound};
 
 /// Either an instantiated asset or a reference to it.
 #[derive(Debug)]
@@ -35,7 +35,7 @@ impl<T: Compound> From<&str> for AssetOrPath<T> {
 /// Loaded asset.
 pub enum LoadedAsset<'a, T: Compound> {
     /// Loaded from path with guard.
-    Guard(AssetGuard<'a, T>),
+    Guard(AssetReadGuard<'a, T>),
     /// Reference.
     Ref(&'a T),
 }
@@ -68,7 +68,7 @@ static ASSETS: OnceLock<Assets> = OnceLock::new();
 /// # Arguments
 ///
 /// * `path` - Directory structure of the asset file in `assets/` where every `/` is a `.`.
-pub fn asset<T, S>(path: S) -> AssetGuard<'static, T>
+pub fn asset<T, S>(path: S) -> AssetReadGuard<'static, T>
 where
     T: Compound,
     S: AsRef<str>,
