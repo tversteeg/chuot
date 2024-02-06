@@ -63,9 +63,9 @@ assets_manager = { version = "0.11.2", default-features = false, features = ["to
 tokio = { version = "1.36.0", features = ["macros", "sync", "rt-multi-thread"], optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-web-sys = { version = "0.3.67", features = ["CanvasRenderingContext2d", "Document", "Element", "HtmlCanvasElement", "ImageData", "Window"] }
-wasm-bindgen = "0.2.90"
-wasm-bindgen-futures = "0.4.40"
+web-sys = { version = "0.3.68", features = ["CanvasRenderingContext2d", "Document", "Element", "HtmlCanvasElement", "ImageData", "Window"] }
+wasm-bindgen = "0.2.91"
+wasm-bindgen-futures = "0.4.41"
 console_error_panic_hook = "0.1.7"
 assets_manager = { version = "0.11.2", default-features = false, features = ["toml", "png", "embedded", "macros"] }
 
