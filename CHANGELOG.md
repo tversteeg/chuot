@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.5](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.4.4...pixel-game-lib-v0.4.5) - 2024-02-16
+
+### Fixed
+- *(deps)* update rust crate miette to 7.1.0
+- *(deps)* update rust crate game-loop to 1.1.0
+- *(deps)* update rust-wasm-bindgen monorepo
+- *(deps)* update rust crate miette to v7
+- *(deps)* update rust crate miette to v6
+- *(deps)* update rust crate tokio to 1.36.0
+- *(deps)* update rust crate serde to 1.0.196
+
 ## [0.4.4](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.4.3...pixel-game-lib-v0.4.4) - 2024-01-26
 
 ### Fixed
