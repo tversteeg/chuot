@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.6](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.4.5...pixel-game-lib-v0.4.6) - 2024-02-18
+
+### Added
+- *(canvas)* add `draw_circle_outline` to `Canvas`
+- *(canvas)* add `draw_quad` and `draw_triangle` to `Canvas`
+
 ## [0.4.5](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.4.4...pixel-game-lib-v0.4.5) - 2024-02-16
 
 ### Fixed
