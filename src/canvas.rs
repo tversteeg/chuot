@@ -2,8 +2,8 @@
 
 use std::cmp::Ordering;
 
-use line_drawing::Bresenham;
-use vek::{Extent2, LineSegment2, Vec2};
+use line_drawing::{Bresenham, BresenhamCircle};
+use vek::{Disk, Extent2, LineSegment2, Vec2};
 
 /// Simple wrapper around a pixel buffer that can be passed around to rendering calls.
 pub struct Canvas<'a> {
@@ -42,6 +42,18 @@ impl<'a> Canvas<'a> {
         for (x, y) in Bresenham::new(
             (start.x as i32, start.y as i32),
             (end.x as i32, end.y as i32),
+        ) {
+            self.set_pixel(Vec2::new(x, y).as_(), color);
+        }
+    }
+
+    /// Draw a circle using Bresenham's circle algorithm.
+    pub fn draw_circle_outline(&mut self, circle: Disk<f64, f64>, color: u32) {
+        // PERF: optimize
+        for (x, y) in BresenhamCircle::new(
+            circle.center.x as i32,
+            circle.center.y as i32,
+            circle.radius as i32,
         ) {
             self.set_pixel(Vec2::new(x, y).as_(), color);
         }

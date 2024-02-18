@@ -2,7 +2,7 @@ use pixel_game_lib::{
     vek::Extent2,
     window::{KeyCode, WindowConfig},
 };
-use vek::Vec2;
+use vek::{Disk, Vec2};
 
 /// Open an empty window.
 fn main() {
@@ -32,6 +32,9 @@ fn main() {
         move |mouse, canvas, _dt| {
             // Reset the canvas with a white color
             canvas.fill(0xFFFFFFFF);
+
+            // Draw a darker gray circle outline
+            canvas.draw_circle_outline(Disk::new(Vec2::new(50.0, 50.0), 6.0), 0xFF333333);
 
             // Draw a light green blue triangle with one corner being snapped to the mouse
             canvas.draw_triangle(
