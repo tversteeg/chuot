@@ -33,8 +33,12 @@ fn main() {
             // Reset the canvas with a white color
             canvas.fill(0xFFFFFFFF);
 
-            // Draw a darker gray circle outline
-            canvas.draw_circle_outline(Disk::new(Vec2::new(50.0, 50.0), 6.0), 0xFF333333);
+            // Draw a gray circle with the radius being the distance of the center to the mouse
+            let circle_center = Vec2::new(50.0, 50.0);
+            let dist_from_mouse = mouse.as_().distance(circle_center);
+            canvas.draw_circle(Disk::new(circle_center, dist_from_mouse), 0xFF999999);
+            // Draw a darker gray circle outline on top of the circle
+            canvas.draw_circle_outline(Disk::new(circle_center, dist_from_mouse), 0xFF333333);
 
             // Draw a light green blue triangle with one corner being snapped to the mouse
             canvas.draw_triangle(

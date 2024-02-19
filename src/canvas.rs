@@ -1,6 +1,6 @@
 //! Wrapper around a pixel buffer.
 
-use std::cmp::Ordering;
+use std::{cmp::Ordering, ops::Range};
 
 use line_drawing::{Bresenham, BresenhamCircle};
 use vek::{Disk, Extent2, LineSegment2, Vec2};
@@ -21,18 +21,18 @@ impl<'a> Canvas<'a> {
     /// This is quite a slow operation because it needs to calculate the index of the coordinate, if setting multiple pixels it might be more efficient to create a sprite from them.
     #[inline]
     pub fn set_pixel(&mut self, position: Vec2<f64>, color: u32) {
-        if position.x < 0.0
-            || position.y < 0.0
-            || position.x >= self.size.w as f64
-            || position.y >= self.size.h as f64
-        {
+        if position.x < 0.0 || position.y < 0.0 {
             return;
         }
 
-        let index = position.x as usize + position.y as usize * self.size.w;
-        if index < self.buffer.len() {
-            self.buffer[index] = color;
+        let x = position.x.round() as usize;
+        let y = position.y.round() as usize;
+        if x >= self.size.w || y >= self.size.h {
+            return;
         }
+
+        let index = x + y * self.size.w;
+        self.buffer[index] = color;
     }
 
     /// Draw a line using Bresenham's line algorithm.
@@ -47,15 +47,113 @@ impl<'a> Canvas<'a> {
         }
     }
 
+    /// Fill a horizontal line, very cheap operation.
+    #[inline]
+    pub fn draw_scanline(&mut self, y: usize, x: Range<usize>, color: u32) {
+        if y >= self.size.h {
+            return;
+        }
+
+        let y_index = y * self.size.w;
+
+        // Flip if end is later than start
+        let x_start = y_index + x.start.min(self.size.w - 1);
+        let x_end = y_index + x.end.min(self.size.w);
+
+        self.buffer[x_start..x_end].fill(color);
+    }
+
     /// Draw a circle using Bresenham's circle algorithm.
     pub fn draw_circle_outline(&mut self, circle: Disk<f64, f64>, color: u32) {
-        // PERF: optimize
-        for (x, y) in BresenhamCircle::new(
-            circle.center.x as i32,
-            circle.center.y as i32,
-            circle.radius as i32,
-        ) {
-            self.set_pixel(Vec2::new(x, y).as_(), color);
+        let radius = circle.radius.round() as i32;
+
+        let mut x = 0;
+        let mut y = -radius;
+        let mut f_m = 1 - radius;
+        let mut d_e = 3;
+        let mut d_ne = -((radius) << 1) + 5;
+
+        let center = circle.center.round();
+
+        // Draw the missing horizontal line
+        let mut draw_pixel_8_sides = |x: f64, y: f64| {
+            self.set_pixel(center + Vec2::new(x, y), color);
+            self.set_pixel(center + Vec2::new(-x, y), color);
+            self.set_pixel(center + Vec2::new(-x, -y), color);
+            self.set_pixel(center + Vec2::new(x, -y), color);
+            self.set_pixel(center + Vec2::new(y, x), color);
+            self.set_pixel(center + Vec2::new(-y, x), color);
+            self.set_pixel(center + Vec2::new(-y, -x), color);
+            self.set_pixel(center + Vec2::new(y, -x), color);
+        };
+
+        // Draw main corners
+        draw_pixel_8_sides(circle.radius.round(), 0.0);
+
+        while x < -y {
+            if f_m <= 0 {
+                f_m += d_e;
+            } else {
+                f_m += d_ne;
+                d_ne += 2;
+                y += 1;
+            }
+
+            d_e += 2;
+            d_ne += 2;
+            x += 1;
+
+            draw_pixel_8_sides(x as f64, y as f64);
+        }
+    }
+
+    /// Fill a circle using Bresenham's circle algorithm.
+    ///
+    /// Based on: https://funloop.org/post/2021-03-15-bresenham-circle-drawing-algorithm.html
+    pub fn draw_circle(&mut self, circle: Disk<f64, f64>, color: u32) {
+        let center: Vec2<i32> = circle.center.round().as_();
+        let radius = circle.radius.round() as i32;
+
+        let mut x = 0;
+        let mut y = -radius;
+        let mut f_m = 1 - radius;
+        let mut d_e = 3;
+        let mut d_ne = -((radius) << 1) + 5;
+
+        // Draw the missing horizontal line
+        let left = (center.x - radius).max(0) as usize;
+        let right = (center.x + radius).max(0) as usize;
+        self.draw_scanline(center.y.max(0) as usize, left..right, color);
+
+        self.set_pixel(circle.center + Vec2::new(0.0, circle.radius), color);
+        self.set_pixel(circle.center - Vec2::new(0.0, circle.radius), color);
+
+        while x < -y {
+            if f_m <= 0 {
+                f_m += d_e;
+            } else {
+                f_m += d_ne;
+                d_ne += 2;
+                y += 1;
+            }
+
+            d_e += 2;
+            d_ne += 2;
+            x += 1;
+
+            let mut draw_scanline = |x: i32, y: i32| {
+                let negative_y = (center.y - y).max(0) as usize;
+                let positive_y = (center.y + y).max(0) as usize;
+
+                let absolute_min_x = (center.x - x).max(0) as usize;
+                let absolute_max_x = (center.x + x).max(0) as usize;
+
+                self.draw_scanline(negative_y, absolute_min_x..absolute_max_x, color);
+                self.draw_scanline(positive_y, absolute_min_x..absolute_max_x, color);
+            };
+
+            draw_scanline(x, y);
+            draw_scanline(-y, x);
         }
     }
 
@@ -221,8 +319,7 @@ impl<'a> Canvas<'a> {
             let end_x = (end_x.ceil().max(0.0) as usize).min(self.size.w);
 
             // Draw the pixels
-            let y_index = y * self.size.w;
-            self.buffer[(y_index + start_x)..(y_index + end_x)].fill(color);
+            self.draw_scanline(y, start_x..end_x, color);
 
             // Increase interpolation factors
             long_factor += long_factor_step;
