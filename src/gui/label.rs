@@ -8,7 +8,7 @@ use crate::{
 
 use super::{Widget, WidgetRef};
 
-use taffy::prelude::Node;
+use taffy::NodeId;
 use vek::{Extent2, Vec2};
 
 /// A simple text label widget.
@@ -21,7 +21,7 @@ pub struct Label {
     /// The text to draw.
     pub label: String,
     /// Taffy layout node.
-    pub node: Node,
+    pub node: NodeId,
     /// Where to load the font asset.
     pub font_asset: AssetOrPath<Font>,
 }
@@ -58,7 +58,7 @@ impl Default for Label {
         Self {
             offset: Vec2::zero(),
             label: String::new(),
-            node: Node::default(),
+            node: NodeId::new(0),
             size: Extent2::default(),
             #[cfg(feature = "default-font")]
             font_asset: AssetOrPath::Owned(Font::default()),
@@ -72,20 +72,20 @@ impl Default for Label {
 ///
 /// See [`WidgetRef`].
 #[derive(Copy, Clone)]
-pub struct LabelRef(Node);
+pub struct LabelRef(NodeId);
 
 impl WidgetRef for LabelRef {
     type Widget = Label;
 }
 
-impl From<LabelRef> for Node {
+impl From<LabelRef> for NodeId {
     fn from(val: LabelRef) -> Self {
         val.0
     }
 }
 
-impl From<Node> for LabelRef {
-    fn from(value: Node) -> Self {
+impl From<NodeId> for LabelRef {
+    fn from(value: NodeId) -> Self {
         Self(value)
     }
 }

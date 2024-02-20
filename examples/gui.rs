@@ -28,7 +28,7 @@ fn main() -> Result<()> {
     // Create a new Gui
     let mut gui = GuiBuilder::new(Style {
         // Use the amount of pixels as the calculation size
-        size: Size::from_points(
+        size: Size::from_lengths(
             window_config.buffer_size.w as f32,
             window_config.buffer_size.h as f32,
         ),
@@ -42,7 +42,7 @@ fn main() -> Result<()> {
             ..Default::default()
         },
         Style {
-            size: Size::from_points(120.0, 20.0),
+            size: Size::from_lengths(120.0, 20.0),
             ..Default::default()
         },
         gui.root(),
@@ -55,7 +55,7 @@ fn main() -> Result<()> {
             ..Default::default()
         },
         Style {
-            min_size: Size::from_points(120.0, 20.0),
+            min_size: Size::from_lengths(120.0, 20.0),
             ..Default::default()
         },
         gui.root(),

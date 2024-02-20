@@ -2,7 +2,7 @@
 
 use std::{cmp::Ordering, ops::Range};
 
-use line_drawing::{Bresenham, BresenhamCircle};
+use line_drawing::Bresenham;
 use vek::{Disk, Extent2, LineSegment2, Vec2};
 
 /// Simple wrapper around a pixel buffer that can be passed around to rendering calls.

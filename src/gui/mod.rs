@@ -8,13 +8,7 @@ pub mod label;
 use std::{any::Any, collections::HashMap};
 
 use miette::{Context, IntoDiagnostic, Result};
-use taffy::{
-    prelude::{Node, Size},
-    style::Style,
-    style_helpers::TaffyMaxContent,
-    tree::LayoutTree,
-    Taffy,
-};
+use taffy::{prelude::Size, style::Style, style_helpers::TaffyMaxContent, NodeId, TaffyTree};
 use vek::{Extent2, Vec2};
 
 /// Allow calling function on widgets in a simple way.
@@ -32,7 +26,7 @@ pub trait Widget {
 /// Reference to a widget after it has been constructed.
 ///
 /// Can be passed to [`Gui::widget`] and [`Gui::widget_mut`] to get the original widget back in update and render functions.
-pub trait WidgetRef: Into<Node> + From<Node> + Copy {
+pub trait WidgetRef: Into<NodeId> + From<NodeId> + Copy {
     /// The original widget that can be returned from this ref.
     type Widget: Widget;
 }
@@ -40,11 +34,11 @@ pub trait WidgetRef: Into<Node> + From<Node> + Copy {
 /// Construct a GUI from a tree of widgets defined by the layout.
 pub struct GuiBuilder {
     /// References to all widgets, so they can be updated.
-    widgets: HashMap<Node, Box<dyn Widget>>,
+    widgets: HashMap<NodeId, Box<dyn Widget>>,
     /// Taffy layout, will update the position and sizes of the widgets.
-    layout: Taffy,
+    layout: TaffyTree<()>,
     /// Root node.
-    root: Node,
+    root: NodeId,
 }
 
 impl GuiBuilder {
@@ -55,7 +49,7 @@ impl GuiBuilder {
     /// * `root_layout` - Layout for the root node. Size will be automatically set by the [`Widget::update_layout`] trait call.
     pub fn new(root_layout: Style) -> Self {
         let widgets = HashMap::new();
-        let mut layout = Taffy::new();
+        let mut layout = TaffyTree::new();
         // This shouldn't fail
         let root = layout
             .new_leaf(root_layout)
@@ -87,7 +81,7 @@ impl GuiBuilder {
         &mut self,
         widget: W::Widget,
         layout: Style,
-        parent: impl Into<Node>,
+        parent: impl Into<NodeId>,
     ) -> Result<W>
     where
         W: WidgetRef + 'static,
@@ -127,7 +121,7 @@ impl GuiBuilder {
     }
 
     /// The root node so children can be added to it.
-    pub fn root(&self) -> Node {
+    pub fn root(&self) -> NodeId {
         self.root
     }
 }
@@ -137,11 +131,11 @@ impl GuiBuilder {
 /// The GUI uses the [`taffy`](https://docs.rs/taffy) crate for layouts, where the size is defined as buffer pixels.
 pub struct Gui {
     /// References to all widgets, so they can be updated.
-    widgets: HashMap<Node, Box<dyn Widget>>,
+    widgets: HashMap<NodeId, Box<dyn Widget>>,
     /// Taffy layout, will update the position and sizes of the widgets.
-    layout: Taffy,
+    layout: TaffyTree<()>,
     /// Root layout node.
-    root: Node,
+    root: NodeId,
 }
 
 impl Gui {
@@ -195,7 +189,7 @@ impl Widget for Gui {
     fn update_layout(&mut self, location: Vec2<f64>, size: Extent2<f64>) {
         // Update root node layout
         let mut root_style = self.layout.style(self.root).unwrap().clone();
-        root_style.size = Size::from_points(size.w as f32, size.h as f32);
+        root_style.size = Size::from_lengths(size.w as f32, size.h as f32);
         self.layout.set_style(self.root, root_style).unwrap();
 
         // Compute the new layout

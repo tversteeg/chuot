@@ -9,7 +9,7 @@ use crate::{
 
 use super::{Widget, WidgetRef};
 
-use taffy::prelude::Node;
+use taffy::NodeId;
 use vek::{Extent2, Rect, Vec2};
 use winit_input_helper::WinitInputHelper;
 
@@ -29,7 +29,7 @@ pub struct Button {
     /// Current button state.
     pub state: State,
     /// Taffy layout node.
-    pub node: Node,
+    pub node: NodeId,
     /// Where to load the assets.
     pub assets: ButtonAssetPaths,
 }
@@ -123,7 +123,7 @@ impl Default for Button {
             label: None,
             state: State::default(),
             click_region: None,
-            node: Node::default(),
+            node: NodeId::new(0),
             assets: ButtonAssetPaths::default(),
         }
     }
@@ -172,20 +172,20 @@ impl Default for ButtonAssetPaths {
 ///
 /// See [`WidgetRef`].
 #[derive(Copy, Clone)]
-pub struct ButtonRef(Node);
+pub struct ButtonRef(NodeId);
 
 impl WidgetRef for ButtonRef {
     type Widget = Button;
 }
 
-impl From<ButtonRef> for Node {
+impl From<ButtonRef> for NodeId {
     fn from(val: ButtonRef) -> Self {
         val.0
     }
 }
 
-impl From<Node> for ButtonRef {
-    fn from(value: Node) -> Self {
+impl From<NodeId> for ButtonRef {
+    fn from(value: NodeId) -> Self {
         Self(value)
     }
 }
