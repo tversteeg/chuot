@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.7](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.4.6...pixel-game-lib-v0.4.7) - 2024-02-20
+
+### Added
+- *(canvas)* add `draw_circle`, `draw_scanline` and improve `draw_circle_outline` to/on `Canvas`
+
+### Fixed
+- *(deps)* update rust crate serde to 1.0.197
+
+### Other
+- *(deps)* update taffy to 0.4
+
 ## [0.4.6](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.4.5...pixel-game-lib-v0.4.6) - 2024-02-18
 
 ### Added
