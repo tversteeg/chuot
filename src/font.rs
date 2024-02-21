@@ -133,6 +133,7 @@ impl Compound for Font {
 
 /// Font metadata to load from TOML.
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct FontMetadata {
     /// Width of a single character.
     pub(crate) char_width: u8,

@@ -380,6 +380,7 @@ impl Default for Physics {
 
 /// Physics settings loaded from a file so it's easier to change them with hot-reloading.
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct PhysicsSettings {
     /// How many substeps are taken in a single step.
     pub substeps: u8,
