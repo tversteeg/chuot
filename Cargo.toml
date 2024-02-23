@@ -39,7 +39,7 @@ physics = ["dep:hecs", "dep:bvh-arena", "dep:parry2d-f64"]
 
 [dependencies]
 blit = { version = "0.8.4", features = ["serde"] }
-image = "0.24.8"
+image = "0.24.9"
 miette = "7.1.0"
 vek = "0.16.1"
 game-loop = "1.1.0"
