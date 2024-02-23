@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.4.7...pixel-game-lib-v0.5.0) - 2024-02-23
+
+### Fixed
+- *(sprite)* take offset into account when drawing
+- *(deps)* update rust crate image to 0.24.9
+
+### Other
+- *(serde)* [**breaking**] add `deny_unknown_fields` to all items implementing `Deserialize`
+
 ## [0.4.7](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.4.6...pixel-game-lib-v0.4.7) - 2024-02-20
 
 ### Added
