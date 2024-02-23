@@ -36,7 +36,8 @@ impl Sprite {
 
     /// Draw the sprite based on a camera offset.
     pub fn render(&self, offset: Vec2<f64>, canvas: &mut Canvas) {
-        let mut options = BlitOptions::new_position(offset.x, offset.y);
+        let total_offset = self.total_offset(offset);
+        let mut options = BlitOptions::new_position(total_offset.x, total_offset.y);
         options.vertical_slice = self.metadata.vertical_slice;
         options.horizontal_slice = self.metadata.horizontal_slice;
 
@@ -49,8 +50,9 @@ impl Sprite {
     ///
     /// The behavior depends on the metadata of the sprite.
     pub fn render_area(&self, offset: Vec2<f64>, area: Extent2<usize>, canvas: &mut Canvas) {
+        let total_offset = self.total_offset(offset);
         let mut options =
-            BlitOptions::new_position(offset.x, offset.y).with_area(area.into_tuple());
+            BlitOptions::new_position(total_offset.x, total_offset.y).with_area(area.into_tuple());
         options.vertical_slice = self.metadata.vertical_slice;
         options.horizontal_slice = self.metadata.horizontal_slice;
 
@@ -101,6 +103,12 @@ impl Sprite {
     /// Get the raw pixels.
     pub fn pixels_mut(&mut self) -> &mut [u32] {
         self.sprite.0.pixels_mut()
+    }
+
+    /// Calculate the total offset based on offset given.
+    fn total_offset(&self, offset: Vec2<f64>) -> Vec2<i32> {
+        // Add offset to our own offset
+        offset.as_() + self.metadata.offset.offset(self.size())
     }
 }
 
