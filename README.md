@@ -39,4 +39,9 @@ When creating a release binary this feature flag should be enabled.
 
 Enable the 2D XPBD-based physics engine.
 
+###### `dialogue`
+
+A thin wrapper around [Yarn Spinner](https://www.yarnspinner.dev/).
+Allows creating hot-reloadable dialogue systems.
+
 <!-- cargo-rdme end -->

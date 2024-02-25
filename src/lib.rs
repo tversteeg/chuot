@@ -26,6 +26,11 @@
 //! ### `physics`
 //!
 //! Enable the 2D XPBD-based physics engine.
+//!
+//! ### `dialogue`
+//!
+//! A thin wrapper around [Yarn Spinner](https://www.yarnspinner.dev/).
+//! Allows creating hot-reloadable dialogue systems.
 
 pub mod canvas;
 pub mod font;
@@ -43,6 +48,9 @@ pub mod math;
 
 #[cfg(feature = "physics")]
 pub mod physics;
+
+#[cfg(feature = "dialogue")]
+pub mod dialogue;
 
 /// Re-export taffy types.
 pub use taffy;

@@ -1,0 +1,16 @@
+title: Example
+---
+<<set $sleep to 3>>
+Please wait for the next text.
+<<set $sleep to 2>>
+This is an 
+interactive example of 
+the dialogue functionality.
+
+Next an option selection will
+be shown.
+
+Select an option to continue:
+-> Please continue
+-> No thanks.
+===
