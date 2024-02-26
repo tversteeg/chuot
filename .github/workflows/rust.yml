@@ -43,11 +43,6 @@ jobs:
         with:
           toolchain: stable
 
-      # Cache the built dependencies
-      - uses: Swatinem/rust-cache@v2.7.3
-        with:
-          save-if: ${{ github.event_name == 'push' }}
-
       # Install cargo-hack
       - uses: taiki-e/install-action@cargo-hack
 
@@ -75,7 +70,7 @@ jobs:
 
       # Build the WASM 
       - name: Build
-        run: cargo run --package run-wasm -- --example gui --features default-font --release --build-only
+        run: cargo run --package run-wasm -- --example gui --features default-font,default-gui --release --build-only
 
       # Deploy to GitHub pages
       - name: Deploy to GitHub Pages
