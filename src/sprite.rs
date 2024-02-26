@@ -7,7 +7,7 @@ use std::borrow::Cow;
 use assets_manager::{loader::Loader, AnyCache, Asset, BoxedError, Compound, SharedString};
 use blit::{slice::Slice, Blit, BlitBuffer, BlitOptions, ToBlitBuffer};
 use image::ImageFormat;
-use miette::{Context, IntoDiagnostic};
+use miette::{Context, IntoDiagnostic, Result};
 use serde::Deserialize;
 use vek::{Extent2, Vec2};
 
@@ -103,6 +103,18 @@ impl Sprite {
     /// Get the raw pixels.
     pub fn pixels_mut(&mut self) -> &mut [u32] {
         self.sprite.0.pixels_mut()
+    }
+
+    /// Create a sprite from the bytes of a PNG.
+    pub(crate) fn from_png_bytes(bytes: &[u8], metadata: SpriteMetadata) -> Result<Self> {
+        let sprite = Image(
+            image::load_from_memory_with_format(&bytes, ImageFormat::Png)
+                .into_diagnostic()?
+                .into_rgba8()
+                .to_blit_buffer_with_alpha(127),
+        );
+
+        Ok(Self { sprite, metadata })
     }
 
     /// Calculate the total offset based on offset given.

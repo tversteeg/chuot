@@ -4,14 +4,15 @@ use crate::{
     assets::{AssetOrPath, LoadedAsset},
     canvas::Canvas,
     font::Font,
-    sprite::Sprite,
+    sprite::{Sprite, SpriteMetadata},
 };
 
-use super::{Widget, WidgetRef};
-
+use blit::slice::Slice;
 use taffy::NodeId;
 use vek::{Extent2, Rect, Vec2};
 use winit_input_helper::WinitInputHelper;
+
+use super::{Widget, WidgetRef};
 
 /// A simple button widget.
 #[derive(Debug)]
@@ -115,6 +116,7 @@ impl Widget for Button {
     }
 }
 
+#[cfg(feature = "default-gui")]
 impl Default for Button {
     fn default() -> Self {
         Self {
@@ -154,12 +156,48 @@ pub struct ButtonAssetPaths {
     pub font: AssetOrPath<Font>,
 }
 
+#[cfg(feature = "default-gui")]
 impl Default for ButtonAssetPaths {
     fn default() -> Self {
+        // Sprite metadata is the same for each button
+        let sprite_metadata = SpriteMetadata {
+            vertical_slice: Some(Slice::Ternary {
+                split_first: 3,
+                split_last: 4,
+            }),
+            horizontal_slice: Some(Slice::Ternary {
+                split_first: 3,
+                split_last: 6,
+            }),
+            ..Default::default()
+        };
+
+        let normal = AssetOrPath::Owned(
+            Sprite::from_png_bytes(
+                include_bytes!("../../assets/button-normal.png"),
+                sprite_metadata.clone(),
+            )
+            .unwrap(),
+        );
+        let hover = AssetOrPath::Owned(
+            Sprite::from_png_bytes(
+                include_bytes!("../../assets/button-hover.png"),
+                sprite_metadata.clone(),
+            )
+            .unwrap(),
+        );
+        let down = AssetOrPath::Owned(
+            Sprite::from_png_bytes(
+                include_bytes!("../../assets/button-down.png"),
+                sprite_metadata,
+            )
+            .unwrap(),
+        );
+
         Self {
-            normal: "button-normal".into(),
-            hover: "button-hover".into(),
-            down: "button-down".into(),
+            normal,
+            hover,
+            down,
             #[cfg(feature = "default-font")]
             font: AssetOrPath::Owned(Font::default()),
             #[cfg(not(feature = "default-font"))]

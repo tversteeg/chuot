@@ -22,6 +22,9 @@ default = ["hot-reloading-assets", "physics"]
 # Embed a default pixel font.
 default-font = []
 
+# Embed default graphics for GUI elements.
+default-gui = []
+
 # Enable assets and hot-reload assets from disk when they are saved.
 #
 # Has no effect when building for the web.
@@ -84,7 +87,7 @@ name = "font"
 
 [[example]]
 name = "gui"
-required-features = ["default-font"]
+required-features = ["default-font", "default-gui"]
 
 [[example]]
 name = "physics"
@@ -92,7 +95,7 @@ required-features = ["default-font", "physics"]
 
 [[example]]
 name = "dialogue"
-required-features = ["default-font", "dialogue"]
+required-features = ["default-font", "default-gui", "dialogue"]
 
 [workspace]
 members = ["run-wasm"]

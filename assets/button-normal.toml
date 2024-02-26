@@ -1,2 +1,0 @@
-vertical_slice = { Ternary = { split_first = 3, split_last = 4 } }
-horizontal_slice = { Ternary = { split_first = 3, split_last = 6 } }
