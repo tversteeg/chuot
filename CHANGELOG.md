@@ -6,6 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.5.0...pixel-game-lib-v0.6.0) - 2024-02-26
+
+### Added
+- *(gui)* [**breaking**] embed default GUI elements behind feature flag `default-gui`
+- *(dialogue)* implement dialogue feature based on Yarn Spinner
+
+### Fixed
+- *(deps)* update rust crate winit to 0.29.11
+
+### Other
+- *(ci)* fix WASM build and test out of space
+- *(example)* fix dialogue example buttons
+- *(example)* draw options as GUI buttons
+
 ## [0.5.0](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.4.7...pixel-game-lib-v0.5.0) - 2024-02-23
 
 ### Fixed
