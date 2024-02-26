@@ -6,13 +6,13 @@ use pixel_game_lib::{
     font::Font,
     gui::{
         button::{Button, ButtonRef},
-        Gui, GuiBuilder,
+        Gui, GuiBuilder, Widget,
     },
     vek::Vec2,
     window::{KeyCode, WindowConfig},
 };
-use taffy::{Size, Style};
-use yarnspinner::runtime::{DialogueEvent, DialogueOption, OptionId};
+use taffy::{FlexDirection, LengthPercentage, Size, Style};
+use yarnspinner::runtime::{DialogueEvent, OptionId};
 
 /// Simple state for managing the dialogue.
 pub struct GameState {
@@ -80,7 +80,7 @@ fn main() {
         state,
         window_config.clone(),
         // Update loop exposing input events we can handle, this is where you would handle the game logic
-        |state, input, mouse_pos, _dt| {
+        move |state, input, mouse_pos, _dt| {
             if let Some(sleep_until) = state.sleep_until {
                 // Wait a bit before going to the next line
 
@@ -117,7 +117,19 @@ fn main() {
                         }
                         // Set the options as our blocking options
                         DialogueEvent::Options(options) => {
-                            let mut gui = GuiBuilder::new(Style::DEFAULT);
+                            // Create a base GUI canvas
+                            let mut gui = GuiBuilder::new(Style {
+                                size: Size::from_lengths(
+                                    window_config.buffer_size.w as f32,
+                                    window_config.buffer_size.h as f32,
+                                ),
+                                flex_direction: FlexDirection::Column,
+                                gap: Size {
+                                    width: LengthPercentage::Length(0.0),
+                                    height: LengthPercentage::Length(10.0),
+                                },
+                                ..Default::default()
+                            });
 
                             // Create a button for each option
                             for option in options.into_iter() {
@@ -129,7 +141,7 @@ fn main() {
                                             ..Default::default()
                                         },
                                         Style {
-                                            size: Size::from_lengths(120.0, 20.0),
+                                            size: Size::from_lengths(180.0, 20.0),
                                             ..Default::default()
                                         },
                                         gui.root(),
@@ -140,7 +152,7 @@ fn main() {
                                 state.buttons.push((button_node, option.id));
                             }
 
-                            // Build the Gui
+                            // Build the GUI
                             state.gui = gui.build();
                         }
                         // Exit when the dialogue is complete
@@ -151,7 +163,13 @@ fn main() {
             } else {
                 // The user can select an option, wait for that action
 
-                // Update the button Gui in the meantime
+                // Update the button GUI in the meantime
+                state
+                    .gui
+                    .update_layout(Vec2::zero(), window_config.buffer_size.as_());
+
+                // Update each button
+                let mut clear_gui = false;
                 for (button_node, option_id) in &state.buttons {
                     let button: &mut Button = state.gui.widget_mut(*button_node).unwrap();
                     // Handle the button press
@@ -162,7 +180,15 @@ fn main() {
                             .state
                             .set_selected_option(*option_id)
                             .unwrap();
+
+                        clear_gui = true;
                     }
+                }
+
+                if clear_gui {
+                    // Reset the GUI
+                    state.gui = GuiBuilder::new(Style::DEFAULT).build();
+                    state.buttons.clear();
                 }
             }
 
