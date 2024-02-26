@@ -4,24 +4,30 @@ use miette::{Context, IntoDiagnostic, Result};
 use pixel_game_lib::{
     dialogue::Dialogue,
     font::Font,
+    gui::{
+        button::{Button, ButtonRef},
+        Gui, GuiBuilder,
+    },
     vek::Vec2,
     window::{KeyCode, WindowConfig},
 };
-use yarnspinner::runtime::DialogueEvent;
+use taffy::{Size, Style};
+use yarnspinner::runtime::{DialogueEvent, DialogueOption, OptionId};
 
 /// Simple state for managing the dialogue.
-#[derive(Debug)]
 pub struct GameState {
     /// Actual dialogue state itself.
     dialogue: Dialogue,
-    /// Current available options for the user.
-    user_options: Vec<String>,
     /// Current line to print.
     ///
     /// Will be updated in the update loop.
     line: String,
     /// How long we still need to sleep before updating the dialogue.
     sleep_until: Option<Instant>,
+    /// GUI for the buttons.
+    gui: Gui,
+    /// Buttons and the IDs of the dialogue to trigger.
+    buttons: Vec<(ButtonRef, OptionId)>,
 }
 
 impl GameState {
@@ -36,20 +42,22 @@ impl GameState {
             .into_diagnostic()
             .wrap_err("Error setting initial node")?;
 
-        // There's nothing to choose yet for the user
-        let user_options = Vec::new();
-
         // Feed the line from the dialogue
         let line = String::new();
 
         // Don't sleep yet
         let sleep_until = None;
 
+        // Setup the GUI for the buttons
+        let gui = GuiBuilder::new(Style::DEFAULT).build();
+        let buttons = Vec::new();
+
         Ok(Self {
+            gui,
             dialogue,
-            user_options,
             line,
             sleep_until,
+            buttons,
         })
     }
 }
@@ -72,7 +80,7 @@ fn main() {
         state,
         window_config.clone(),
         // Update loop exposing input events we can handle, this is where you would handle the game logic
-        |state, input, _mouse, _dt| {
+        |state, input, mouse_pos, _dt| {
             if let Some(sleep_until) = state.sleep_until {
                 // Wait a bit before going to the next line
 
@@ -80,7 +88,7 @@ fn main() {
                     // Our sleeping time is over, unset it
                     state.sleep_until = None;
                 }
-            } else if state.user_options.is_empty() {
+            } else if state.buttons.is_empty() {
                 // The user has no options to choose from, this means we can advance the dialogue
 
                 // Get the next dialogue event
@@ -109,10 +117,31 @@ fn main() {
                         }
                         // Set the options as our blocking options
                         DialogueEvent::Options(options) => {
-                            state.user_options = options
-                                .into_iter()
-                                .map(|dialogue_option| dialogue_option.line.text)
-                                .collect()
+                            let mut gui = GuiBuilder::new(Style::DEFAULT);
+
+                            // Create a button for each option
+                            for option in options.into_iter() {
+                                let button_node = gui
+                                    .add_widget::<ButtonRef>(
+                                        Button {
+                                            // Set the line text from the option as the label of the button
+                                            label: Some(option.line.text),
+                                            ..Default::default()
+                                        },
+                                        Style {
+                                            size: Size::from_lengths(120.0, 20.0),
+                                            ..Default::default()
+                                        },
+                                        gui.root(),
+                                    )
+                                    .unwrap();
+
+                                // Push the button reference with the option reference
+                                state.buttons.push((button_node, option.id));
+                            }
+
+                            // Build the Gui
+                            state.gui = gui.build();
                         }
                         // Exit when the dialogue is complete
                         DialogueEvent::DialogueComplete => return true,
@@ -121,6 +150,20 @@ fn main() {
                 }
             } else {
                 // The user can select an option, wait for that action
+
+                // Update the button Gui in the meantime
+                for (button_node, option_id) in &state.buttons {
+                    let button: &mut Button = state.gui.widget_mut(*button_node).unwrap();
+                    // Handle the button press
+                    if button.update(input, mouse_pos) {
+                        // Select the option in the dialogue
+                        state
+                            .dialogue
+                            .state
+                            .set_selected_option(*option_id)
+                            .unwrap();
+                    }
+                }
             }
 
             // Exit when escape is pressed
@@ -140,6 +183,12 @@ fn main() {
                 .as_(),
                 canvas,
             );
+
+            // Draw the buttons
+            for button_node in &state.buttons {
+                let button: &Button = state.gui.widget(button_node.0).unwrap();
+                button.render(canvas);
+            }
         },
     )
     .expect("Error opening window");
