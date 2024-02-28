@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.6.0...pixel-game-lib-v0.6.1) - 2024-02-28
+
+### Other
+- *(window)* perform color conversion on GPU with a custom shader instead of on CPU
+- *(window)* use `Rc` instead of `Arc` for the window handler
+- *(canvas)* improve `draw_line` performance by switching from 'line_drawing' to the 'clipline' crate
+
 ## [0.6.0](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.5.0...pixel-game-lib-v0.6.0) - 2024-02-26
 
 ### Added
