@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use miette::{Context, IntoDiagnostic, Result};
 use pixels::{
     wgpu::{BlendState, Color},
@@ -54,7 +52,7 @@ where
 
     crate::window::winit_start(
         event_loop,
-        Rc::new(window),
+        window,
         pixels,
         game_state,
         update,

@@ -1,5 +1,6 @@
 #[cfg(not(target_arch = "wasm32"))]
 mod desktop;
+mod renderer;
 #[cfg(target_arch = "wasm32")]
 mod web;
 
@@ -13,7 +14,7 @@ use std::rc::Rc;
 use game_loop::{GameLoop, Time};
 use miette::{Context, IntoDiagnostic, Result};
 use pixels::Pixels;
-use vek::{Extent2, Vec2};
+use vek::{Extent2, Rect, Vec2};
 use winit::{
     dpi::LogicalSize,
     event::{Event, WindowEvent},
@@ -22,7 +23,7 @@ use winit::{
 };
 use winit_input_helper::WinitInputHelper;
 
-use crate::canvas::Canvas;
+use crate::{canvas::Canvas, window::renderer::RgbaToBgraRenderer};
 
 /// Window configuration.
 #[derive(Debug, Clone)]
@@ -110,7 +111,7 @@ where
 /// Open a winit window with an event loop.
 fn winit_start<G, U, R>(
     event_loop: EventLoop<()>,
-    window: Rc<Window>,
+    window: Window,
     pixels: Pixels,
     game_state: G,
     mut update: U,
@@ -128,24 +129,29 @@ where
     // Helper for input handling
     let mut input = WinitInputHelper::new();
 
+    // Pixels conversion shader, because everything is rendered to BGRA and we use RGBA
+    let rgba_to_bgra_renderer = RgbaToBgraRenderer::new(&pixels, buffer_size.as_())
+        .into_diagnostic()
+        .wrap_err("Error setting up RGBA to BGRA renderer")?;
+
     /// Pass multiple fields to the game state.
     struct State<G> {
         /// User passed game state.
         game_state: G,
-        /// Pixels to draw.
-        buffer: Vec<u32>,
         /// Pixels itself.
         pixels: Pixels,
+        /// RGBA to BGRA renderer.
+        rgba_to_bgra_renderer: RgbaToBgraRenderer,
     }
-
-    // Buffer for pixels
-    let buffer = vec![0u32; buffer_size.w * buffer_size.h];
 
     let state = State {
         game_state,
-        buffer,
         pixels,
+        rgba_to_bgra_renderer,
     };
+
+    // Reference count the window, it will be accessed from both the game loop as well as the event loop
+    let window = Rc::new(window);
 
     // Setup the game loop
     let mut game_loop: GameLoop<_, Time, _> =
@@ -166,12 +172,25 @@ where
                         // Set the occluded state in the game loop
                         WindowEvent::Occluded(occluded) => game_loop.window_occluded = occluded,
                         // Resize pixels surface if window resized
-                        WindowEvent::Resized(new_size) => game_loop
-                            .game
-                            .pixels
-                            .resize_surface(new_size.width, new_size.height)
-                            .into_diagnostic()
-                            .unwrap(),
+                        WindowEvent::Resized(new_size) => {
+                            // Resize pixels
+                            game_loop
+                                .game
+                                .pixels
+                                .resize_surface(new_size.width, new_size.height)
+                                .into_diagnostic()
+                                .unwrap();
+
+                            // Resize renderer
+                            game_loop
+                                .game
+                                .rgba_to_bgra_renderer
+                                .resize(
+                                    &game_loop.game.pixels,
+                                    Extent2::new(new_size.width, new_size.height),
+                                )
+                                .unwrap();
+                        }
                         // Draw the next frame
                         WindowEvent::RedrawRequested => {
                             // Update loop
@@ -201,28 +220,40 @@ where
                                 let frame_time = g.last_frame_time();
 
                                 // Wrap the buffer in a canvas with the size
-                                let buffer = g.game.buffer.as_mut_slice();
+                                let buffer = bytemuck::cast_slice_mut(g.game.pixels.frame_mut());
                                 let size = buffer_size;
                                 let mut canvas = Canvas { size, buffer };
 
                                 render(&mut g.game.game_state, &mut canvas, frame_time as f32);
 
-                                // Blit draws the pixels in RGBA format, but the pixels crate expects BGRA, so convert it
-                                g.game
-                                    .pixels
-                                    .frame_mut()
-                                    .chunks_exact_mut(4)
-                                    .zip(buffer.iter())
-                                    .for_each(|(target, source)| {
-                                        let source = source.to_ne_bytes();
-                                        target[0] = source[2];
-                                        target[1] = source[1];
-                                        target[2] = source[0];
-                                        target[3] = source[3];
-                                    });
-
                                 // Render the pixel buffer
-                                if let Err(err) = g.game.pixels.render() {
+                                let render_result =
+                                    g.game
+                                        .pixels
+                                        .render_with(|encoder, render_target, context| {
+                                            // Draw the canvas to the pixel shader texture
+                                            let rgba_to_bgra_texture =
+                                                g.game.rgba_to_bgra_renderer.texture_view();
+                                            context
+                                                .scaling_renderer
+                                                .render(encoder, rgba_to_bgra_texture);
+
+                                            // Draw the pixel shader texture
+                                            let clip_rect = context.scaling_renderer.clip_rect();
+                                            g.game.rgba_to_bgra_renderer.render(
+                                                encoder,
+                                                render_target,
+                                                Rect::new(
+                                                    clip_rect.0,
+                                                    clip_rect.1,
+                                                    clip_rect.2,
+                                                    clip_rect.3,
+                                                ),
+                                            );
+
+                                            Ok(())
+                                        });
+                                if let Err(err) = render_result {
                                     dbg!(err);
                                     // TODO: properly handle error
                                     g.exit();
