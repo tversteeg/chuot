@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::rc::Rc;
 
 use miette::{Context, IntoDiagnostic, Result};
 use pixels::{
@@ -54,7 +54,7 @@ where
 
     crate::window::winit_start(
         event_loop,
-        Arc::new(window),
+        Rc::new(window),
         pixels,
         game_state,
         update,

@@ -8,7 +8,7 @@ pub use winit::{dpi::PhysicalSize, keyboard::KeyCode};
 /// Re-export winit_input_helper type.
 pub use winit_input_helper::{TextChar, WinitInputHelper as Input};
 
-use std::sync::Arc;
+use std::rc::Rc;
 
 use game_loop::{GameLoop, Time};
 use miette::{Context, IntoDiagnostic, Result};
@@ -110,7 +110,7 @@ where
 /// Open a winit window with an event loop.
 fn winit_start<G, U, R>(
     event_loop: EventLoop<()>,
-    window: Arc<Window>,
+    window: Rc<Window>,
     pixels: Pixels,
     game_state: G,
     mut update: U,
