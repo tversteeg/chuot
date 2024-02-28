@@ -2,7 +2,6 @@
 
 use std::{cmp::Ordering, ops::Range};
 
-use line_drawing::Bresenham;
 use vek::{Disk, Extent2, LineSegment2, Vec2};
 
 /// Simple wrapper around a pixel buffer that can be passed around to rendering calls.
@@ -38,13 +37,17 @@ impl<'a> Canvas<'a> {
     /// Draw a line using Bresenham's line algorithm.
     #[inline]
     pub fn draw_line(&mut self, start: Vec2<f64>, end: Vec2<f64>, color: u32) {
-        // PERF: optimize
-        for (x, y) in Bresenham::new(
-            (start.x as i32, start.y as i32),
-            (end.x as i32, end.y as i32),
-        ) {
-            self.set_pixel(Vec2::new(x, y).as_(), color);
-        }
+        let isize_width = self.size.w as isize;
+
+        clipline::clipline(
+            (start.as_().into_tuple(), end.as_().into_tuple()),
+            ((0, 0), self.size.as_().into_tuple()),
+            |x: isize, y: isize| {
+                let index = x + y * isize_width;
+
+                self.buffer[index as usize] = color;
+            },
+        );
     }
 
     /// Fill a horizontal line, very cheap operation.
