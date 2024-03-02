@@ -1,4 +1,3 @@
-use line_drawing::Bresenham;
 use miette::Result;
 use pixel_game_lib::{
     canvas::Canvas,
