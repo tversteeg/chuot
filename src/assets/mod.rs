@@ -14,7 +14,7 @@ pub enum AssetOrPath<T: Compound> {
 impl<'a, T: Compound> From<&'a AssetOrPath<T>> for LoadedAsset<'a, T> {
     fn from(value: &'a AssetOrPath<T>) -> Self {
         match value {
-            AssetOrPath::Path(path) => LoadedAsset::Guard(crate::asset::<T, _>(path)),
+            AssetOrPath::Path(path) => LoadedAsset::Guard(crate::asset::<T>(path)),
             AssetOrPath::Owned(asset) => LoadedAsset::Ref(asset),
         }
     }
@@ -68,10 +68,9 @@ static ASSETS: OnceLock<Assets> = OnceLock::new();
 /// # Arguments
 ///
 /// * `path` - Directory structure of the asset file in `assets/` where every `/` is a `.`.
-pub fn asset<T, S>(path: S) -> AssetReadGuard<'static, T>
+pub fn asset<T>(path: impl AsRef<str>) -> AssetReadGuard<'static, T>
 where
     T: Compound,
-    S: AsRef<str>,
 {
     asset_cache().load_expect(path.as_ref()).read()
 }
@@ -83,10 +82,9 @@ where
 /// # Arguments
 ///
 /// * `path` - Directory structure of the asset file in `assets/` where every `/` is a `.`.
-pub fn asset_owned<T, S>(path: S) -> T
+pub fn asset_owned<T>(path: impl AsRef<str>) -> T
 where
     T: Compound,
-    S: AsRef<str>,
 {
     asset_cache()
         .load_owned(path.as_ref())
