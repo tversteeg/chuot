@@ -51,7 +51,7 @@ vek = "0.16.1"
 game-loop = "1.1.0"
 pixels = "0.13.0"
 serde = { version = "1.0.197", features = ["derive"] }
-winit = { version = "0.29.11", features = ["rwh_05"] }
+winit = { version = "0.29.13", features = ["rwh_05"] }
 winit_input_helper = "0.15.3"
 taffy = "0.4.0"
 derive-where = "1.2.7"
