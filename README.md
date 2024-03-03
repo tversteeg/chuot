@@ -10,7 +10,7 @@
 
 <!-- cargo-rdme start -->
 
-Utility library for games, not a game engine.
+Game engine with library features that can be used standalone.
 
 #### Features
 
