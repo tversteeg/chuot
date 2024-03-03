@@ -60,8 +60,7 @@ pub use window::window;
 use canvas::Canvas;
 use miette::Result;
 use vek::Vec2;
-use window::WindowConfig;
-use winit_input_helper::WinitInputHelper;
+use window::{Input, WindowConfig};
 
 /// Setup a game with a shared state and run it.
 ///
@@ -81,8 +80,7 @@ where
     /// # Returns
     ///
     /// * `true` if the window and thus the game should be closed
-    fn update(&mut self, input: &WinitInputHelper, mouse_pos: Option<Vec2<usize>>, dt: f32)
-        -> bool;
+    fn update(&mut self, input: &Input, mouse_pos: Option<Vec2<usize>>, dt: f32) -> bool;
 
     /// Render loop, called every render tick.
     ///
