@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.6.1...pixel-game-lib-v0.7.0) - 2024-03-03
+
+### Added
+- *(state)* create a `PixelGame` trait which simplifies setting up a new game with a window
+
+### Fixed
+- *(deps)* update rust crate winit to 0.29.13
+- *(assets)* [**breaking**] improve ergonomics of `asset` and `asset_owned` by making the path an anonymous generic
+- *(deps)* update rust crate assets_manager to 0.11.3
+
+### Other
+- *(example)* fix 'physics' import
+
 ## [0.6.1](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.6.0...pixel-game-lib-v0.6.1) - 2024-02-28
 
 ### Other
