@@ -20,6 +20,7 @@ Game engine with library features that can be used standalone.
 - Sprite loading.
 - Simple GUI.
 - Physics engine.
+- Audio playback.
 
 #### Feature Flags
 
@@ -49,6 +50,21 @@ Enable the 2D XPBD-based physics engine.
 
 A thin wrapper around [Yarn Spinner](https://www.yarnspinner.dev/).
 Allows creating hot-reloadable dialogue systems.
+
+###### `audio`
+
+A thin wrapper around [Kira](https://docs.rs/kira/latest/kira/).
+Play sounds and music files which can be hot-reloadable using assets.
+
+To keep the binary and compile-times small only `.ogg` audio files are supported.
+
+####### Requirements
+
+On Linux you need to install `asound2-dev`:
+
+```sh
+sudo apt install libasound2-dev
+```
 
 <!-- cargo-rdme end -->
 

@@ -16,6 +16,9 @@ use crate::math::Iso;
 
 use super::{CollisionResponse, CollisionState};
 
+/// How many subdivisions a circle should be split in to convert to a linestrip.
+const CIRCLE_SUBDIVISIONS: u32 = 16;
+
 /// Different shapes.
 #[derive(Clone)]
 pub struct Shape(SharedShape);
@@ -26,6 +29,11 @@ impl Shape {
         let shape = SharedShape::cuboid(size.w / 2.0, size.h / 2.0);
 
         Self(shape)
+    }
+
+    /// Create a square box.
+    pub fn square(length: f64) -> Self {
+        Self::rectangle(Extent2::new(length, length))
     }
 
     /// Create a horizontal heightmap.
@@ -51,6 +59,49 @@ impl Shape {
                 .map(Into::into)
                 .collect(),
             None,
+        );
+
+        Self(shape)
+    }
+
+    /// Create a circle from a radius.
+    pub fn circle(radius: f64) -> Self {
+        let shape = SharedShape::ball(radius);
+
+        Self(shape)
+    }
+
+    /// Create a triangle from three points.
+    ///
+    /// <div class="warning">The triangle is not automatically centered around [`Vec2::zero()`], so the rotation might have a weird offset!</div>
+    pub fn triangle(a: Vec2<f64>, b: Vec2<f64>, c: Vec2<f64>) -> Self {
+        let shape = SharedShape::triangle(
+            a.into_array().into(),
+            b.into_array().into(),
+            c.into_array().into(),
+        );
+
+        Self(shape)
+    }
+
+    /// Combine multiple shapes into a single shape.
+    ///
+    /// # Arguments
+    ///
+    /// * `shapes` - List of shapes with the local transformation, rotation and shape of the subshapes.
+    pub fn compound(shapes: impl IntoIterator<Item = (Vec2<f64>, f64, Shape)>) -> Self {
+        puffin::profile_scope!("Compound shape");
+
+        let shape = SharedShape::compound(
+            shapes
+                .into_iter()
+                .map(|(offset, rotation, shape)| {
+                    (
+                        Isometry2::new(offset.into_array().into(), rotation),
+                        shape.0,
+                    )
+                })
+                .collect(),
         );
 
         Self(shape)
@@ -160,6 +211,8 @@ impl Shape {
             TypedShape::Cuboid(rect) => rect.to_polyline(),
             TypedShape::HeightField(height) => height.to_polyline().0,
             TypedShape::Polyline(polyline) => polyline.vertices().to_vec(),
+            TypedShape::Ball(ball) => ball.to_polyline(CIRCLE_SUBDIVISIONS).to_vec(),
+            TypedShape::Triangle(triangle) => triangle.vertices().to_vec(),
             _ => todo!(),
         }
         .into_iter()
