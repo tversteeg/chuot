@@ -6,11 +6,10 @@ use pixel_game_lib::{
         rigidbody::{RigidBodyBuilder, RigidBodyHandle},
         Physics, PhysicsSettings,
     },
-    vek::Vec2,
-    window::{Input, KeyCode, WindowConfig},
+    vek::{Extent2, Vec2},
+    window::{Input, KeyCode, MouseButton, WindowConfig},
     PixelGame,
 };
-use vek::Extent2;
 
 /// Game state passed around the update and render functions.
 #[derive(Default)]
@@ -29,7 +28,7 @@ impl PixelGame for State {
         self.physics.step(dt as f64, &PhysicsSettings::default());
 
         // Spawn a box when the mouse is pressed
-        if input.mouse_released(0) {
+        if input.mouse_released(MouseButton::Left) {
             if let Some(mouse_pos) = mouse_pos {
                 // Choose a shape to spawn
                 let shape = match self.spawn_shape {

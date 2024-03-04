@@ -10,6 +10,7 @@ use crate::{
 use blit::slice::Slice;
 use taffy::NodeId;
 use vek::{Extent2, Rect, Vec2};
+use winit::event::MouseButton;
 use winit_input_helper::WinitInputHelper;
 
 use super::{Widget, WidgetRef};
@@ -50,7 +51,8 @@ impl Button {
         match self.state {
             State::Normal => {
                 if let Some(mouse_pos) = mouse_pos {
-                    if !input.mouse_held(0) && rect.contains_point(mouse_pos.as_()) {
+                    if !input.mouse_held(MouseButton::Left) && rect.contains_point(mouse_pos.as_())
+                    {
                         self.state = State::Hover;
                     }
                 }
@@ -61,7 +63,7 @@ impl Button {
                 if let Some(mouse_pos) = mouse_pos {
                     if !rect.contains_point(mouse_pos.as_()) {
                         self.state = State::Normal;
-                    } else if input.mouse_pressed(0) {
+                    } else if input.mouse_pressed(MouseButton::Left) {
                         self.state = State::Down;
                     }
                 }
@@ -69,7 +71,7 @@ impl Button {
                 false
             }
             State::Down => {
-                if input.mouse_released(0) {
+                if input.mouse_released(MouseButton::Left) {
                     self.state = State::Normal;
 
                     true

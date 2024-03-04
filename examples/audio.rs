@@ -3,7 +3,7 @@ use pixel_game_lib::{
     canvas::Canvas,
     font::Font,
     vek::Vec2,
-    window::{Input, KeyCode, WindowConfig},
+    window::{Input, KeyCode, MouseButton, WindowConfig},
     PixelGame,
 };
 
@@ -14,7 +14,7 @@ impl PixelGame for GameState {
     // Update loop exposing input events we can handle, this is where you would handle the game logic
     fn update(&mut self, input: &Input, _mouse_pos: Option<Vec2<usize>>, _dt: f32) -> bool {
         // Play a sound when the mouse is pressed
-        if input.mouse_released(0) {
+        if input.mouse_released(MouseButton::Left) {
             pixel_game_lib::asset::<Audio>("switch31").play();
         }
 
