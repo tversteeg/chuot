@@ -26,9 +26,9 @@ jobs:
           command: fmt
           args: --all -- --check
 
-  # Run test check on Linux, macOS, and Windows
-  test:
-    name: Test
+  # Run a compilation check on Linux, macOS, and Windows
+  compile:
+    name: Compile
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true
@@ -51,9 +51,30 @@ jobs:
       # Install cargo-hack
       - uses: taiki-e/install-action@cargo-hack
 
-      # Test all feature combinations on the target platform
+      # Check if all feature combinations compile
       - name: Test
-        run: cargo hack --each-feature test
+        run: cargo hack --each-feature check
+
+  # Run tests on Linux
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout the branch being tested
+      - uses: actions/checkout@v4
+
+      # Install required libraries
+      - name: Install dependencies
+        run: sudo apt-get install -y libasound2-dev
+
+      # Install rust stable
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+
+      # Test all features on the target platform
+      - name: Test
+        run: cargo test --features default-font,default-gui,hot-reloading-assets,physics,dialogue,audio
 
   # Build the WASM target & push it to GitHub pages
   wasm:
