@@ -5,9 +5,13 @@ mod renderer;
 mod web;
 
 /// Re-export winit types.
-pub use winit::{dpi::PhysicalSize, keyboard::KeyCode};
+pub use winit::{
+    dpi::PhysicalSize,
+    event::MouseButton,
+    keyboard::{Key, KeyCode},
+};
 /// Re-export winit_input_helper type.
-pub use winit_input_helper::{TextChar, WinitInputHelper as Input};
+pub use winit_input_helper::WinitInputHelper as Input;
 
 use std::rc::Rc;
 
@@ -143,6 +147,7 @@ where
         .wrap_err("Error setting up RGBA to BGRA renderer")?;
 
     // Setup the audio
+    #[cfg(feature = "audio")]
     crate::audio::init_audio()?;
 
     /// Pass multiple fields to the game state.
