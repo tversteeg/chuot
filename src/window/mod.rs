@@ -59,7 +59,11 @@ impl Default for WindowConfig {
     }
 }
 
-/// Create a new window with an event loop and run the game.
+/// Manually create a new window with an event loop and run the game.
+///
+/// For a more integrated and easier use it's recommended to use [`crate::PixelGame`].
+///
+/// If the `audio` feature is enabled this will also start a new audio backend.
 ///
 /// # Arguments
 ///
@@ -67,6 +71,10 @@ impl Default for WindowConfig {
 /// * `window_config` - Configuration options for the window.
 /// * `update` - Function called every update tick, arguments are the state, window input event that can be used to handle input events, mouse position in pixels and the time between this and the previous tick. When `true` is returned the window will be closed.
 /// * `render` - Function called every render tick, arguments are the state and the time between this and the previous tick.
+///
+/// # Errors
+///
+/// - When the audio manager could not find a device to play audio on.
 pub fn window<G, U, R>(
     game_state: G,
     window_config: WindowConfig,
@@ -133,6 +141,9 @@ where
     let rgba_to_bgra_renderer = RgbaToBgraRenderer::new(&pixels, buffer_size.as_())
         .into_diagnostic()
         .wrap_err("Error setting up RGBA to BGRA renderer")?;
+
+    // Setup the audio
+    crate::audio::init_audio()?;
 
     /// Pass multiple fields to the game state.
     struct State<G> {

@@ -8,6 +8,7 @@
 //! - Sprite loading.
 //! - Simple GUI.
 //! - Physics engine.
+//! - Audio playback.
 //!
 //! # Feature Flags
 //!
@@ -37,8 +38,24 @@
 //!
 //! A thin wrapper around [Yarn Spinner](https://www.yarnspinner.dev/).
 //! Allows creating hot-reloadable dialogue systems.
+//!
+//! ### `audio`
+//!
+//! A thin wrapper around [Kira](https://docs.rs/kira/latest/kira/).
+//! Play sounds and music files which can be hot-reloadable using assets.
+//!
+//! To keep the binary and compile-times small only `.ogg` audio files are supported.
+//!
+//! #### Requirements
+//!
+//! On Linux you need to install `asound2-dev`:
+//!
+//! ```sh
+//! sudo apt install libasound2-dev
+//! ```
 
 pub mod assets;
+pub mod audio;
 pub mod canvas;
 #[cfg(feature = "dialogue")]
 pub mod dialogue;

@@ -51,3 +51,8 @@ A thin wrapper around [Yarn Spinner](https://www.yarnspinner.dev/).
 Allows creating hot-reloadable dialogue systems.
 
 <!-- cargo-rdme end -->
+
+#### Credits
+
+- [@damieng](https://damieng.com/typography/zx-origins/beachball/) for the font behind the `default-font` feature.
+- [KenneyNL](https://kenney.nl/assets/ui-audio) for the audio sample in the example.
