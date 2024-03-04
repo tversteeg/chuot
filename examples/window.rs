@@ -2,7 +2,7 @@ use pixel_game_lib::{
     canvas::Canvas,
     vek::Extent2,
     vek::Vec2,
-    window::{Input, KeyCode, WindowConfig},
+    window::{Input, KeyCode, MouseButton, WindowConfig},
     PixelGame,
 };
 
@@ -18,7 +18,7 @@ impl PixelGame for GameState {
     // Update loop exposing input events we can handle, this is where you would handle the game logic
     fn update(&mut self, input: &Input, _mouse_pos: Option<Vec2<usize>>, _dt: f32) -> bool {
         // Increment when mouse is clicked
-        if input.mouse_held(0) {
+        if input.mouse_held(MouseButton::Left) {
             self.pixels_to_draw += 1;
         }
 
