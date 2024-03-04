@@ -41,7 +41,7 @@ impl<'a> Canvas<'a> {
 
         clipline::clipline(
             (start.as_().into_tuple(), end.as_().into_tuple()),
-            ((0, 0), self.size.as_().into_tuple()),
+            ((0, 0), (self.size - Vec2::new(1, 1)).as_().into_tuple()),
             |x: isize, y: isize| {
                 let index = x + y * isize_width;
 
