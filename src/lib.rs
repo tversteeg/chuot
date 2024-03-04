@@ -55,6 +55,7 @@
 //! ```
 
 pub mod assets;
+#[cfg(feature = "audio")]
 pub mod audio;
 pub mod canvas;
 #[cfg(feature = "dialogue")]
