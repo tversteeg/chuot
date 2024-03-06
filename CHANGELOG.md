@@ -6,6 +6,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.7.0...pixel-game-lib-v0.8.0) - 2024-03-06
+
+### Added
+- *(physics)* add square, triangle and circle collider shapes
+- *(audio)* `audio` crate feature for playing audio, based on the Kira crate
+
+### Fixed
+- *(deps)* update rust crate winit to 0.29.14
+- *(deps)* update rust-wasm-bindgen monorepo
+- *(ci)* install audio dependency in CI
+- *(window)* [**breaking**] re-export proper window types for the input helper
+- *(deps)* update rust crate winit_input_helper to 0.16.0
+- *(audio)* hide module definition behind feature flag
+- *(canvas)* ensure line drawing doesn't go out of bounds
+- *(state)* use proper aliased input type
+
+### Other
+- *(ci)* only test on Linux and run check on the other platforms
+
 ## [0.7.0](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.6.1...pixel-game-lib-v0.7.0) - 2024-03-03
 
 ### Added
