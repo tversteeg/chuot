@@ -47,7 +47,7 @@ dialogue = ["dep:yarnspinner"]
 audio = ["dep:kira"]
 
 [dependencies]
-blit = { version = "0.8.4", features = ["serde"] }
+blit = { version = "0.8.5", features = ["serde"] }
 image = "0.24.9"
 miette = "7.1.0"
 vek = "0.16.1"
