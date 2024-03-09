@@ -12,11 +12,13 @@ use pixel_game_lib::{
 /// What action clicking does.
 #[derive(Default)]
 enum Action {
-    /// Set a single pixel.
+    /// Set a single value.
     #[default]
     Set,
-    /// Toggle a single pixel.
+    /// Toggle a single value.
     Toggle,
+    /// Perform a floodfill.
+    Floodfill,
 }
 
 /// Define a game state with a bitmap that we will draw.
@@ -40,6 +42,10 @@ impl PixelGame for GameState {
                     Action::Set => self.bitmap.set(mouse_pos, true),
                     // Toggle a single value
                     Action::Toggle => self.bitmap.toggle(mouse_pos),
+                    // Perform a floodfill based on the opposite value of the pixel
+                    Action::Floodfill => self
+                        .bitmap
+                        .floodfill(mouse_pos, !self.bitmap.value(mouse_pos)),
                 }
             }
         }
@@ -49,7 +55,8 @@ impl PixelGame for GameState {
             // Toggle between actions
             self.action = match self.action {
                 Action::Set => Action::Toggle,
-                Action::Toggle => Action::Set,
+                Action::Toggle => Action::Floodfill,
+                Action::Floodfill => Action::Set,
             };
         }
 
@@ -73,6 +80,7 @@ impl PixelGame for GameState {
             match self.action {
                 Action::Set => "Set",
                 Action::Toggle => "Toggle",
+                Action::Floodfill => "Fill",
             },
             Vec2::zero(),
             canvas,

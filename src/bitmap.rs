@@ -68,6 +68,55 @@ impl BitMap {
         self.set_at_index(index, value);
     }
 
+    /// Perform a floodfill from a position.
+    ///
+    /// This will walk west, east, north and south with a stack, setting the value to the original value.
+    ///
+    /// # Arguments
+    ///
+    /// * `position` - Coordinate inside the map to start the floodfill from.
+    /// * `value` - Boolean to fill the area with.
+    pub fn floodfill(&mut self, position: impl Into<Vec2<usize>>, value: bool) {
+        let position = position.into();
+
+        // Create a stack for pixels that need to be filled
+        let mut stack = Vec::with_capacity(16);
+        stack.push(position.x + position.y * self.width());
+
+        while let Some(index) = stack.pop() {
+            let x = index % self.width();
+            let y = index / self.width();
+            if x >= self.width() || y >= self.height() || self.at_index(index) == value {
+                continue;
+            }
+
+            // Fill the value
+            self.set_at_index(index, value);
+
+            // Push the neighbors
+
+            // Right
+            if x < self.width() - 1 {
+                stack.push(index + 1);
+            }
+
+            // Left
+            if x > 0 {
+                stack.push(index.wrapping_sub(1));
+            }
+
+            // Up
+            if y < self.height() - 1 {
+                stack.push(index + self.width());
+            }
+
+            // Down
+            if y > 0 {
+                stack.push(index.wrapping_sub(self.width()));
+            }
+        }
+    }
+
     /// Convert the value to a image where every `true` value is replaced by the color.
     ///
     /// # Arguments
@@ -84,6 +133,14 @@ impl BitMap {
 
         // Create a sprite from it
         Sprite::from_buffer(&pixels, self.size, offset)
+    }
+
+    /// Get the value of a single pixel.
+    pub fn value(&self, position: impl Into<Vec2<usize>>) -> bool {
+        let position = position.into();
+
+        let index = position.x + position.y * self.size.w;
+        self.at_index(index)
     }
 
     /// Width of the map.
