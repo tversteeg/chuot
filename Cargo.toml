@@ -110,6 +110,10 @@ required-features = ["default-font", "default-gui", "dialogue"]
 name = "audio"
 required-features = ["default-font", "audio"]
 
+[[example]]
+name = "bitmap"
+required-features = ["default-font"]
+
 [workspace]
 members = ["run-wasm"]
 

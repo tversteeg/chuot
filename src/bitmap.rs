@@ -35,6 +35,23 @@ impl BitMap {
         Self { size, map }
     }
 
+    /// Toggle a value at a coordinate.
+    ///
+    /// If it's `true` it becomes `false` and if it's `false` it becomes `true`.
+    ///
+    /// # Arguments
+    ///
+    /// * `position` - Coordinate inside the map to set, if outside nothing is done.
+    pub fn toggle(&mut self, position: impl Into<Vec2<usize>>) {
+        let position = position.into();
+        if position.x >= self.size.w || position.y >= self.size.h {
+            return;
+        }
+
+        let index = position.x + position.y * self.size.w;
+        self.toggle_at_index(index);
+    }
+
     /// Set a value at a coordinate.
     ///
     /// # Arguments
@@ -84,8 +101,20 @@ impl BitMap {
         self.size
     }
 
+    /// Get a pixel at index of the map.
+    fn at_index(&self, index: usize) -> bool {
+        *self.map.get(index).expect("Index out of range")
+    }
+
     /// Set a pixel at index of the map.
     fn set_at_index(&mut self, index: usize, value: bool) {
         self.map.set(index, value);
+    }
+
+    /// Toggle a pixel at index of the map.
+    fn toggle_at_index(&mut self, index: usize) {
+        let pixel = self.at_index(index);
+
+        self.set_at_index(index, !pixel);
     }
 }
