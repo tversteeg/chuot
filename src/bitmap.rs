@@ -6,10 +6,7 @@
 use bitvec::vec::BitVec;
 use vek::{Extent2, Vec2};
 
-use crate::{
-    canvas::Canvas,
-    sprite::{Sprite, SpriteOffset},
-};
+use crate::sprite::{Sprite, SpriteOffset};
 
 /// 2D map of boolean values.
 ///
@@ -32,6 +29,16 @@ impl BitMap {
     pub fn empty(size: Extent2<usize>) -> Self {
         let map = BitVec::repeat(false, size.product());
 
+        Self { size, map }
+    }
+
+    /// Create from a bitvec.
+    ///
+    /// # Arguments
+    ///
+    /// * `map` - Vector of booleans to wrap, length must be equal to `size.w * size.h`.
+    /// * `size` - Size of the bitmap.
+    pub fn from_bitvec(map: BitVec, size: Extent2<usize>) -> Self {
         Self { size, map }
     }
 
@@ -117,6 +124,30 @@ impl BitMap {
         }
     }
 
+    /// Clone the buffer and apply equal padding to each edge.
+    ///
+    /// # Arguments
+    ///
+    /// * `padding` - Amount of values to add to each edge.
+    pub fn clone_with_padding(&self, padding: usize) -> Self {
+        // Create a new empty map in which we will copy each row
+        let mut map = Self::empty(self.size + Extent2::new(padding * 2, padding * 2));
+
+        // Copy the non-padded horizontal slices
+        for y in 0..self.height() {
+            map.copy_slice_from(
+                Vec2::new(padding, padding + y),
+                self,
+                Vec2::new(0, y),
+                self.width(),
+            )
+        }
+
+        debug_assert_eq!(map.map.len(), map.size.product());
+
+        map
+    }
+
     /// Convert the value to a image where every `true` value is replaced by the color.
     ///
     /// # Arguments
@@ -173,5 +204,51 @@ impl BitMap {
         let pixel = self.at_index(index);
 
         self.set_at_index(index, !pixel);
+    }
+
+    /// Copy a range from another source.
+    #[inline(always)]
+    fn copy_slice_from(
+        &mut self,
+        start: Vec2<usize>,
+        other: &Self,
+        other_start: Vec2<usize>,
+        amount: usize,
+    ) {
+        debug_assert!(start.x + amount <= self.width());
+        debug_assert!(other_start.x + amount <= other.width());
+
+        let index = start.x + start.y * self.width();
+        let other_index = other_start.x + other_start.y * other.width();
+
+        self.map[index..(index + amount)]
+            .copy_from_bitslice(&other.map[other_index..(other_index + amount)]);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use bitvec::prelude::*;
+    use vek::Extent2;
+
+    use super::BitMap;
+
+    #[test]
+    fn clone_with_padding() {
+        #[rustfmt::skip]
+        let map  = BitMap::from_bitvec(bits![
+            1, 0, 1,
+            0, 1, 0,
+            1, 0, 1
+        ].to_bitvec(), Extent2::new(3, 3));
+
+        #[rustfmt::skip]
+        assert_eq!(map.clone_with_padding(1), BitMap::from_bitvec(bits![
+            0, 0, 0, 0, 0,
+            0, 1, 0, 1, 0,
+            0, 0, 1, 0, 0,
+            0, 1, 0, 1, 0,
+            0, 0, 0, 0, 0
+        ].to_bitvec(), Extent2::new(5, 5)));
     }
 }
