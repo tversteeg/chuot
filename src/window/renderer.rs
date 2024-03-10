@@ -1,47 +1,91 @@
-//! Pixel shader renderers.
-
-use pixels::{
-    wgpu::{
-        util::{BufferInitDescriptor, DeviceExt},
-        AddressMode, BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout,
-        BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingResource, BindingType,
-        BlendComponent, BlendState, Buffer, BufferAddress, BufferUsages, Color, ColorTargetState,
-        ColorWrites, CommandEncoder, Device, Extent3d, FilterMode, FragmentState, LoadOp,
-        MultisampleState, Operations, PipelineLayoutDescriptor, PrimitiveState,
-        RenderPassColorAttachment, RenderPassDescriptor, RenderPipeline, RenderPipelineDescriptor,
-        Sampler, SamplerBindingType, SamplerDescriptor, ShaderStages, TextureDescriptor,
-        TextureDimension, TextureSampleType, TextureUsages, TextureView, TextureViewDescriptor,
-        TextureViewDimension, VertexAttribute, VertexBufferLayout, VertexFormat, VertexState,
-        VertexStepMode,
-    },
-    Pixels, TextureError,
+use wgpu::{
+    util::{BufferInitDescriptor, DeviceExt},
+    AddressMode, Backends, BindGroupDescriptor, BindGroupEntry, BindGroupLayoutDescriptor,
+    BindGroupLayoutEntry, BindingResource, BindingType, BufferAddress, BufferBindingType,
+    BufferSize, BufferUsages, Color, CommandEncoderDescriptor, Device, DeviceDescriptor, Features,
+    FilterMode, FragmentState, Instance, InstanceDescriptor, Limits, LoadOp, MultisampleState,
+    PipelineLayoutDescriptor,
+    PowerPreference::HighPerformance,
+    PrimitiveState, Queue, RenderPassColorAttachment, RenderPassDescriptor, RenderPipeline,
+    RenderPipelineDescriptor, RequestAdapterOptionsBase, SamplerBindingType, SamplerDescriptor,
+    ShaderModuleDescriptor, ShaderSource, ShaderStages, StoreOp, Surface, SurfaceConfiguration,
+    TextureSampleType, TextureViewDescriptor, TextureViewDimension, VertexAttribute,
+    VertexBufferLayout, VertexFormat, VertexState, VertexStepMode, WindowHandle,
 };
-use vek::{Extent2, Rect};
 
-/// Convert RGBA pixels to BGRA.
-pub(crate) struct RgbaToBgraRenderer {
-    texture_view: TextureView,
-    sampler: Sampler,
-    bind_group_layout: BindGroupLayout,
-    bind_group: BindGroup,
+/// Pass multiple fields to the game state.
+struct State<'window, G> {
+    /// User passed game state.
+    game_state: G,
+    /// Winit input helper state.
+    input: WinitInputHelper,
+    /// GPU surface.
+    surface: Surface<'window>,
+    /// GPU device.
+    device: Device,
+    /// GPU surface configuration.
+    config: SurfaceConfiguration,
+    /// GPU render pipeline.
     render_pipeline: RenderPipeline,
-    vertex_buffer: Buffer,
+    /// GPU queue.
+    queue: Queue,
 }
 
-impl RgbaToBgraRenderer {
-    /// Setup the shader.
-    pub(crate) fn new(pixels: &Pixels, size: Extent2<u32>) -> Result<Self, TextureError> {
-        let device = pixels.device();
-        let shader = pixels::wgpu::include_wgsl!("shaders/rgba_to_bgra.wgsl");
-        let module = device.create_shader_module(shader);
+impl<'window, G> State<'window, G> {
+    /// Setup the state including the GPU part.
+    async fn new<W>(buffer_size: Extent2<u32>, window: W, game_state: G) -> Result<Self>
+    where
+        W: WindowHandle + 'window,
+    {
+        // Setup the winit input helper state
+        let input = WinitInputHelper::new();
 
-        // Create a texture view that will be used as input
-        // This will be used as the render target for the default scaling renderer
-        let texture_view = create_texture_view(pixels, size.w, size.h)?;
+        // Get a handle to our GPU
+        let instance = Instance::default();
+
+        // Create a GPU surface on the window
+        let surface = instance
+            .create_surface(window)
+            .into_diagnostic()
+            .wrap_err("Error creating surface on window")?;
+
+        // Request an adapter
+        let adapter = instance
+            .request_adapter(&RequestAdapterOptionsBase {
+                // Ensure the strongest GPU is used
+                power_preference: HighPerformance,
+                force_fallback_adapter: false,
+                // Request an adaptar which can render to our surface
+                compatible_surface: Some(&surface),
+            })
+            .await
+            .ok_or_else(|| miette::miette!("Error getting GPU adapter for window"))?;
+
+        // Create the logical device and command queue
+        let (device, queue) = adapter
+            .request_device(
+                &DeviceDescriptor {
+                    label: None,
+                    required_features: Features::empty(),
+                    // Use the texture resolution limits from the adapter
+                    required_limits: Limits::downlevel_webgl2_defaults()
+                        .using_resolution(adapter.limits()),
+                },
+                None,
+            )
+            .await
+            .into_diagnostic()
+            .wrap_err("Error getting logical GPU device for surface")?;
+
+        // Load the shaders from disk
+        let shader = device.create_shader_module(ShaderModuleDescriptor {
+            label: None,
+            source: ShaderSource::Wgsl(Cow::Borrowed(include_str!("./shaders/window.wgsl"))),
+        });
 
         // Create a texture sampler with nearest neighbor
         let sampler = device.create_sampler(&SamplerDescriptor {
-            label: Some("NoiseRenderer sampler"),
+            label: None,
             address_mode_u: AddressMode::ClampToEdge,
             address_mode_v: AddressMode::ClampToEdge,
             address_mode_w: AddressMode::ClampToEdge,
@@ -58,16 +102,15 @@ impl RgbaToBgraRenderer {
         // Create vertex buffer; array-of-array of position and texture coordinates
         let vertex_data: [[f32; 2]; 3] = [
             // One full-screen triangle
-            // See: https://github.com/parasyte/pixels/issues/180
             [-1.0, -1.0],
             [3.0, -1.0],
             [-1.0, 3.0],
         ];
         let vertex_data_slice = bytemuck::cast_slice(&vertex_data);
         let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
-            label: Some("NoiseRenderer vertex buffer"),
+            label: None,
             contents: vertex_data_slice,
-            usage: BufferUsages::VERTEX,
+            usage: wgpu::BufferUsages::VERTEX,
         });
         let vertex_buffer_layout = VertexBufferLayout {
             array_stride: (vertex_data_slice.len() / vertex_data.len()) as BufferAddress,
@@ -79,6 +122,15 @@ impl RgbaToBgraRenderer {
             }],
         };
 
+        // Create uniform buffer
+        let matrix = ScalingMatrix::new(buffer_size.as_(), buffer_size.as_());
+        let transform_bytes = matrix.as_bytes();
+        let uniform_buffer = device.create_buffer_init(&BufferInitDescriptor {
+            label: None,
+            contents: transform_bytes,
+            usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+        });
+
         // Create bind group
         let bind_group_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
             label: None,
@@ -88,8 +140,8 @@ impl RgbaToBgraRenderer {
                     visibility: ShaderStages::FRAGMENT,
                     ty: BindingType::Texture {
                         sample_type: TextureSampleType::Float { filterable: true },
-                        multisampled: false,
                         view_dimension: TextureViewDimension::D2,
+                        multisampled: false,
                     },
                     count: None,
                 },
@@ -99,146 +151,136 @@ impl RgbaToBgraRenderer {
                     ty: BindingType::Sampler(SamplerBindingType::Filtering),
                     count: None,
                 },
+                BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: ShaderStages::VERTEX,
+                    ty: BindingType::Buffer {
+                        ty: BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: BufferSize::new(transform_bytes.len() as u64),
+                    },
+                    count: None,
+                },
             ],
         });
-        let bind_group = create_bind_group(device, &bind_group_layout, &texture_view, &sampler);
+        let bind_group = device.create_bind_group(&BindGroupDescriptor {
+            label: None,
+            layout: &bind_group_layout,
+            entries: &[
+                BindGroupEntry {
+                    binding: 0,
+                    resource: BindingResource::TextureView(texture_view),
+                },
+                BindGroupEntry {
+                    binding: 1,
+                    resource: BindingResource::Sampler(&sampler),
+                },
+                BindGroupEntry {
+                    binding: 2,
+                    resource: uniform_buffer.as_entire_binding(),
+                },
+            ],
+        });
 
-        // Create pipeline
         let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
-            label: Some("NoiseRenderer pipeline layout"),
-            bind_group_layouts: &[&bind_group_layout],
+            label: None,
+            bind_group_layouts: &[],
             push_constant_ranges: &[],
         });
+
+        let swapchain_capabilities = surface.get_capabilities(&adapter);
+        let swapchain_format = swapchain_capabilities.formats[0];
+
         let render_pipeline = device.create_render_pipeline(&RenderPipelineDescriptor {
-            label: Some("NoiseRenderer pipeline"),
+            label: None,
             layout: Some(&pipeline_layout),
             vertex: VertexState {
-                module: &module,
+                module: &shader,
                 entry_point: "vs_main",
-                buffers: &[vertex_buffer_layout],
+                buffers: &[],
             },
+            fragment: Some(FragmentState {
+                module: &shader,
+                entry_point: "fs_main",
+                targets: &[Some(swapchain_format.into())],
+            }),
             primitive: PrimitiveState::default(),
             depth_stencil: None,
             multisample: MultisampleState::default(),
-            fragment: Some(FragmentState {
-                module: &module,
-                entry_point: "fs_main",
-                targets: &[Some(ColorTargetState {
-                    format: pixels.render_texture_format(),
-                    blend: Some(BlendState {
-                        color: BlendComponent::REPLACE,
-                        alpha: BlendComponent::REPLACE,
-                    }),
-                    write_mask: ColorWrites::ALL,
-                })],
-            }),
             multiview: None,
         });
 
+        let config = surface
+            .get_default_config(&adapter, buffer_size.w, buffer_size.h)
+            .ok_or_else(|| miette::miette!("Error getting window surface configuration"))?;
+        surface.configure(&device, &config);
+
         Ok(Self {
-            texture_view,
-            sampler,
-            bind_group_layout,
-            bind_group,
+            game_state,
+            input,
+            surface,
+            device,
+            config,
             render_pipeline,
-            vertex_buffer,
+            queue,
         })
     }
-
-    /// Resize the texture.
-    pub(crate) fn resize(
-        &mut self,
-        pixels: &Pixels,
-        size: Extent2<u32>,
-    ) -> Result<(), TextureError> {
-        self.texture_view = create_texture_view(pixels, size.w, size.h)?;
-        self.bind_group = create_bind_group(
-            pixels.device(),
-            &self.bind_group_layout,
-            &self.texture_view,
-            &self.sampler,
-        );
-
-        Ok(())
-    }
-
-    /// Draw the shader.
-    pub(crate) fn render(
-        &self,
-        encoder: &mut CommandEncoder,
-        render_target: &TextureView,
-        clip_rect: Rect<u32, u32>,
-    ) {
-        let mut rpass = encoder.begin_render_pass(&RenderPassDescriptor {
-            label: Some("NoiseRenderer render pass"),
-            color_attachments: &[Some(RenderPassColorAttachment {
-                view: render_target,
-                resolve_target: None,
-                ops: Operations {
-                    load: LoadOp::Clear(Color::BLACK),
-                    store: true,
-                },
-            })],
-            depth_stencil_attachment: None,
-        });
-        rpass.set_pipeline(&self.render_pipeline);
-        rpass.set_bind_group(0, &self.bind_group, &[]);
-        rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-        rpass.set_scissor_rect(clip_rect.x, clip_rect.y, clip_rect.w, clip_rect.h);
-        rpass.draw(0..3, 0..1);
-    }
-
-    /// Get the texture view used.
-    pub(crate) fn texture_view(&self) -> &TextureView {
-        &self.texture_view
-    }
 }
 
-fn create_texture_view(
-    pixels: &pixels::Pixels,
-    width: u32,
-    height: u32,
-) -> Result<TextureView, TextureError> {
-    let device = pixels.device();
-    pixels::check_texture_size(device, width, height)?;
-    let texture_descriptor = TextureDescriptor {
-        label: None,
-        size: Extent3d {
-            width,
-            height,
-            depth_or_array_layers: 1,
-        },
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: TextureDimension::D2,
-        format: pixels.render_texture_format(),
-        usage: TextureUsages::TEXTURE_BINDING | TextureUsages::RENDER_ATTACHMENT,
-        view_formats: &[],
-    };
-
-    Ok(device
-        .create_texture(&texture_descriptor)
-        .create_view(&TextureViewDescriptor::default()))
+/// Matrix for scaling the output texture.
+///
+/// Source: https://github.com/parasyte/pixels/blob/main/src/renderers.rs
+#[derive(Debug)]
+struct ScalingMatrix {
+    /// 4x4 transformation matrix.
+    transform: [f32; 16],
+    /// Area to draw inside.
+    clip_rect: Rect<u32, u32>,
 }
 
-fn create_bind_group(
-    device: &Device,
-    bind_group_layout: &BindGroupLayout,
-    texture_view: &TextureView,
-    sampler: &Sampler,
-) -> BindGroup {
-    device.create_bind_group(&BindGroupDescriptor {
-        label: None,
-        layout: bind_group_layout,
-        entries: &[
-            BindGroupEntry {
-                binding: 0,
-                resource: BindingResource::TextureView(texture_view),
-            },
-            BindGroupEntry {
-                binding: 1,
-                resource: BindingResource::Sampler(sampler),
-            },
-        ],
-    })
+impl ScalingMatrix {
+    // texture_size is the dimensions of the drawing texture
+    // screen_size is the dimensions of the surface being drawn to
+    fn new(texture_size: Extent2<f32>, screen_size: Extent2<f32>) -> Self {
+        let width_ratio = (screen_size.w / texture_size.w).max(1.0);
+        let height_ratio = (screen_size.h / texture_size.h).max(1.0);
+
+        // Get smallest scale size
+        let scale = width_ratio.clamp(1.0, height_ratio).floor();
+
+        let scaled_size = texture_size * scale;
+
+        // Create a transformation matrix
+        let sw = scaled_size.w / screen_size.w;
+        let sh = scaled_size.h / screen_size.h;
+        let tx = (screen_size.w / 2.0).fract() / screen_size.w;
+        let ty = (screen_size.h / 2.0).fract() / screen_size.h;
+        #[rustfmt::skip]
+        let transform: [f32; 16] = [
+            sw,  0.0, 0.0, 0.0,
+            0.0, sh,  0.0, 0.0,
+            0.0, 0.0, 1.0, 0.0,
+            tx,  ty,  0.0, 1.0,
+        ];
+
+        // Create a clipping rectangle
+        let clip_rect = {
+            let scaled_size_w = scaled_size.w.min(screen_size.w);
+            let scaled_size_h = scaled_size.h.min(screen_size.h);
+            let x = (screen_size.w - scaled_size_w) / 2.0;
+            let y = (screen_size.h - scaled_size_h) / 2.0;
+
+            Rect::new(x, y, scaled_size_w, scaled_size_h).as_()
+        };
+
+        Self {
+            transform,
+            clip_rect,
+        }
+    }
+
+    /// Represent the transform as bytes.
+    fn as_bytes(&self) -> &[u8] {
+        bytemuck::cast_slice(&self.transform)
+    }
 }

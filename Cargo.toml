@@ -14,7 +14,7 @@ categories = [
 	"games",
 	"game-engines",
 ]
-rust-version = "1.72.1"
+rust-version = "1.74.0"
 
 [features]
 default = ["hot-reloading-assets", "physics"]
@@ -51,10 +51,8 @@ blit = { version = "0.8.5", features = ["serde"] }
 image = "0.24.9"
 miette = "7.2.0"
 vek = "0.16.1"
-game-loop = "1.1.0"
-pixels = "0.13.0"
 serde = { version = "1.0.197", features = ["derive"] }
-winit = { version = "0.29.15", features = ["rwh_05"] }
+winit = "0.29.15"
 winit_input_helper = "0.16.0"
 taffy = "0.4.0"
 derive-where = "1.2.7"
@@ -62,6 +60,8 @@ puffin = "0.19.0"
 clipline = "0.2.0"
 bytemuck = "1.15.0"
 bitvec = "1.0.1"
+wgpu = "0.19.3"
+game-loop = { version = "1.1.0", features = ["winit"] }
 
 # `physics` feature
 
@@ -78,14 +78,17 @@ yarnspinner = { version = "0.2.0", optional = true }
 kira = { version = "0.8.7", default-features = false, features = ["cpal", "ogg", "serde"], optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+pollster = "0.3.0"
+env_logger = "0.11.3"
+
 assets_manager = { version = "0.11.3", default-features = false, features = ["toml", "png", "ahash", "macros"] }
-tokio = { version = "1.36.0", features = ["macros", "sync", "rt-multi-thread"], optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 web-sys = { version = "0.3.69", features = ["CanvasRenderingContext2d", "Document", "Element", "HtmlCanvasElement", "ImageData", "Window"] }
 wasm-bindgen = "0.2.92"
 wasm-bindgen-futures = "0.4.42"
 console_error_panic_hook = "0.1.7"
+
 assets_manager = { version = "0.11.3", default-features = false, features = ["toml", "png", "embedded", "macros"] }
 
 [[example]]
