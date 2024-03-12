@@ -4,11 +4,12 @@ mod desktop;
 mod web;
 
 use wgpu::{
-    Backends, CommandEncoderDescriptor, Device, DeviceDescriptor, Features, FragmentState,
-    Instance, InstanceDescriptor, Limits, MultisampleState, PipelineLayoutDescriptor,
-    PowerPreference::HighPerformance, PrimitiveState, Queue, RenderPipeline,
-    RenderPipelineDescriptor, RequestAdapterOptionsBase, ShaderModuleDescriptor, ShaderSource,
-    Surface, SurfaceConfiguration, TextureViewDescriptor, VertexState, WindowHandle,
+    Backends, Color, CommandEncoderDescriptor, Device, DeviceDescriptor, Features, FragmentState,
+    Instance, InstanceDescriptor, Limits, LoadOp, MultisampleState, Operations,
+    PipelineLayoutDescriptor, PowerPreference::HighPerformance, PrimitiveState, Queue,
+    RenderPassColorAttachment, RenderPassDescriptor, RenderPipeline, RenderPipelineDescriptor,
+    RequestAdapterOptionsBase, ShaderModuleDescriptor, ShaderSource, StoreOp, Surface,
+    SurfaceConfiguration, TextureViewDescriptor, VertexState, WindowHandle,
 };
 /// Re-export winit types.
 pub use winit::{
@@ -31,7 +32,24 @@ use winit::{
 };
 use winit_input_helper::WinitInputHelper;
 
-use crate::canvas::Canvas;
+use crate::{
+    canvas::Canvas,
+    graphics::{
+        render::{Render, RenderState},
+        texture::Texture,
+    },
+    sprite::Sprite,
+};
+
+/// Update function signature.
+pub trait UpdateFn<G>: FnMut(&mut G, &WinitInputHelper, Option<Vec2<usize>>, f32) -> bool {}
+
+impl<G, T: FnMut(&mut G, &WinitInputHelper, Option<Vec2<usize>>, f32) -> bool> UpdateFn<G> for T {}
+
+/// Render function signature.
+pub trait RenderFn<G>: FnMut(&mut G, f32) -> Vec<Sprite> {}
+
+impl<G, T: FnMut(&mut G, f32) -> Vec<Sprite>> RenderFn<G> for T {}
 
 /// Window configuration.
 #[derive(Debug, Clone)]
@@ -91,8 +109,8 @@ pub fn window<G, U, R>(
 ) -> Result<()>
 where
     G: 'static,
-    U: FnMut(&mut G, &WinitInputHelper, Option<Vec2<usize>>, f32) -> bool + 'static,
-    R: FnMut(&mut G, &mut Canvas, f32) + 'static,
+    U: UpdateFn<G> + 'static,
+    R: RenderFn<G> + 'static,
 {
     // Build the window builder with the event loop the user supplied
     let logical_size = LogicalSize::new(
@@ -144,8 +162,8 @@ async fn winit_start<G, U, R>(
 ) -> Result<()>
 where
     G: 'static,
-    U: FnMut(&mut G, &WinitInputHelper, Option<Vec2<usize>>, f32) -> bool + 'static,
-    R: FnMut(&mut G, &mut Canvas, f32) + 'static,
+    U: UpdateFn<G> + 'static,
+    R: RenderFn<G> + 'static,
 {
     // Setup the audio
     #[cfg(feature = "audio")]
@@ -185,7 +203,9 @@ where
                 surface,
                 queue,
                 render_pipeline,
+                sprite_render_state,
                 device,
+                game_state,
                 ..
             } = &mut g.game;
 
@@ -198,16 +218,32 @@ where
             let mut encoder =
                 device.create_command_encoder(&CommandEncoderDescriptor { label: None });
 
-            // First render pass
+            // First render pass, our scene
+            {
+                let sprites = render(game_state, frame_time as f32);
+
+                // Render each sprite
+                for mut sprite in sprites {
+                    // Check if the texture is already uploaded and if not upload it
+                    if sprite.state().is_none() {
+                        sprite.upload(device);
+                    }
+
+                    // Render the sprite
+                    sprite_render_state.render(&sprite, &sprite, &mut encoder);
+                }
+            }
+
+            // Second render pass
             {
                 let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                     label: None,
-                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    color_attachments: &[Some(RenderPassColorAttachment {
                         view: &view,
                         resolve_target: None,
-                        ops: wgpu::Operations {
-                            load: wgpu::LoadOp::Clear(wgpu::Color::GREEN),
-                            store: wgpu::StoreOp::Store,
+                        ops: Operations {
+                            load: LoadOp::Clear(Color::GREEN),
+                            store: StoreOp::Store,
                         },
                     })],
                     depth_stencil_attachment: None,
@@ -268,8 +304,10 @@ struct State<'window, G> {
     device: Device,
     /// GPU surface configuration.
     config: SurfaceConfiguration,
-    /// GPU render pipeline.
+    /// Main GPU render pipeline.
     render_pipeline: RenderPipeline,
+    /// Sprite component specific render pipelines.
+    sprite_render_state: RenderState<Sprite>,
     /// GPU queue.
     queue: Queue,
 }
@@ -323,7 +361,9 @@ impl<'window, G> State<'window, G> {
         // Load the shaders from disk
         let shader = device.create_shader_module(ShaderModuleDescriptor {
             label: None,
-            source: ShaderSource::Wgsl(Cow::Borrowed(include_str!("./shaders/window.wgsl"))),
+            source: ShaderSource::Wgsl(Cow::Borrowed(include_str!(
+                "../graphics/shaders/window.wgsl"
+            ))),
         });
 
         let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
@@ -354,6 +394,9 @@ impl<'window, G> State<'window, G> {
             multiview: None,
         });
 
+        // Create a custom pipeline for each component
+        let sprite_render_state = RenderState::new(&device);
+
         let config = surface
             .get_default_config(&adapter, buffer_size.w, buffer_size.h)
             .ok_or_else(|| miette::miette!("Error getting window surface configuration"))?;
@@ -366,6 +409,7 @@ impl<'window, G> State<'window, G> {
             device,
             config,
             render_pipeline,
+            sprite_render_state,
             queue,
         })
     }

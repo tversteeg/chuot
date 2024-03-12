@@ -62,6 +62,7 @@ pub mod canvas;
 #[cfg(feature = "dialogue")]
 pub mod dialogue;
 pub mod font;
+pub mod graphics;
 pub mod gui;
 pub mod math;
 #[cfg(feature = "physics")]
@@ -70,6 +71,7 @@ pub mod sprite;
 pub mod window;
 
 pub use assets::{asset, asset_owned};
+use sprite::Sprite;
 /// Re-export taffy types.
 pub use taffy;
 /// Re-export vek types.
@@ -102,11 +104,7 @@ where
     fn update(&mut self, input: &Input, mouse_pos: Option<Vec2<usize>>, dt: f32) -> bool;
 
     /// Render loop, called every render tick.
-    ///
-    /// # Arguments
-    ///
-    /// * `canvas` - Pixel buffer where all the graphics are rendered on.
-    fn render(&mut self, canvas: &mut Canvas<'_>);
+    fn render(&mut self) -> Vec<Sprite>;
 
     /// Run the game, spawning the window.
     ///
@@ -118,7 +116,7 @@ where
             self,
             window_config,
             |state, input, mouse_pos, dt| state.update(input, mouse_pos, dt),
-            |state, canvas, _dt| state.render(canvas),
+            |state, _dt| state.render(),
         )
     }
 }

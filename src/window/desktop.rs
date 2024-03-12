@@ -6,7 +6,7 @@ use winit_input_helper::WinitInputHelper;
 
 use crate::canvas::Canvas;
 
-use super::WindowConfig;
+use super::{RenderFn, UpdateFn, WindowConfig};
 
 /// Desktop implementation of opening a window.
 pub(crate) async fn window<G, U, R>(
@@ -18,8 +18,8 @@ pub(crate) async fn window<G, U, R>(
 ) -> Result<()>
 where
     G: 'static,
-    U: FnMut(&mut G, &WinitInputHelper, Option<Vec2<usize>>, f32) -> bool + 'static,
-    R: FnMut(&mut G, &mut Canvas, f32) + 'static,
+    U: UpdateFn<G> + 'static,
+    R: RenderFn<G> + 'static,
 {
     let event_loop = EventLoop::new()
         .into_diagnostic()
