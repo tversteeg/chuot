@@ -1,3 +1,7 @@
+//! Types for handling the assets and their caches.
+
+pub(crate) mod image;
+
 use std::{ops::Deref, sync::OnceLock};
 
 use assets_manager::{AssetCache, AssetReadGuard, Compound};

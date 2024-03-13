@@ -116,6 +116,7 @@ impl Default for Font {
     }
 }
 
+/*
 impl Compound for Font {
     fn load(cache: AnyCache, id: &SharedString) -> Result<Self, BoxedError> {
         // Load the sprite
@@ -130,6 +131,7 @@ impl Compound for Font {
         Ok(Self { sprite, char_size })
     }
 }
+    */
 
 /// Font metadata to load from TOML.
 #[derive(Deserialize)]

@@ -6,7 +6,6 @@
 //! - Asset management.
 //! - Bitmap font drawing.
 //! - Sprite loading.
-//! - Simple GUI.
 //! - Physics engine.
 //! - Audio playback.
 //!
@@ -15,10 +14,6 @@
 //! ## `default-font`
 //!
 //! Implements [`Default`] for [`font::Font`] with a font that's embedded into memory.
-//!
-//! ## `default-gui`
-//!
-//! Implements [`Default`] for different GUI elements with a images embedded into memory.
 //!
 //! ## `hot-reloading-assets` (default)
 //!
@@ -63,7 +58,6 @@ pub mod canvas;
 pub mod dialogue;
 pub mod font;
 pub mod graphics;
-pub mod gui;
 pub mod math;
 #[cfg(feature = "physics")]
 pub mod physics;
@@ -101,7 +95,7 @@ where
     /// # Returns
     ///
     /// * `true` if the window and thus the game should be closed
-    fn update(&mut self, input: &Input, mouse_pos: Option<Vec2<usize>>, dt: f32) -> bool;
+    fn update(&mut self, input: &Input, mouse_pos: Option<Vec2<usize>>, dt: f64) -> bool;
 
     /// Render loop, called every render tick.
     fn render(&mut self) -> Vec<Sprite>;
@@ -116,7 +110,7 @@ where
             self,
             window_config,
             |state, input, mouse_pos, dt| state.update(input, mouse_pos, dt),
-            |state, _dt| state.render(),
+            |state| state.render(),
         )
     }
 }

@@ -68,6 +68,11 @@ impl Instances {
         0..self.0.len() as u32
     }
 
+    /// Get as raw bytes.
+    pub fn bytes(&self) -> &[u8] {
+        bytemuck::cast_slice(&self.0)
+    }
+
     /// WGPU descriptor.
     pub fn descriptor() -> VertexBufferLayout<'static> {
         VertexBufferLayout {

@@ -4,12 +4,14 @@ mod desktop;
 mod web;
 
 use wgpu::{
-    Backends, Color, CommandEncoderDescriptor, Device, DeviceDescriptor, Features, FragmentState,
-    Instance, InstanceDescriptor, Limits, LoadOp, MultisampleState, Operations,
+    Backends, BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType,
+    BufferBindingType, Color, CommandEncoderDescriptor, Device, DeviceDescriptor, Features,
+    FragmentState, Instance, InstanceDescriptor, Limits, LoadOp, MultisampleState, Operations,
     PipelineLayoutDescriptor, PowerPreference::HighPerformance, PrimitiveState, Queue,
     RenderPassColorAttachment, RenderPassDescriptor, RenderPipeline, RenderPipelineDescriptor,
-    RequestAdapterOptionsBase, ShaderModuleDescriptor, ShaderSource, StoreOp, Surface,
-    SurfaceConfiguration, TextureViewDescriptor, VertexState, WindowHandle,
+    RequestAdapterOptionsBase, SamplerBindingType, ShaderModuleDescriptor, ShaderSource,
+    ShaderStages, StoreOp, Surface, SurfaceConfiguration, TextureSampleType, TextureUsages,
+    TextureViewDescriptor, TextureViewDimension, VertexState, WindowHandle,
 };
 /// Re-export winit types.
 pub use winit::{
@@ -37,19 +39,20 @@ use crate::{
     graphics::{
         render::{Render, RenderState},
         texture::Texture,
+        MainRenderState,
     },
     sprite::Sprite,
 };
 
 /// Update function signature.
-pub trait UpdateFn<G>: FnMut(&mut G, &WinitInputHelper, Option<Vec2<usize>>, f32) -> bool {}
+pub trait UpdateFn<G>: FnMut(&mut G, &WinitInputHelper, Option<Vec2<usize>>, f64) -> bool {}
 
-impl<G, T: FnMut(&mut G, &WinitInputHelper, Option<Vec2<usize>>, f32) -> bool> UpdateFn<G> for T {}
+impl<G, T: FnMut(&mut G, &WinitInputHelper, Option<Vec2<usize>>, f64) -> bool> UpdateFn<G> for T {}
 
 /// Render function signature.
-pub trait RenderFn<G>: FnMut(&mut G, f32) -> Vec<Sprite> {}
+pub trait RenderFn<G>: FnMut(&mut G) -> Vec<Sprite> {}
 
-impl<G, T: FnMut(&mut G, f32) -> Vec<Sprite>> RenderFn<G> for T {}
+impl<G, T: FnMut(&mut G) -> Vec<Sprite>> RenderFn<G> for T {}
 
 /// Window configuration.
 #[derive(Debug, Clone)]
@@ -191,50 +194,20 @@ where
                 &mut g.game.game_state,
                 &g.game.input,
                 mouse,
-                (updates_per_second as f32).recip(),
+                (updates_per_second as f64).recip(),
             ) {
                 g.exit();
             }
         },
         move |g| {
-            let frame_time = g.last_frame_time();
+            // Get the items to be rendered for the game frame
+            let sprites = render(&mut g.game.game_state);
 
-            let State {
-                surface,
-                queue,
-                render_pipeline,
-                sprite_render_state,
-                device,
-                game_state,
-                ..
-            } = &mut g.game;
-
-            // Get the main render texture
-            let frame = surface
-                .get_current_texture()
-                .expect("Error acquiring next swap chain texture");
-            let view = frame.texture.create_view(&TextureViewDescriptor::default());
-
-            let mut encoder =
-                device.create_command_encoder(&CommandEncoderDescriptor { label: None });
-
-            // First render pass, our scene
-            {
-                let sprites = render(game_state, frame_time as f32);
-
-                // Render each sprite
-                for mut sprite in sprites {
-                    // Check if the texture is already uploaded and if not upload it
-                    if sprite.state().is_none() {
-                        sprite.upload(device);
-                    }
-
-                    // Render the sprite
-                    sprite_render_state.render(&sprite, &sprite, &mut encoder);
-                }
-            }
+            // Render everything
+            g.game.render_state.render(sprites);
 
             // Second render pass
+            /*
             {
                 let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                     label: None,
@@ -253,12 +226,7 @@ where
                 rpass.set_pipeline(render_pipeline);
                 rpass.draw(0..3, 0..1);
             }
-
-            // Draw to the texture
-            queue.submit(Some(encoder.finish()));
-
-            // Show the texture in the window
-            frame.present();
+                */
         },
         |g, event| {
             if g.game.input.update(event) {
@@ -270,17 +238,10 @@ where
 
                 // Resize pixels surface if window is resized
                 if let Some(new_size) = g.game.input.window_resized() {
-                    let State {
-                        config,
-                        surface,
-                        device,
-                        ..
-                    } = &mut g.game;
-
                     // Resize GPU surface
-                    config.width = new_size.width.max(1);
-                    config.height = new_size.height.max(1);
-                    surface.configure(device, config);
+                    g.game
+                        .render_state
+                        .resize(Extent2::new(new_size.width, new_size.height));
 
                     // On MacOS the window needs to be redrawn manually after resizing
                     g.window.request_redraw();
@@ -298,18 +259,8 @@ struct State<'window, G> {
     game_state: G,
     /// Winit input helper state.
     input: WinitInputHelper,
-    /// GPU surface.
-    surface: Surface<'window>,
-    /// GPU device.
-    device: Device,
-    /// GPU surface configuration.
-    config: SurfaceConfiguration,
-    /// Main GPU render pipeline.
-    render_pipeline: RenderPipeline,
-    /// Sprite component specific render pipelines.
-    sprite_render_state: RenderState<Sprite>,
-    /// GPU queue.
-    queue: Queue,
+    /// Hold the global GPU references and information.
+    render_state: MainRenderState<'window>,
 }
 
 impl<'window, G> State<'window, G> {
@@ -321,96 +272,15 @@ impl<'window, G> State<'window, G> {
         // Setup the winit input helper state
         let input = WinitInputHelper::new();
 
-        // Get a handle to our GPU
-        let instance = Instance::default();
-
-        // Create a GPU surface on the window
-        let surface = instance
-            .create_surface(window)
-            .into_diagnostic()
-            .wrap_err("Error creating surface on window")?;
-
-        // Request an adapter
-        let adapter = instance
-            .request_adapter(&RequestAdapterOptionsBase {
-                // Ensure the strongest GPU is used
-                power_preference: HighPerformance,
-                force_fallback_adapter: false,
-                // Request an adaptar which can render to our surface
-                compatible_surface: Some(&surface),
-            })
+        // Create a surface on the window and setup the render state to it
+        let render_state = MainRenderState::new(buffer_size, window)
             .await
-            .ok_or_else(|| miette::miette!("Error getting GPU adapter for window"))?;
-
-        // Create the logical device and command queue
-        let (device, queue) = adapter
-            .request_device(
-                &DeviceDescriptor {
-                    label: None,
-                    required_features: Features::empty(),
-                    // Use the texture resolution limits from the adapter
-                    required_limits: Limits::downlevel_webgl2_defaults()
-                        .using_resolution(adapter.limits()),
-                },
-                None,
-            )
-            .await
-            .into_diagnostic()
-            .wrap_err("Error getting logical GPU device for surface")?;
-
-        // Load the shaders from disk
-        let shader = device.create_shader_module(ShaderModuleDescriptor {
-            label: None,
-            source: ShaderSource::Wgsl(Cow::Borrowed(include_str!(
-                "../graphics/shaders/window.wgsl"
-            ))),
-        });
-
-        let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
-            label: None,
-            bind_group_layouts: &[],
-            push_constant_ranges: &[],
-        });
-
-        let swapchain_capabilities = surface.get_capabilities(&adapter);
-        let swapchain_format = swapchain_capabilities.formats[0];
-
-        let render_pipeline = device.create_render_pipeline(&RenderPipelineDescriptor {
-            label: None,
-            layout: Some(&pipeline_layout),
-            vertex: VertexState {
-                module: &shader,
-                entry_point: "vs_main",
-                buffers: &[],
-            },
-            fragment: Some(FragmentState {
-                module: &shader,
-                entry_point: "fs_main",
-                targets: &[Some(swapchain_format.into())],
-            }),
-            primitive: PrimitiveState::default(),
-            depth_stencil: None,
-            multisample: MultisampleState::default(),
-            multiview: None,
-        });
-
-        // Create a custom pipeline for each component
-        let sprite_render_state = RenderState::new(&device);
-
-        let config = surface
-            .get_default_config(&adapter, buffer_size.w, buffer_size.h)
-            .ok_or_else(|| miette::miette!("Error getting window surface configuration"))?;
-        surface.configure(&device, &config);
+            .wrap_err("Error setting up the rendering pipeline")?;
 
         Ok(Self {
             game_state,
             input,
-            surface,
-            device,
-            config,
-            render_pipeline,
-            sprite_render_state,
-            queue,
+            render_state,
         })
     }
 }

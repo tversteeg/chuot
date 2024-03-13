@@ -18,7 +18,6 @@ Game engine with library features that can be used standalone.
 - Asset management.
 - Bitmap font drawing.
 - Sprite loading.
-- Simple GUI.
 - Physics engine.
 - Audio playback.
 
@@ -27,10 +26,6 @@ Game engine with library features that can be used standalone.
 ##### `default-font`
 
 Implements [`Default`] for [`font::Font`] with a font that's embedded into memory.
-
-##### `default-gui`
-
-Implements [`Default`] for different GUI elements with a images embedded into memory.
 
 ##### `hot-reloading-assets` (default)
 

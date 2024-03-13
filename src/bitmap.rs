@@ -6,8 +6,6 @@
 use bitvec::vec::BitVec;
 use vek::{Extent2, Vec2};
 
-use crate::sprite::{Sprite, SpriteOffset};
-
 /// 2D map of boolean values.
 ///
 /// Not an image!
@@ -146,24 +144,6 @@ impl BitMap {
         debug_assert_eq!(map.map.len(), map.size.product());
 
         map
-    }
-
-    /// Convert the value to a image where every `true` value is replaced by the color.
-    ///
-    /// # Arguments
-    ///
-    /// * `color` - Draw every boolean `true` value as a colored pixel on the image.
-    /// * `offset` - Pixel offset of where the sprite will be drawn.
-    pub fn to_sprite(&self, color: u32, offset: SpriteOffset) -> Sprite {
-        // Convert each binary value to a pixel
-        let pixels = self
-            .map
-            .iter()
-            .map(|bit| if *bit { color } else { 0 })
-            .collect::<Vec<_>>();
-
-        // Create a sprite from it
-        Sprite::from_buffer(&pixels, self.size, offset)
     }
 
     /// Get the value of a single pixel.

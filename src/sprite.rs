@@ -13,11 +13,12 @@ use vek::{Extent2, Vec2};
 use wgpu::{util::BufferInitDescriptor, BufferUsages};
 
 use crate::{
+    assets::image::Image,
     canvas::Canvas,
     graphics::{
         data::TexturedVertex,
         render::Render,
-        texture::{Texture, TextureState},
+        texture::{Texture, TextureRef, UploadedTextureState},
     },
 };
 
@@ -27,8 +28,10 @@ const INDICES: &[u16] = &[0, 1, 3, 3, 1, 2];
 /// Sprite that can be drawn on the  canvas.
 #[derive(Debug)]
 pub struct Sprite {
-    /// Pixels to render.
-    sprite: Image,
+    /// Reference of the texture to render.
+    image: TextureRef,
+    /// Size of the image in pixels.
+    size: Extent2<u32>,
     /// Sprite metadata.
     metadata: SpriteMetadata,
     /// Instances of the sprite to render.
@@ -39,33 +42,9 @@ pub struct Sprite {
     ///
     /// Only computed when actually used.
     contents: Option<[TexturedVertex; 4]>,
-    /// GPU texture state.
-    texture_state: Option<TextureState>,
 }
 
 impl Sprite {
-    /// Create a sprite from a buffer of colors.
-    pub fn from_buffer(buffer: &[u32], size: Extent2<usize>, offset: SpriteOffset) -> Self {
-        let sprite = Image(BlitBuffer::from_buffer(buffer, size.w, 127));
-        let metadata = SpriteMetadata {
-            offset,
-            ..Default::default()
-        };
-        let is_dirty = true;
-        let contents = None;
-        let instances = Vec::new();
-        let texture_state = None;
-
-        Self {
-            sprite,
-            metadata,
-            is_dirty,
-            contents,
-            instances,
-            texture_state,
-        }
-    }
-
     /// Draw the sprite.
     ///
     /// This will add it to the list of instances.
@@ -73,86 +52,9 @@ impl Sprite {
         self.instances.push(offset);
     }
 
-    /// Draw the sprite filling the area.
-    ///
-    /// The behavior depends on the metadata of the sprite.
-    pub fn render_area(&self, offset: Vec2<f64>, area: Extent2<usize>, canvas: &mut Canvas) {
-        let total_offset = self.total_offset(offset);
-        let mut options =
-            BlitOptions::new_position(total_offset.x, total_offset.y).with_area(area.into_tuple());
-        options.vertical_slice = self.metadata.vertical_slice;
-        options.horizontal_slice = self.metadata.horizontal_slice;
-
-        self.sprite
-            .0
-            .blit(canvas.buffer, canvas.size.into_tuple().into(), &options);
-    }
-
-    /// Draw the sprite with custom blitting options.
-    ///
-    /// This won't set any of the regular defaults, like the position.
-    pub fn render_options(&self, blit_options: &BlitOptions, canvas: &mut Canvas) {
-        self.sprite
-            .0
-            .blit(canvas.buffer, canvas.size.into_tuple().into(), blit_options);
-    }
-
-    /// Whether a pixel on the image is transparent.
-    pub fn is_pixel_transparent(&self, pixel: Vec2<u32>) -> bool {
-        let offset: Vec2<i32> = pixel.as_() + self.metadata.offset.offset(self.size());
-
-        let index: i32 = offset.x + offset.y * self.sprite.0.width() as i32;
-        let pixel = self.sprite.0.pixels()[index as usize];
-
-        pixel == 0
-    }
-
-    /// Width of the image.
-    pub fn width(&self) -> u32 {
-        self.sprite.0.width()
-    }
-
-    /// Height of the image.
-    pub fn height(&self) -> u32 {
-        self.sprite.0.height()
-    }
-
     /// Size of the image.
     pub fn size(&self) -> Extent2<u32> {
-        Extent2::new(self.width(), self.height())
-    }
-
-    /// Raw buffer.
-    pub fn into_blit_buffer(self) -> BlitBuffer {
-        self.sprite.0
-    }
-
-    /// Get the raw pixels.
-    pub fn pixels_mut(&mut self) -> &mut [u32] {
-        self.sprite.0.pixels_mut()
-    }
-
-    /// Create a sprite from the bytes of a PNG.
-    pub(crate) fn from_png_bytes(bytes: &[u8], metadata: SpriteMetadata) -> Result<Self> {
-        let sprite = Image(
-            image::load_from_memory_with_format(bytes, ImageFormat::Png)
-                .into_diagnostic()?
-                .into_rgba8()
-                .to_blit_buffer_with_alpha(127),
-        );
-        let is_dirty = true;
-        let contents = None;
-        let instances = Vec::new();
-        let texture_state = None;
-
-        Ok(Self {
-            sprite,
-            metadata,
-            is_dirty,
-            contents,
-            instances,
-            texture_state,
-        })
+        self.size
     }
 
     /// Calculate the total offset based on offset given.
@@ -169,45 +71,29 @@ impl Sprite {
         }
 
         let offset = self.metadata.offset.offset(self.size().as_()).as_();
-        let width = self.width() as f32;
-        let height = self.height() as f32;
+        let size = self.size().as_();
 
         self.contents = Some([
             TexturedVertex::new(Vec2::new(0.0, 0.0) + offset, 0.0, Vec2::new(0.0, 0.0)),
-            TexturedVertex::new(Vec2::new(width, 0.0) + offset, 0.0, Vec2::new(1.0, 0.0)),
-            TexturedVertex::new(Vec2::new(width, height) + offset, 0.0, Vec2::new(1.0, 1.0)),
-            TexturedVertex::new(Vec2::new(0.0, height) + offset, 0.0, Vec2::new(0.0, 1.0)),
+            TexturedVertex::new(Vec2::new(size.w, 0.0) + offset, 0.0, Vec2::new(1.0, 0.0)),
+            TexturedVertex::new(Vec2::new(size.w, size.h) + offset, 0.0, Vec2::new(1.0, 1.0)),
+            TexturedVertex::new(Vec2::new(0.0, size.h) + offset, 0.0, Vec2::new(0.0, 1.0)),
         ]);
-    }
-}
-
-impl Default for Sprite {
-    fn default() -> Self {
-        let sprite = Image(BlitBuffer::from_buffer(&[0], 1, 0));
-        let metadata = SpriteMetadata::default();
-        let is_dirty = true;
-        let contents = None;
-        let instances = Vec::new();
-        let texture_state = None;
-
-        Self {
-            sprite,
-            metadata,
-            is_dirty,
-            contents,
-            instances,
-            texture_state,
-        }
     }
 }
 
 impl Compound for Sprite {
     fn load(cache: AnyCache, id: &SharedString) -> Result<Self, BoxedError> {
-        // Load the sprite
-        let sprite = cache
+        // Load the image
+        let image = cache
             .load_owned::<Image>(id)
             .into_diagnostic()
             .wrap_err("Error loading image for sprite")?;
+        // Get the size for our sprite
+        let size = image.size();
+
+        // Store the image for uploading to the GPU, and keep the reference
+        let image = crate::graphics::texture::store(id.clone(), image);
 
         // Load the metadata
         let metadata = cache
@@ -220,43 +106,25 @@ impl Compound for Sprite {
         let is_dirty = true;
         let contents = None;
         let instances = Vec::new();
-        let texture_state = None;
 
         Ok(Self {
-            sprite,
+            size,
+            image,
             metadata,
             is_dirty,
             contents,
             instances,
-            texture_state,
         })
     }
 }
 
 impl Render for Sprite {
-    fn vertex_buffer_descriptor(&mut self) -> BufferInitDescriptor {
-        // Calculate the contents
-        self.set_contents();
-
-        BufferInitDescriptor {
-            label: Some("Sprite Vertex Buffer"),
-            contents: bytemuck::cast_slice(
-                self.contents.as_ref().expect("Missing computed content"),
-            ),
-            usage: BufferUsages::VERTEX,
-        }
-    }
-
-    fn index_buffer_descriptor(&mut self) -> BufferInitDescriptor {
-        BufferInitDescriptor {
-            label: Some("Sprite Index Buffer"),
-            contents: bytemuck::cast_slice(INDICES),
-            usage: BufferUsages::INDEX,
-        }
-    }
-
     fn is_dirty(&self) -> bool {
         self.is_dirty
+    }
+
+    fn mark_clean(&mut self) {
+        self.is_dirty = false;
     }
 
     fn instances(&self) -> &[Vec2<f64>] {
@@ -266,23 +134,25 @@ impl Render for Sprite {
     fn range(&self) -> Range<u32> {
         0..INDICES.len() as u32
     }
-}
 
-impl Texture for Sprite {
-    fn size(&self) -> Extent2<u32> {
-        self.size()
+    fn vertices(&self) -> &[TexturedVertex] {
+        self.contents.as_ref().expect("Missing computed content")
     }
 
-    fn pixels(&self) -> &[u32] {
-        self.sprite.0.pixels()
+    fn indices(&self) -> &[u16] {
+        INDICES
     }
 
-    fn state(&self) -> Option<&TextureState> {
-        self.texture_state.as_ref()
+    fn pre_render(&mut self) {
+        // Calculate the contents if they haven't been set yet
+        if self.contents.is_none() {
+            self.set_contents();
+        }
     }
 
-    fn set_state(&mut self, state: TextureState) {
-        self.texture_state = Some(state);
+    fn post_render(&mut self) {
+        // Reset the instances for next frame
+        self.instances.clear();
     }
 }
 
@@ -327,30 +197,4 @@ pub(crate) struct SpriteMetadata {
     /// Pixel offset to render at.
     #[serde(default)]
     pub(crate) offset: SpriteOffset,
-}
-
-/// Core of a sprite loaded from disk.
-#[derive(Debug)]
-struct Image(BlitBuffer);
-
-impl Asset for Image {
-    // We only support PNG images currently
-    const EXTENSION: &'static str = "png";
-
-    type Loader = ImageLoader;
-}
-
-/// Sprite asset loader.
-pub struct ImageLoader;
-
-impl Loader<Image> for ImageLoader {
-    fn load(content: Cow<[u8]>, ext: &str) -> Result<Image, BoxedError> {
-        assert_eq!(ext.to_lowercase(), "png");
-
-        let sprite = image::load_from_memory_with_format(&content, ImageFormat::Png)?
-            .into_rgba8()
-            .to_blit_buffer_with_alpha(127);
-
-        Ok(Image(sprite))
-    }
 }
