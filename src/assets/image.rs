@@ -5,19 +5,16 @@
 use std::borrow::Cow;
 
 use assets_manager::{loader::Loader, Asset, BoxedError};
-use blit::{BlitBuffer, ToBlitBuffer};
-use image::{ImageFormat, RgbaImage};
+use image::{DynamicImage, ImageFormat, RgbaImage};
 use vek::Extent2;
 
-use crate::graphics::texture::{Texture, UploadedTextureState};
+use crate::graphics::texture::Texture;
 
 /// Core of a sprite loaded from disk.
 #[derive(Debug)]
 pub(crate) struct Image {
     /// Image data.
-    data: BlitBuffer,
-    /// GPU texture state.
-    texture_state: Option<UploadedTextureState>,
+    image: DynamicImage,
 }
 
 impl Asset for Image {
@@ -29,11 +26,11 @@ impl Asset for Image {
 
 impl Texture for Image {
     fn size(&self) -> Extent2<u32> {
-        Extent2::new(self.data.width(), self.data.height())
+        Extent2::new(self.image.width(), self.image.height())
     }
 
-    fn pixels(&self) -> &[u32] {
-        self.data.pixels()
+    fn to_rgba_image(&self) -> RgbaImage {
+        self.image.to_rgba8()
     }
 }
 
@@ -44,15 +41,9 @@ impl Loader<Image> for ImageLoader {
     fn load(content: Cow<[u8]>, ext: &str) -> Result<Image, BoxedError> {
         assert_eq!(ext.to_lowercase(), "png");
 
-        let data = image::load_from_memory_with_format(&content, ImageFormat::Png)?
-            .into_rgba8()
-            .to_blit_buffer_with_alpha(127);
+        // Load the PNG image
+        let image = image::load_from_memory_with_format(&content, ImageFormat::Png)?;
 
-        let texture_state = None;
-
-        Ok(Image {
-            data,
-            texture_state,
-        })
+        Ok(Image { image })
     }
 }

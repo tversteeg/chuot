@@ -1,10 +1,6 @@
 use miette::{Context, IntoDiagnostic, Result};
 
-use vek::Vec2;
-use winit::{event_loop::EventLoop, window::WindowBuilder};
-use winit_input_helper::WinitInputHelper;
-
-use crate::canvas::Canvas;
+use game_loop::winit::{event_loop::EventLoop, window::WindowBuilder};
 
 use super::{RenderFn, UpdateFn, WindowConfig};
 

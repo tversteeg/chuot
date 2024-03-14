@@ -3,18 +3,8 @@ mod desktop;
 #[cfg(target_arch = "wasm32")]
 mod web;
 
-use wgpu::{
-    Backends, BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType,
-    BufferBindingType, Color, CommandEncoderDescriptor, Device, DeviceDescriptor, Features,
-    FragmentState, Instance, InstanceDescriptor, Limits, LoadOp, MultisampleState, Operations,
-    PipelineLayoutDescriptor, PowerPreference::HighPerformance, PrimitiveState, Queue,
-    RenderPassColorAttachment, RenderPassDescriptor, RenderPipeline, RenderPipelineDescriptor,
-    RequestAdapterOptionsBase, SamplerBindingType, ShaderModuleDescriptor, ShaderSource,
-    ShaderStages, StoreOp, Surface, SurfaceConfiguration, TextureSampleType, TextureUsages,
-    TextureViewDescriptor, TextureViewDimension, VertexState, WindowHandle,
-};
 /// Re-export winit types.
-pub use winit::{
+pub use game_loop::winit::{
     dpi::PhysicalSize,
     event::MouseButton,
     keyboard::{Key, KeyCode},
@@ -22,37 +12,33 @@ pub use winit::{
 /// Re-export winit_input_helper type.
 pub use winit_input_helper::WinitInputHelper as Input;
 
-use std::{borrow::Cow, rc::Rc, sync::Arc};
+use std::sync::Arc;
 
-use miette::{Context, IntoDiagnostic, Result};
-use vek::{Extent2, Rect, Vec2};
-use winit::{
+use game_loop::winit::{
     dpi::LogicalSize,
     event::{Event, WindowEvent},
-    event_loop::{ControlFlow, EventLoop},
+    event_loop::EventLoop,
     window::{Window, WindowBuilder},
 };
+use miette::{Context, IntoDiagnostic, Result};
+use vek::{Extent2, Vec2};
+use wgpu::WindowHandle;
 use winit_input_helper::WinitInputHelper;
 
-use crate::{
-    canvas::Canvas,
-    graphics::{
-        render::{Render, RenderState},
-        texture::Texture,
-        MainRenderState,
-    },
-    sprite::Sprite,
-};
+use crate::{graphics::state::MainRenderState, RenderContext};
 
 /// Update function signature.
-pub trait UpdateFn<G>: FnMut(&mut G, &WinitInputHelper, Option<Vec2<usize>>, f64) -> bool {}
+pub(crate) trait UpdateFn<G>:
+    FnMut(&mut G, &WinitInputHelper, Option<Vec2<usize>>, f64) -> bool
+{
+}
 
 impl<G, T: FnMut(&mut G, &WinitInputHelper, Option<Vec2<usize>>, f64) -> bool> UpdateFn<G> for T {}
 
 /// Render function signature.
-pub trait RenderFn<G>: FnMut(&mut G) -> Vec<Sprite> {}
+pub(crate) trait RenderFn<G>: FnMut(&mut G, &mut RenderContext) {}
 
-impl<G, T: FnMut(&mut G) -> Vec<Sprite>> RenderFn<G> for T {}
+impl<G, T: FnMut(&mut G, &mut RenderContext)> RenderFn<G> for T {}
 
 /// Window configuration.
 #[derive(Debug, Clone)]
@@ -104,7 +90,7 @@ impl Default for WindowConfig {
 /// # Errors
 ///
 /// - When the audio manager could not find a device to play audio on.
-pub fn window<G, U, R>(
+pub(crate) fn window<G, U, R>(
     game_state: G,
     window_config: WindowConfig,
     update: U,
@@ -186,8 +172,29 @@ where
         updates_per_second,
         0.1,
         move |g| {
+            // Update the input from the window events
+            g.game.input.step_with_window_events(&g.game.window_events);
+            g.game.window_events.clear();
+
+            // Handle close requests
+            if g.game.input.close_requested() {
+                g.exit();
+                return;
+            }
+
+            // Resize render surface if window is resized
+            if let Some(new_size) = g.game.input.window_resized() {
+                // Resize GPU surface
+                g.game
+                    .render_state
+                    .resize(Extent2::new(new_size.width, new_size.height));
+
+                // On MacOS the window needs to be redrawn manually after resizing
+                g.window.request_redraw();
+            }
+
             // Calculate mouse in pixels
-            let mouse = g.game.input.cursor().and_then(|mouse| None);
+            let mouse = g.game.input.cursor().map(Vec2::<f32>::from).map(Vec2::as_);
 
             // Call update and exit when it returns true
             if update(
@@ -201,51 +208,15 @@ where
         },
         move |g| {
             // Get the items to be rendered for the game frame
-            let sprites = render(&mut g.game.game_state);
+            render(&mut g.game.game_state, g.game.render_state.ctx());
 
             // Render everything
-            g.game.render_state.render(sprites);
-
-            // Second render pass
-            /*
-            {
-                let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                    label: None,
-                    color_attachments: &[Some(RenderPassColorAttachment {
-                        view: &view,
-                        resolve_target: None,
-                        ops: Operations {
-                            load: LoadOp::Clear(Color::GREEN),
-                            store: StoreOp::Store,
-                        },
-                    })],
-                    depth_stencil_attachment: None,
-                    timestamp_writes: None,
-                    occlusion_query_set: None,
-                });
-                rpass.set_pipeline(render_pipeline);
-                rpass.draw(0..3, 0..1);
-            }
-                */
+            g.game.render_state.render();
         },
         |g, event| {
-            if g.game.input.update(event) {
-                // Handle close requests
-                if g.game.input.close_requested() {
-                    g.exit();
-                    return;
-                }
-
-                // Resize pixels surface if window is resized
-                if let Some(new_size) = g.game.input.window_resized() {
-                    // Resize GPU surface
-                    g.game
-                        .render_state
-                        .resize(Extent2::new(new_size.width, new_size.height));
-
-                    // On MacOS the window needs to be redrawn manually after resizing
-                    g.window.request_redraw();
-                }
+            // Keep track of all window events which are handled in the update loop
+            if let Event::WindowEvent { event, .. } = event {
+                g.game.window_events.push(event.clone());
             }
         },
     )
@@ -261,6 +232,8 @@ struct State<'window, G> {
     input: WinitInputHelper,
     /// Hold the global GPU references and information.
     render_state: MainRenderState<'window>,
+    /// Winit events happening for the input helper.
+    window_events: Vec<WindowEvent>,
 }
 
 impl<'window, G> State<'window, G> {
@@ -277,10 +250,14 @@ impl<'window, G> State<'window, G> {
             .await
             .wrap_err("Error setting up the rendering pipeline")?;
 
+        // No events yet
+        let winit_events = Vec::new();
+
         Ok(Self {
             game_state,
             input,
             render_state,
+            window_events: winit_events,
         })
     }
 }

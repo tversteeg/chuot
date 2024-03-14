@@ -1,6 +1,6 @@
 //! Expose render functionality on different types through traits.
 
-use std::{borrow::Cow, marker::PhantomData, ops::Range};
+use std::{borrow::Cow, collections::HashMap, marker::PhantomData, ops::Range};
 
 use vek::Vec2;
 use wgpu::{
@@ -8,15 +8,14 @@ use wgpu::{
     BindGroup, BindGroupLayout, BlendComponent, BlendState, Buffer, BufferUsages, Color,
     ColorTargetState, ColorWrites, CommandEncoder, Device, FragmentState, FrontFace, IndexFormat,
     LoadOp, MultisampleState, Operations, PipelineLayoutDescriptor, PolygonMode, PrimitiveState,
-    PrimitiveTopology, Queue, RenderPass, RenderPassColorAttachment, RenderPassDescriptor,
-    RenderPipeline, RenderPipelineDescriptor, ShaderModule, ShaderModuleDescriptor, ShaderSource,
-    StoreOp, TextureFormat, TextureView, TextureViewDescriptor, VertexState,
+    PrimitiveTopology, Queue, RenderPassColorAttachment, RenderPassDescriptor, RenderPipeline,
+    RenderPipelineDescriptor, ShaderModuleDescriptor, ShaderSource, StoreOp, TextureFormat,
+    TextureView, VertexState,
 };
 
 use super::{
     data::{Instances, TexturedVertex},
-    texture::{Texture, TextureRef},
-    MainRenderState,
+    texture::{TextureRef, UploadedTextureState},
 };
 
 /// Allow something to be rendered on the GPU.
@@ -51,7 +50,7 @@ pub trait Render {
     /// Texture reference to bind and render.
     ///
     /// If `None` no texture binding will be applied.
-    fn texture(&self) -> Option<TextureRef> {
+    fn texture(&self) -> Option<&TextureRef> {
         None
     }
 
@@ -64,17 +63,10 @@ pub trait Render {
     ///
     /// Can be overwritten to handle some simple logic.
     fn post_render(&mut self) {}
-
-    /// Maximum amount of instances that can be drawn for this type.
-    ///
-    /// Defaults to `1024`.
-    fn max_instances() -> usize {
-        1024
-    }
 }
 
 /// Simple render state holding buffers and instances required for rendering somethging.
-pub struct RenderState<R: Render> {
+pub(crate) struct RenderState<R: Render> {
     /// Pipeline of the rendering itself.
     render_pipeline: RenderPipeline,
     /// GPU buffer reference to the vertices.
@@ -89,7 +81,7 @@ pub struct RenderState<R: Render> {
 
 impl<R: Render> RenderState<R> {
     /// Create the state by calling the [`Render`] trait implementations on the type.
-    pub fn new(
+    pub(crate) fn new(
         device: &Device,
         diffuse_texture_bind_group_layout: &BindGroupLayout,
         screen_size_bind_group_layout: &BindGroupLayout,
@@ -97,6 +89,8 @@ impl<R: Render> RenderState<R> {
     where
         R: Render,
     {
+        log::debug!("Creating custom rendering component");
+
         // Create a new render pipeline first
         let render_pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
             label: Some("Component Render Pipeline Layout"),
@@ -155,14 +149,10 @@ impl<R: Render> RenderState<R> {
             multiview: None,
         });
 
-        // Create an empty buffer for all possible instances
-        let empty_instance_bytes = R::max_instances() * std::mem::size_of::<[f32; 2]>();
-        let empty_instance_buffer = vec![0; empty_instance_bytes];
-
-        // Create the initial instance buffer with the maximum drawing size
+        // Create the initial empty instance buffer, will be resized by the render call
         let instance_buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: Some("Instance Buffer"),
-            contents: &empty_instance_buffer,
+            contents: &[],
             usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
         });
 
@@ -188,11 +178,10 @@ impl<R: Render> RenderState<R> {
             _phantom: PhantomData,
         }
     }
-}
 
-impl<R: Render> RenderState<R> {
     /// Render all instances from the type with the specified texture.
-    pub fn render(
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn render(
         &mut self,
         target: &mut R,
         encoder: &mut CommandEncoder,
@@ -200,19 +189,49 @@ impl<R: Render> RenderState<R> {
         queue: &Queue,
         device: &Device,
         screen_size_bind_group: &BindGroup,
+        uploaded_textures: &HashMap<TextureRef, UploadedTextureState>,
     ) {
         // Target will be rendered
         target.pre_render();
 
+        // Get the instances
+        let instances = target.instances();
+        if instances.is_empty() {
+            // Nothing to render when there's no instances
+            return;
+        }
+
         // Construct the instances to upload
         // PERF: don't clone every frame
-        let instances = Instances::from_slice(target.instances());
+        let instances = Instances::from_slice(instances);
+        let instances_bytes = instances.bytes();
 
         // Upload the instance buffer
-        queue.write_buffer(&self.instance_buffer, 0, instances.bytes());
+        if instances_bytes.len() as u64 <= self.instance_buffer.size() {
+            // We still fit in the buffer, we don't have to resize it
+            queue.write_buffer(&self.instance_buffer, 0, instances.bytes());
+        } else {
+            // We have more instances than the buffer size, recreate the buffer
+
+            log::debug!(
+                "Previous instance buffer is too small, rescaling to {} items",
+                instances.len()
+            );
+
+            self.instance_buffer.destroy();
+            self.instance_buffer = device.create_buffer_init(&BufferInitDescriptor {
+                label: Some("Instance Buffer"),
+                contents: instances_bytes,
+                usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
+            });
+        }
 
         // Upload the buffers if dirty
         if target.is_dirty() {
+            log::debug!(
+                "Custom rendering component is dirty, re-uploading vertex and index buffers"
+            );
+
             // Recreate the vertex buffer
             self.vertex_buffer.destroy();
             self.vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
@@ -257,8 +276,12 @@ impl<R: Render> RenderState<R> {
 
         // Get the texture state from the reference
         if let Some(texture) = target.texture() {
+            let uploaded_texture = uploaded_textures
+                .get(texture)
+                .expect("Error getting uploaded texture");
+
             // Bind the texture
-            super::texture::set_bind_group(&texture, &mut render_pass, 0);
+            render_pass.set_bind_group(0, &uploaded_texture.bind_group, &[]);
         }
 
         // Bind the screen size

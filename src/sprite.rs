@@ -2,23 +2,20 @@
 //!
 //! Can be loaded as an asset when the `asset` feature flag is set.
 
-use std::{borrow::Cow, ops::Range};
+use std::ops::Range;
 
-use assets_manager::{loader::Loader, AnyCache, Asset, BoxedError, Compound, SharedString};
-use blit::{slice::Slice, Blit, BlitBuffer, BlitOptions, ToBlitBuffer};
-use image::ImageFormat;
+use assets_manager::{AnyCache, Asset, BoxedError, Compound, SharedString};
+
 use miette::{Context, IntoDiagnostic, Result};
 use serde::Deserialize;
 use vek::{Extent2, Vec2};
-use wgpu::{util::BufferInitDescriptor, BufferUsages};
 
 use crate::{
     assets::image::Image,
-    canvas::Canvas,
     graphics::{
         data::TexturedVertex,
         render::Render,
-        texture::{Texture, TextureRef, UploadedTextureState},
+        texture::{Texture, TextureRef},
     },
 };
 
@@ -27,7 +24,7 @@ const INDICES: &[u16] = &[0, 1, 3, 3, 1, 2];
 
 /// Sprite that can be drawn on the  canvas.
 #[derive(Debug)]
-pub struct Sprite {
+pub(crate) struct Sprite {
     /// Reference of the texture to render.
     image: TextureRef,
     /// Size of the image in pixels.
@@ -48,19 +45,18 @@ impl Sprite {
     /// Draw the sprite.
     ///
     /// This will add it to the list of instances.
-    pub fn render(&mut self, offset: Vec2<f64>) {
+    pub(crate) fn render(&mut self, offset: Vec2<f64>) {
         self.instances.push(offset);
     }
 
     /// Size of the image.
-    pub fn size(&self) -> Extent2<u32> {
+    pub(crate) fn size(&self) -> Extent2<u32> {
         self.size
     }
 
-    /// Calculate the total offset based on offset given.
-    fn total_offset(&self, offset: Vec2<f64>) -> Vec2<i32> {
-        // Add offset to our own offset
-        offset.as_() + self.metadata.offset.offset(self.size())
+    /// Remove all instances.
+    pub(crate) fn clear_instances(&mut self) {
+        self.instances.clear();
     }
 
     /// Compute the coordinates and UV for this sprite based on the offset.
@@ -93,7 +89,7 @@ impl Compound for Sprite {
         let size = image.size();
 
         // Store the image for uploading to the GPU, and keep the reference
-        let image = crate::graphics::texture::store(id.clone(), image);
+        let image = crate::graphics::texture::upload(id.clone(), image);
 
         // Load the metadata
         let metadata = cache
@@ -143,6 +139,10 @@ impl Render for Sprite {
         INDICES
     }
 
+    fn texture(&self) -> Option<&TextureRef> {
+        Some(&self.image)
+    }
+
     fn pre_render(&mut self) {
         // Calculate the contents if they haven't been set yet
         if self.contents.is_none() {
@@ -167,17 +167,15 @@ pub enum SpriteOffset {
     /// Left top of the sprite will be rendered at `(0, 0)`.
     LeftTop,
     /// Sprite will be offset with the custom coordinates counting from the left top.
-    Custom(Vec2<i32>),
+    Custom(Vec2<f64>),
 }
 
 impl SpriteOffset {
     /// Get the offset based on the sprite size.
-    pub fn offset(&self, sprite_size: Extent2<u32>) -> Vec2<i32> {
+    pub fn offset(&self, sprite_size: Extent2<f64>) -> Vec2<f64> {
         match self {
-            SpriteOffset::Middle => {
-                Vec2::new(-(sprite_size.w as i32) / 2, -(sprite_size.h as i32) / 2)
-            }
-            SpriteOffset::MiddleTop => Vec2::new(-(sprite_size.w as i32) / 2, 0),
+            SpriteOffset::Middle => Vec2::new(-sprite_size.w / 2.0, -sprite_size.h / 2.0),
+            SpriteOffset::MiddleTop => Vec2::new(-sprite_size.w / 2.0, 0.0),
             SpriteOffset::LeftTop => Vec2::zero(),
             SpriteOffset::Custom(offset) => *offset,
         }
@@ -188,12 +186,6 @@ impl SpriteOffset {
 #[derive(Debug, Clone, Default, Deserialize, Asset)]
 #[asset_format = "toml"]
 pub(crate) struct SpriteMetadata {
-    /// Slices to render for scaling the image.
-    #[serde(default)]
-    pub(crate) vertical_slice: Option<Slice>,
-    /// Slices to render for scaling the image.
-    #[serde(default)]
-    pub(crate) horizontal_slice: Option<Slice>,
     /// Pixel offset to render at.
     #[serde(default)]
     pub(crate) offset: SpriteOffset,

@@ -56,23 +56,19 @@ pub mod bitmap;
 pub mod canvas;
 #[cfg(feature = "dialogue")]
 pub mod dialogue;
-pub mod font;
+//pub mod font;
 pub mod graphics;
 pub mod math;
 #[cfg(feature = "physics")]
 pub mod physics;
-pub mod sprite;
+mod sprite;
 pub mod window;
 
 pub use assets::{asset, asset_owned};
-use sprite::Sprite;
-/// Re-export taffy types.
-pub use taffy;
+pub use graphics::context::RenderContext;
 /// Re-export vek types.
 pub use vek;
-pub use window::window;
 
-use canvas::Canvas;
 use miette::Result;
 use vek::Vec2;
 use window::{Input, WindowConfig};
@@ -98,7 +94,7 @@ where
     fn update(&mut self, input: &Input, mouse_pos: Option<Vec2<usize>>, dt: f64) -> bool;
 
     /// Render loop, called every render tick.
-    fn render(&mut self) -> Vec<Sprite>;
+    fn render(&mut self, ctx: &mut RenderContext);
 
     /// Run the game, spawning the window.
     ///
@@ -110,7 +106,7 @@ where
             self,
             window_config,
             |state, input, mouse_pos, dt| state.update(input, mouse_pos, dt),
-            |state| state.render(),
+            |state, ctx| state.render(ctx),
         )
     }
 }

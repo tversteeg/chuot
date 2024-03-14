@@ -1,6 +1,6 @@
 //! Render a simple ASCII bitmap font.
 
-use assets_manager::{loader::TomlLoader, AnyCache, Asset, BoxedError, Compound, SharedString};
+use assets_manager::{loader::TomlLoader, Asset};
 use blit::{prelude::SubRect, Blit, BlitBuffer, BlitOptions, ToBlitBuffer};
 use serde::Deserialize;
 use vek::{Extent2, Vec2};

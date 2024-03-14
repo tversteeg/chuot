@@ -7,30 +7,20 @@ use std::{
 };
 
 use assets_manager::SharedString;
+use image::{EncodableLayout, RgbaImage};
 use vek::Extent2;
 use wgpu::{
-    AddressMode, BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout,
-    BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingResource, BindingType, Device,
-    Extent3d, FilterMode, ImageCopyTexture, ImageDataLayout, Origin3d, PipelineLayoutDescriptor,
-    Queue, RenderPass, SamplerBindingType, SamplerDescriptor, ShaderModuleDescriptor, ShaderSource,
-    ShaderStages, Texture as GpuTexture, TextureAspect, TextureDescriptor, TextureDimension,
-    TextureFormat, TextureSampleType, TextureUsages, TextureView, TextureViewDescriptor,
-    TextureViewDimension,
+    AddressMode, BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindingResource,
+    Device, Extent3d, FilterMode, ImageCopyTexture, ImageDataLayout, Origin3d, Queue,
+    SamplerDescriptor, Texture as GpuTexture, TextureAspect, TextureDescriptor, TextureDimension,
+    TextureFormat, TextureUsages, TextureViewDescriptor,
 };
-
-use crate::assets::image::Image;
-
-use super::MainRenderState;
 
 /// Reference to an uploaded texture to render.
 pub type TextureRef = SharedString;
 
-/// Uploaded textures.
-static UPLOADED_TEXTURES: OnceLock<Arc<Mutex<HashMap<TextureRef, UploadedTextureState>>>> =
-    OnceLock::new();
-
 /// Textures that are waiting to be uploaded to the GPU.
-static PENDING_TEXTURES: OnceLock<Arc<Mutex<HashMap<TextureRef, PendingTextureState>>>> =
+pub(super) static PENDING_TEXTURES: OnceLock<Arc<Mutex<HashMap<TextureRef, PendingTextureState>>>> =
     OnceLock::new();
 
 /// Allow something to upload a texture to the GPU.
@@ -38,19 +28,30 @@ pub trait Texture {
     /// Dimensions of the texture.
     fn size(&self) -> Extent2<u32>;
 
-    /// Raw pixels of the texture.
-    ///
-    /// Must be formatted as ARGB.
-    fn pixels(&self) -> &[u32];
+    /// Image representation we can upload to the GPU.
+    fn to_rgba_image(&self) -> RgbaImage;
+}
 
-    /// Upload the texture to the GPU.
-    fn upload(
+/// Texture state for textures that have been uploaded to the GPU holding bind group and texture reference.
+#[derive(Debug)]
+pub(super) struct UploadedTextureState {
+    /// Bind group.
+    pub(super) bind_group: BindGroup,
+    /// GPU texture reference.
+    pub(super) texture: GpuTexture,
+}
+
+/// Texture state that still needs to be uploaded to the GPU.
+pub(super) struct PendingTextureState(Box<dyn Texture + Send>);
+
+impl PendingTextureState {
+    /// Upload the texture.
+    pub(super) fn upload(
         &self,
         device: &Device,
-        queue: &Queue,
         diffuse_texture_bind_group_layout: &BindGroupLayout,
     ) -> UploadedTextureState {
-        let size = self.size();
+        let size = self.0.size();
 
         let texture = device.create_texture(&TextureDescriptor {
             label: Some(&Cow::Borrowed("Diffuse Texture")),
@@ -99,31 +100,27 @@ pub trait Texture {
             ],
         });
 
-        // Store the initial texture data
-        self.write(&queue, &texture);
-
         // Store the result
         UploadedTextureState {
             bind_group,
             texture,
-            texture_view,
         }
     }
 
-    /// Write data to the texture.
-    fn write(&self, queue: &Queue, texture: &GpuTexture) {
-        let size = self.size();
+    /// Write the texture data to the GPU.
+    pub(super) fn write(&self, queue: &Queue, uploaded_texture_state: &UploadedTextureState) {
+        let size = self.0.size();
 
         queue.write_texture(
             // Where to copy the pixel data
             ImageCopyTexture {
-                texture,
+                texture: &uploaded_texture_state.texture,
                 mip_level: 0,
                 origin: Origin3d::ZERO,
                 aspect: TextureAspect::All,
             },
             // Actual pixel data
-            bytemuck::cast_slice(self.pixels()),
+            self.0.to_rgba_image().as_bytes(),
             // Layout of the texture
             ImageDataLayout {
                 offset: 0,
@@ -140,24 +137,10 @@ pub trait Texture {
     }
 }
 
-/// Texture state for textures that have been uploaded to the GPU holding bind group and texture reference.
-#[derive(Debug)]
-pub struct UploadedTextureState {
-    /// Bind group.
-    pub(crate) bind_group: BindGroup,
-    /// GPU texture reference.
-    pub(crate) texture: GpuTexture,
-    /// GPU texture view.
-    pub(crate) texture_view: TextureView,
-}
-
-/// Texture state that still needs to be uploaded to the GPU.
-pub struct PendingTextureState(Box<dyn Texture + Send>);
-
 /// Store an texture waiting to be uploaded.
-pub(crate) fn store<T>(id: SharedString, texture: T) -> TextureRef
+pub(crate) fn upload<T>(id: SharedString, texture: T) -> TextureRef
 where
-    T: Texture + Send,
+    T: Texture + Send + 'static,
 {
     // Get a reference to the pending textures map
     let mut pending_textures = PENDING_TEXTURES
@@ -170,53 +153,4 @@ where
     pending_textures.insert(id.clone(), PendingTextureState(Box::new(texture)));
 
     id
-}
-
-/// Set the bind group to a render pass for an uploaded texture.
-pub(crate) fn set_bind_group(reference: &TextureRef, render_pass: &mut RenderPass, index: u32) {
-    // Get a reference to the uploaded textures map
-    let uploaded_textures = UPLOADED_TEXTURES
-        // If it doesn't exist yet create a new one
-        .get_or_init(|| Arc::new(Mutex::new(HashMap::new())))
-        .lock()
-        .expect("Error locking mutex");
-
-    let texture_state = uploaded_textures
-        .get(reference)
-        .expect("Texture not uploaded yet");
-
-    render_pass.set_bind_group(index, &texture_state.bind_group, &[]);
-}
-
-/// Upload all missing textures to the GPU.
-pub(crate) fn upload(
-    device: &Device,
-    queue: &Queue,
-    diffuse_texture_bind_group_layout: &BindGroupLayout,
-) {
-    // Get a reference to the pending textures map
-    let mut pending_textures = PENDING_TEXTURES
-        // If it doesn't exist yet create a new one
-        .get_or_init(|| Arc::new(Mutex::new(HashMap::new())))
-        .lock()
-        .expect("Error locking mutex");
-
-    // Get a reference to the uploaded textures map
-    let mut uploaded_textures = UPLOADED_TEXTURES
-        // If it doesn't exist yet create a new one
-        .get_or_init(|| Arc::new(Mutex::new(HashMap::new())))
-        .lock()
-        .expect("Error locking mutex");
-
-    pending_textures
-        .drain()
-        .for_each(|(texture_ref, pending_texture)| {
-            // Upload each texture and insert it into the uploaded map
-            uploaded_textures.insert(
-                texture_ref,
-                pending_texture
-                    .0
-                    .upload(device, queue, diffuse_texture_bind_group_layout),
-            );
-        });
 }

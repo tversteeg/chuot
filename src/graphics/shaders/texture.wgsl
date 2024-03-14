@@ -21,11 +21,11 @@ fn vs_main(
     // Move from 0..width to -1..1
     var screen_size_half = screen_size / 2;
     // var offset = (model.instance_offset + model.position.xy) / screen_size_half - screen_size_half;
-    var offset = (model.instance_offset + model.position.xy) / screen_size_half;
+    var offset = 1.0 - (model.instance_offset + model.position.xy) / screen_size_half;
 
     var out: VertexOutput;
     out.tex_coords = model.tex_coords;
-    out.clip_position = vec4<f32>(vec3(offset.x, offset.y, model.position.z), 1.0);
+    out.clip_position = vec4<f32>(vec3(-offset.x, offset.y, model.position.z), 1.0);
     return out;
 }
 

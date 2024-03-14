@@ -73,10 +73,15 @@ impl Instances {
         bytemuck::cast_slice(&self.0)
     }
 
+    /// Amount of instances to draw this frame.
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
     /// WGPU descriptor.
     pub fn descriptor() -> VertexBufferLayout<'static> {
         VertexBufferLayout {
-            array_stride: std::mem::size_of::<Self>() as u64,
+            array_stride: std::mem::size_of::<[f32; 2]>() as u64,
             step_mode: VertexStepMode::Instance,
             attributes: &[VertexAttribute {
                 format: VertexFormat::Float32x2,

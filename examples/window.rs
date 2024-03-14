@@ -1,37 +1,24 @@
+//! Show how an empty window is spawned using the window configuration.
+
 use pixel_game_lib::{
-    sprite::Sprite,
     vek::Extent2,
     vek::Vec2,
     window::{Input, KeyCode, WindowConfig},
-    PixelGame,
+    PixelGame, RenderContext,
 };
 
-/// Define a game state with the mouse position for our example.
-struct GameState(Vec2<f64>);
+/// Define an empty game state, because we don't need any state for our window.
+struct GameState {}
 
 impl PixelGame for GameState {
     // Update loop exposing input events we can handle, this is where you would handle the game logic
-    fn update(&mut self, input: &Input, mouse_pos: Option<Vec2<usize>>, _dt: f64) -> bool {
-        // Store the mouse position for the render phase
-        if let Some(mouse_pos) = mouse_pos {
-            self.0 = mouse_pos.as_();
-        }
-
+    fn update(&mut self, input: &Input, _mouse_pos: Option<Vec2<usize>>, _dt: f64) -> bool {
         // Exit when escape is pressed
         input.key_pressed(KeyCode::Escape)
     }
 
-    // Render loop exposing the pixel buffer we can mutate
-    fn render(&mut self) -> Vec<Sprite> {
-        // Draw sprite, will be loaded from disk if the `hot-reloading` feature is enabled, otherwise it will be embedded in the binary
-        let mut sprite: Sprite = pixel_game_lib::asset_owned("crate");
-        sprite.render(Vec2::zero());
-        sprite.render(self.0);
-        sprite.render(self.0 / 2.0);
-        sprite.render(self.0 / 8.0);
-
-        vec![sprite]
-    }
+    // Render loop must be implemented, even though we don't use it in this example
+    fn render(&mut self, _ctx: &mut RenderContext) {}
 }
 
 /// Open an empty window.
@@ -43,7 +30,6 @@ fn main() {
         ..Default::default()
     };
 
-    GameState(Vec2::zero())
-        .run(window_config)
-        .expect("Error running game");
+    // Spawn the window
+    GameState {}.run(window_config).expect("Error running game");
 }
