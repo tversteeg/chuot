@@ -3,7 +3,7 @@
 use std::ops::Range;
 
 use bytemuck::{Pod, Zeroable};
-use vek::Vec2;
+use vek::{Mat2, Vec2};
 use wgpu::{VertexAttribute, VertexBufferLayout, VertexFormat, VertexStepMode};
 
 /// Position with a UV coordinate for rendering a vertex with a texture.
@@ -43,52 +43,6 @@ impl TexturedVertex {
                     shader_location: 1,
                 },
             ],
-        }
-    }
-}
-
-/// Raw instance data.
-#[repr(C)]
-#[derive(Debug, Clone)]
-pub(crate) struct Instances(Vec<[f32; 2]>);
-
-impl Instances {
-    /// Construct from a slice of positions.
-    pub fn from_slice(instances: &[Vec2<f64>]) -> Self {
-        Self(
-            instances
-                .iter()
-                .map(|position| position.as_().into_array())
-                .collect(),
-        )
-    }
-
-    /// What part of the vector should be rendered (everything).
-    pub fn range(&self) -> Range<u32> {
-        0..self.0.len() as u32
-    }
-
-    /// Get as raw bytes.
-    pub fn bytes(&self) -> &[u8] {
-        bytemuck::cast_slice(&self.0)
-    }
-
-    /// Amount of instances to draw this frame.
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    /// WGPU descriptor.
-    pub fn descriptor() -> VertexBufferLayout<'static> {
-        VertexBufferLayout {
-            array_stride: std::mem::size_of::<[f32; 2]>() as u64,
-            step_mode: VertexStepMode::Instance,
-            attributes: &[VertexAttribute {
-                format: VertexFormat::Float32x2,
-                offset: 0,
-                // Must be the next one of `TexturedVertex`
-                shader_location: 2,
-            }],
         }
     }
 }

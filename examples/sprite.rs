@@ -1,28 +1,43 @@
 //! Show how a sprite can be loaded from disk and rendered multiple times..
 
 use pixel_game_lib::{
-    vek::Extent2,
-    vek::Vec2,
+    vek::{Extent2, Vec2},
     window::{Input, KeyCode, MouseButton, WindowConfig},
     PixelGame, RenderContext,
 };
 
+/// A single sprite instance to draw.
+struct Sprite {
+    /// Absolute position in pixels on the buffer.
+    position: Vec2<f64>,
+    /// Rotation in radians.
+    rotation: f64,
+}
+
 /// Define a game state for our example.
 struct GameState {
     /// Sprites to draw.
-    sprites: Vec<Vec2<f64>>,
+    sprites: Vec<Sprite>,
 }
 
 impl PixelGame for GameState {
     // Update loop exposing input events we can handle, this is where you would handle the game logic
-    fn update(&mut self, input: &Input, mouse_pos: Option<Vec2<usize>>, _dt: f64) -> bool {
+    fn update(&mut self, input: &Input, mouse_pos: Option<Vec2<usize>>, dt: f64) -> bool {
         // If the mouse is pressed add a new sprite
         if let Some(mouse_pos) = mouse_pos {
             if input.mouse_pressed(MouseButton::Left) {
                 // Spawn a new sprite in the render loop
-                self.sprites.push(mouse_pos.as_());
+                self.sprites.push(Sprite {
+                    position: mouse_pos.as_(),
+                    rotation: 0.0,
+                });
             }
         }
+
+        // Rotate every sprite a tiny bit
+        self.sprites
+            .iter_mut()
+            .for_each(|sprite| sprite.rotation += dt);
 
         // Exit when escape is pressed
         input.key_pressed(KeyCode::Escape)
@@ -32,7 +47,7 @@ impl PixelGame for GameState {
     fn render(&mut self, ctx: &mut RenderContext) {
         // Draw sprite, will be loaded from disk if the `hot-reloading` feature is enabled, otherwise it will be embedded in the binary
         for sprite in &self.sprites {
-            ctx.draw_sprite("crate", *sprite);
+            ctx.draw_sprite_rotated("crate", sprite.position, sprite.rotation);
         }
     }
 }
@@ -46,7 +61,10 @@ fn main() {
         ..Default::default()
     };
 
-    let sprites = vec![Vec2::zero()];
+    let sprites = vec![Sprite {
+        position: Vec2::zero(),
+        rotation: 0.0,
+    }];
 
     // Spawn the window and run the 'game'
     GameState { sprites }

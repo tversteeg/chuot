@@ -11,7 +11,13 @@ var<uniform> screen_info: ScreenInfo;
 struct VertexInput {
     @location(0) position: vec3<f32>,
     @location(1) tex_coords: vec2<f32>,
-    @location(2) instance_offset: vec2<f32>,
+}
+
+struct InstanceInput {
+    // Matrix type is not supported in vertex input, construct it from 3 vec3's
+    @location(2) mat_0: vec3<f32>,
+    @location(3) mat_1: vec3<f32>,
+    @location(4) mat_2: vec3<f32>,
 }
 
 struct VertexOutput {
@@ -22,11 +28,18 @@ struct VertexOutput {
 @vertex
 fn vs_main(
     model: VertexInput,
+    instance: InstanceInput,
 ) -> VertexOutput {
+    let instance_matrix = mat3x3<f32>(
+        instance.mat_0,
+        instance.mat_1,
+        instance.mat_2,
+    );
+
     // Move from 0..width to -1..1
-    var screen_size_half = screen_info.size / 2;
-    var scaled_position = model.position.xy * screen_info.scale;
-    var offset = 1.0 - (model.instance_offset + scaled_position) / screen_size_half;
+    let screen_size_half = screen_info.size / 2;
+    let scaled_position = model.position.xy * screen_info.scale;
+    let offset = 1.0 - (instance_matrix * vec3<f32>(scaled_position, 1.0)).xy / screen_size_half;
 
     var out: VertexOutput;
     out.tex_coords = model.tex_coords;

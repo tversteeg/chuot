@@ -14,8 +14,9 @@ use crate::{
     assets::image::Image,
     graphics::{
         data::TexturedVertex,
-        render::Render,
+        instance::Instances,
         texture::{Texture, TextureRef},
+        Render,
     },
 };
 
@@ -31,8 +32,8 @@ pub(crate) struct Sprite {
     size: Extent2<u32>,
     /// Sprite metadata.
     metadata: SpriteMetadata,
-    /// Instances of the sprite to render.
-    instances: Vec<Vec2<f64>>,
+    /// Instances to draw this frame.
+    instances: Instances,
     /// Sprite needs to be updated on the GPU.
     is_dirty: bool,
     /// Graphics information for rendering the sprite.
@@ -42,21 +43,9 @@ pub(crate) struct Sprite {
 }
 
 impl Sprite {
-    /// Draw the sprite.
-    ///
-    /// This will add it to the list of instances.
-    pub(crate) fn render(&mut self, offset: Vec2<f64>) {
-        self.instances.push(offset);
-    }
-
     /// Size of the image.
     pub(crate) fn size(&self) -> Extent2<u32> {
         self.size
-    }
-
-    /// Remove all instances.
-    pub(crate) fn clear_instances(&mut self) {
-        self.instances.clear();
     }
 
     /// Compute the coordinates and UV for this sprite based on the offset.
@@ -101,7 +90,7 @@ impl Compound for Sprite {
 
         let is_dirty = true;
         let contents = None;
-        let instances = Vec::new();
+        let instances = Instances::default();
 
         Ok(Self {
             size,
@@ -123,8 +112,8 @@ impl Render for Sprite {
         self.is_dirty = false;
     }
 
-    fn instances(&self) -> &[Vec2<f64>] {
-        &self.instances
+    fn instances_mut(&mut self) -> &mut Instances {
+        &mut self.instances
     }
 
     fn range(&self) -> Range<u32> {
@@ -148,11 +137,6 @@ impl Render for Sprite {
         if self.contents.is_none() {
             self.set_contents();
         }
-    }
-
-    fn post_render(&mut self) {
-        // Reset the instances for next frame
-        self.instances.clear();
     }
 }
 

@@ -32,7 +32,9 @@ fn vs_main(in: VertexInput) -> @builtin(position) vec4<f32> {
 
 @fragment
 fn fs_main(@builtin(position) pos: vec4<f32>) -> @location(0) vec4<f32> {
-    let color = textureLoad(input_tex, vec2<i32>(pos.xy / screen_info.scale), 0).rgb;
+    let uv = pos.xy * screen_info.scale;
+
+    let color = textureLoad(input_tex, vec2<i32>(uv), 0).rgb;
 
     return vec4<f32>(color, 1.0);
 }

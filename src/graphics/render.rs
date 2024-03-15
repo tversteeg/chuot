@@ -1,70 +1,25 @@
 //! Expose render functionality on different types through traits.
 
-use std::{borrow::Cow, marker::PhantomData, ops::Range};
+use std::{borrow::Cow, marker::PhantomData};
 
 use hashbrown::HashMap;
-use vek::Vec2;
+
 use wgpu::{
     util::{BufferInitDescriptor, DeviceExt},
     BindGroup, BindGroupLayout, BlendComponent, BlendState, Buffer, BufferUsages, Color,
     ColorTargetState, ColorWrites, CommandEncoder, Device, FragmentState, FrontFace, IndexFormat,
     LoadOp, MultisampleState, Operations, PipelineLayoutDescriptor, PolygonMode, PrimitiveState,
-    PrimitiveTopology, Queue, RenderPassColorAttachment, RenderPassDescriptor, RenderPipeline,
+    Queue, RenderPassColorAttachment, RenderPassDescriptor, RenderPipeline,
     RenderPipelineDescriptor, ShaderModuleDescriptor, ShaderSource, StoreOp, TextureFormat,
     TextureView, VertexState,
 };
 
 use super::{
-    data::{Instances, TexturedVertex},
+    data::TexturedVertex,
+    instance::Instances,
     texture::{TextureRef, UploadedTextureState},
+    Render,
 };
-
-/// Allow something to be rendered on the GPU.
-pub trait Render {
-    /// Definition of the primitive type.
-    ///
-    /// Defaults to [`wgpu::PrimitiveTopology`].
-    fn topology() -> PrimitiveTopology {
-        PrimitiveTopology::TriangleList
-    }
-
-    /// Whether the mesh needs to be updated on the GPU.
-    ///
-    /// This is not influenced by instancing.
-    fn is_dirty(&self) -> bool;
-
-    /// Tell the object everything is up to date.
-    fn mark_clean(&mut self);
-
-    /// All instances of this type to render.
-    fn instances(&self) -> &[Vec2<f64>];
-
-    /// All vertices of this type to render.
-    fn vertices(&self) -> &[TexturedVertex];
-
-    /// All indices of this type to render.
-    fn indices(&self) -> &[u16];
-
-    /// Range of indices to draw.
-    fn range(&self) -> Range<u32>;
-
-    /// Texture reference to bind and render.
-    ///
-    /// If `None` no texture binding will be applied.
-    fn texture(&self) -> Option<&TextureRef> {
-        None
-    }
-
-    /// Called just before rendering the objects.
-    ///
-    /// Can be overwritten to handle some simple logic.
-    fn pre_render(&mut self) {}
-
-    /// Called just after rendering the objects.
-    ///
-    /// Can be overwritten to handle some simple logic.
-    fn post_render(&mut self) {}
-}
 
 /// Simple render state holding buffers and instances required for rendering somethging.
 pub(crate) struct RenderState<R: Render> {
@@ -196,27 +151,29 @@ impl<R: Render> RenderState<R> {
         target.pre_render();
 
         // Get the instances
-        let instances = target.instances();
-        if instances.is_empty() {
-            // Nothing to render when there's no instances
-            return;
-        }
+        let (instances_bytes, instances_len) = {
+            // We could simplify the scope here by implementing `Render::instances()` but that means implementing another method for each trait implementor
 
-        // Construct the instances to upload
-        // PERF: don't clone every frame
-        let instances = Instances::from_slice(instances);
-        let instances_bytes = instances.bytes();
+            let instances = target.instances_mut();
+            if instances.is_empty() {
+                // Nothing to render when there's no instances
+                return;
+            }
+
+            // Construct the bytes of the instances to upload
+            (instances.bytes(), instances.len())
+        };
 
         // Upload the instance buffer
         if instances_bytes.len() as u64 <= self.instance_buffer.size() {
             // We still fit in the buffer, we don't have to resize it
-            queue.write_buffer(&self.instance_buffer, 0, instances.bytes());
+            queue.write_buffer(&self.instance_buffer, 0, instances_bytes);
         } else {
             // We have more instances than the buffer size, recreate the buffer
 
             log::debug!(
                 "Previous instance buffer is too small, rescaling to {} items",
-                instances.len()
+                instances_len
             );
 
             self.instance_buffer.destroy();
@@ -296,6 +253,6 @@ impl<R: Render> RenderState<R> {
         render_pass.set_index_buffer(self.index_buffer.slice(..), IndexFormat::Uint16);
 
         // Draw the instances
-        render_pass.draw_indexed(target.range(), 0, instances.range());
+        render_pass.draw_indexed(target.range(), 0, 0..instances_len as u32);
     }
 }
