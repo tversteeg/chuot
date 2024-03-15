@@ -1,7 +1,12 @@
 // Vertex shader
 
+struct ScreenInfo {
+    @location(0) size: vec2<f32>,
+    @location(1) scale: f32,
+}
+
 @group(1) @binding(0)
-var<uniform> screen_size: vec2<f32>;
+var<uniform> screen_info: ScreenInfo;
 
 struct VertexInput {
     @location(0) position: vec3<f32>,
@@ -19,9 +24,9 @@ fn vs_main(
     model: VertexInput,
 ) -> VertexOutput {
     // Move from 0..width to -1..1
-    var screen_size_half = screen_size / 2;
-    // var offset = (model.instance_offset + model.position.xy) / screen_size_half - screen_size_half;
-    var offset = 1.0 - (model.instance_offset + model.position.xy) / screen_size_half;
+    var screen_size_half = screen_info.size / 2;
+    var scaled_position = model.position.xy * screen_info.scale;
+    var offset = 1.0 - (model.instance_offset + scaled_position) / screen_size_half;
 
     var out: VertexOutput;
     out.tex_coords = model.tex_coords;

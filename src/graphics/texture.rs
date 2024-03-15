@@ -2,12 +2,11 @@
 
 use std::{
     borrow::Cow,
-    collections::HashMap,
     sync::{Arc, Mutex, OnceLock},
 };
 
 use assets_manager::SharedString;
-use image::{EncodableLayout, RgbaImage};
+use hashbrown::HashMap;
 use vek::Extent2;
 use wgpu::{
     AddressMode, BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindingResource,
@@ -29,7 +28,7 @@ pub trait Texture {
     fn size(&self) -> Extent2<u32>;
 
     /// Image representation we can upload to the GPU.
-    fn to_rgba_image(&self) -> RgbaImage;
+    fn to_rgba_image(&mut self) -> Vec<u8>;
 }
 
 /// Texture state for textures that have been uploaded to the GPU holding bind group and texture reference.
@@ -108,7 +107,7 @@ impl PendingTextureState {
     }
 
     /// Write the texture data to the GPU.
-    pub(super) fn write(&self, queue: &Queue, uploaded_texture_state: &UploadedTextureState) {
+    pub(super) fn write(mut self, queue: &Queue, uploaded_texture_state: &UploadedTextureState) {
         let size = self.0.size();
 
         queue.write_texture(
@@ -120,7 +119,7 @@ impl PendingTextureState {
                 aspect: TextureAspect::All,
             },
             // Actual pixel data
-            self.0.to_rgba_image().as_bytes(),
+            &self.0.to_rgba_image(),
             // Layout of the texture
             ImageDataLayout {
                 offset: 0,

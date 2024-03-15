@@ -2,19 +2,19 @@
 //!
 //! Shouldn't be used directly, use [`crate::sprite::Sprite`].
 
-use std::borrow::Cow;
+use std::{borrow::Cow, io::Cursor};
 
 use assets_manager::{loader::Loader, Asset, BoxedError};
-use image::{DynamicImage, ImageFormat, RgbaImage};
+use miette::{Context, IntoDiagnostic};
+use png::{ColorType, Decoder, Reader, Transformations};
 use vek::Extent2;
 
 use crate::graphics::texture::Texture;
 
 /// Core of a sprite loaded from disk.
-#[derive(Debug)]
 pub(crate) struct Image {
-    /// Image data.
-    image: DynamicImage,
+    /// PNG image reader.
+    reader: Reader<Cursor<Vec<u8>>>,
 }
 
 impl Asset for Image {
@@ -26,11 +26,23 @@ impl Asset for Image {
 
 impl Texture for Image {
     fn size(&self) -> Extent2<u32> {
-        Extent2::new(self.image.width(), self.image.height())
+        let info = self.reader.info();
+
+        Extent2::new(info.width, info.height)
     }
 
-    fn to_rgba_image(&self) -> RgbaImage {
-        self.image.to_rgba8()
+    fn to_rgba_image(&mut self) -> Vec<u8> {
+        log::debug!("Reading PNG frame");
+
+        // Allocate the output buffer
+        let mut buf = vec![0; self.reader.output_buffer_size()];
+
+        // Read the image
+        self.reader
+            .next_frame(&mut buf)
+            .expect("Error reading PNG frame");
+
+        buf
     }
 }
 
@@ -38,12 +50,26 @@ impl Texture for Image {
 pub(crate) struct ImageLoader;
 
 impl Loader<Image> for ImageLoader {
-    fn load(content: Cow<[u8]>, ext: &str) -> Result<Image, BoxedError> {
-        assert_eq!(ext.to_lowercase(), "png");
+    fn load(content: Cow<[u8]>, _ext: &str) -> Result<Image, BoxedError> {
+        log::debug!("Decoding PNG");
 
-        // Load the PNG image
-        let image = image::load_from_memory_with_format(&content, ImageFormat::Png)?;
+        // Copy the bytes into a cursor
+        let cursor = Cursor::new(content.to_vec());
 
-        Ok(Image { image })
+        // Decode the PNG
+        let mut decoder = Decoder::new(cursor);
+        decoder.set_transformations(Transformations::normalize_to_color8());
+        let reader = decoder
+            .read_info()
+            .into_diagnostic()
+            .wrap_err("Error reading PNG")?;
+
+        // Ensure the image is RGBA, so we can directly copy the pixels into a GPU texture
+        let color_type = reader.info().color_type;
+        if color_type != ColorType::Rgba && color_type != ColorType::Indexed {
+            Err(miette::miette!("PNG is not RGB with an alpha channel"))?;
+        }
+
+        Ok(Image { reader })
     }
 }

@@ -1,7 +1,8 @@
 //! Expose render functionality on different types through traits.
 
-use std::{borrow::Cow, collections::HashMap, marker::PhantomData, ops::Range};
+use std::{borrow::Cow, marker::PhantomData, ops::Range};
 
+use hashbrown::HashMap;
 use vek::Vec2;
 use wgpu::{
     util::{BufferInitDescriptor, DeviceExt},

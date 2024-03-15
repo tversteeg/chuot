@@ -1,28 +1,39 @@
 //! Main rendering state.
 
 use std::{
-    collections::HashMap,
+    borrow::Cow,
+    marker::PhantomData,
     sync::{Arc, Mutex},
 };
 
+use bytemuck::NoUninit;
+use hashbrown::HashMap;
 use miette::{IntoDiagnostic, Result, WrapErr};
 use vek::Extent2;
 use wgpu::{
     util::{BufferInitDescriptor, DeviceExt},
     BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
-    BindGroupLayoutEntry, BindingResource, BindingType, Buffer, BufferBindingType, BufferUsages,
-    CommandEncoderDescriptor, Device, DeviceDescriptor, Features, Instance, Limits,
-    PowerPreference, Queue, RequestAdapterOptionsBase, SamplerBindingType, ShaderStages, Surface,
-    SurfaceConfiguration, TextureFormat, TextureSampleType, TextureUsages, TextureViewDescriptor,
-    TextureViewDimension, WindowHandle,
+    BindGroupLayoutEntry, BindingResource, BindingType, BlendComponent, BlendState, Buffer,
+    BufferBindingType, BufferUsages, Color, ColorTargetState, ColorWrites,
+    CommandEncoderDescriptor, Device, DeviceDescriptor, Extent3d, Features, FragmentState,
+    Instance, Limits, LoadOp, MultisampleState, Operations, PipelineLayoutDescriptor,
+    PowerPreference, PrimitiveState, Queue, RenderPassColorAttachment, RenderPassDescriptor,
+    RenderPipeline, RenderPipelineDescriptor, RequestAdapterOptionsBase, SamplerBindingType,
+    ShaderModuleDescriptor, ShaderSource, ShaderStages, StoreOp, Surface, SurfaceConfiguration,
+    TextureDescriptor, TextureDimension, TextureFormat, TextureSampleType, TextureUsages,
+    TextureView, TextureViewDescriptor, TextureViewDimension, VertexState, WindowHandle,
 };
 
 use crate::{sprite::Sprite, RenderContext};
 
 use super::{
+    data::ScreenInfo,
     render::RenderState,
     texture::{TextureRef, UploadedTextureState, PENDING_TEXTURES},
 };
+
+/// Scale at which the pixels are drawn for rotations.
+const PIXEL_UPSCALE: u32 = 2;
 
 /// Main render state holding the GPU information.
 pub(crate) struct MainRenderState<'window> {
@@ -36,10 +47,10 @@ pub(crate) struct MainRenderState<'window> {
     queue: Queue,
     /// Bind group layout for rendering diffuse textures.
     diffuse_texture_bind_group_layout: BindGroupLayout,
-    /// Buffer for passing the screen size to the shaders.
-    screen_size_buffer: Buffer,
-    /// Bind group for passing the screen size to the shaders.
-    screen_size_bind_group: BindGroup,
+    /// Intermediate upscaled texture.
+    upscaled_pass: PostProcessingState,
+    /// Uniform screen info (size and scale) to the shaders.
+    screen_info: UniformState<ScreenInfo>,
     /// Sprite component specific render pipelines.
     sprite_render_state: RenderState<Sprite>,
     /// Uploaded textures.
@@ -100,8 +111,9 @@ impl<'window> MainRenderState<'window> {
         let config = SurfaceConfiguration {
             usage: TextureUsages::RENDER_ATTACHMENT,
             format: TextureFormat::Rgba8UnormSrgb,
-            width: buffer_size.w,
-            height: buffer_size.h,
+            // Well be set by scaling
+            width: 1,
+            height: 1,
             present_mode: swapchain_capabilities.present_modes[0],
             desired_maximum_frame_latency: 2,
             alpha_mode: swapchain_capabilities.alpha_modes[0],
@@ -133,46 +145,29 @@ impl<'window> MainRenderState<'window> {
                 ],
             });
 
-        // Upload a buffer for the screen size
-        let initial_screen_size = [buffer_size.w as f32, buffer_size.h as f32];
-        let screen_size_buffer = device.create_buffer_init(&BufferInitDescriptor {
-            label: Some("Screen Size Buffer"),
-            contents: bytemuck::cast_slice(&initial_screen_size),
-            // Allow us to update this buffer
-            usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
-        });
+        // Create the uniforms
+        let screen_info = UniformState::new(
+            &device,
+            &ScreenInfo {
+                buffer_size: [buffer_size.w as f32, buffer_size.h as f32],
+                upscale_factor: PIXEL_UPSCALE as f32,
+                ..Default::default()
+            },
+        );
 
-        // Create the bind group layout for passing the screen size
-        let screen_size_bind_group_layout =
-            device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-                label: Some("Screen Size Bind Group Layout"),
-                entries: &[BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: ShaderStages::VERTEX,
-                    ty: BindingType::Buffer {
-                        ty: BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                }],
-            });
-
-        // Also already create the bind group, since it will be used without changing the size
-        let screen_size_bind_group = device.create_bind_group(&BindGroupDescriptor {
-            label: Some("Screen Size Bind Group"),
-            layout: &screen_size_bind_group_layout,
-            entries: &[BindGroupEntry {
-                binding: 0,
-                resource: BindingResource::Buffer(screen_size_buffer.as_entire_buffer_binding()),
-            }],
-        });
+        // Create the postprocessing effects
+        let upscaled_pass = PostProcessingState::new(
+            buffer_size * PIXEL_UPSCALE,
+            &device,
+            &screen_info,
+            include_str!("./shaders/upscale.wgsl"),
+        );
 
         // Create a custom pipeline for each component
         let sprite_render_state = RenderState::new(
             &device,
             &diffuse_texture_bind_group_layout,
-            &screen_size_bind_group_layout,
+            &screen_info.bind_group_layout,
         );
 
         // We don't have any textures uploaded yet
@@ -188,8 +183,8 @@ impl<'window> MainRenderState<'window> {
             sprite_render_state,
             queue,
             diffuse_texture_bind_group_layout,
-            screen_size_buffer,
-            screen_size_bind_group,
+            screen_info,
+            upscaled_pass,
             uploaded_textures,
             ctx,
         })
@@ -200,19 +195,13 @@ impl<'window> MainRenderState<'window> {
         // Upload the pending textures
         self.upload_textures();
 
-        // Get the main render texture
-        let frame = self
-            .surface
-            .get_current_texture()
-            .expect("Error acquiring next swap chain texture");
-        let view = frame.texture.create_view(&TextureViewDescriptor::default());
-
         let mut encoder = self
             .device
             .create_command_encoder(&CommandEncoderDescriptor {
-                label: Some("Command Encoder"),
+                label: Some("Pixel Game Command Encoder"),
             });
 
+        // First pass, render the contents to an upscaled buffer
         if self.ctx.sprites.is_empty() {
             // Nothing to render, render the solid background color
             todo!()
@@ -223,13 +212,51 @@ impl<'window> MainRenderState<'window> {
                 self.sprite_render_state.render(
                     sprite,
                     &mut encoder,
-                    &view,
+                    &self.upscaled_pass.texture_view,
                     &self.queue,
                     &self.device,
-                    &self.screen_size_bind_group,
+                    &self.screen_info.bind_group,
                     &self.uploaded_textures,
                 );
             });
+        }
+
+        // Get the main render texture
+        let frame = self
+            .surface
+            .get_current_texture()
+            .expect("Error acquiring next swap chain texture");
+
+        // Second pass, downscale the upscaled buffer
+        {
+            // Create a texture view from the main render texture
+            let view = frame.texture.create_view(&TextureViewDescriptor::default());
+
+            // Start the render pass
+            let mut upscaled_render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
+                label: Some("Upscaled Render Pass"),
+                color_attachments: &[Some(RenderPassColorAttachment {
+                    view: &view,
+                    resolve_target: None,
+                    ops: Operations {
+                        load: LoadOp::Clear(Color::BLACK),
+                        store: StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+            });
+            upscaled_render_pass.set_pipeline(&self.upscaled_pass.render_pipeline);
+
+            // Bind the source texture
+            upscaled_render_pass.set_bind_group(0, &self.upscaled_pass.bind_group, &[]);
+
+            // Bind the screen info uniform
+            upscaled_render_pass.set_bind_group(1, &self.screen_info.bind_group, &[]);
+
+            // Draw the 'buffer' defined in the vertex shader
+            upscaled_render_pass.draw(0..3, 0..1);
         }
 
         // Draw to the texture
@@ -248,6 +275,7 @@ impl<'window> MainRenderState<'window> {
         self.config.height = new_size.h.max(1);
         self.surface.configure(&self.device, &self.config);
 
+        /*
         // Update the screen size buffer to applied in the next render call
         let screen_size = [new_size.w as f32, new_size.h as f32];
         self.queue.write_buffer(
@@ -255,6 +283,7 @@ impl<'window> MainRenderState<'window> {
             0,
             bytemuck::cast_slice(&screen_size),
         );
+        */
     }
 
     /// Get a mutable reference to the render context for passing to the render call.
@@ -297,5 +326,174 @@ impl<'window> MainRenderState<'window> {
                 // Write the pixels of the texture
                 pending_texture.write(&self.queue, uploaded_texture_state);
             });
+    }
+}
+
+/// State data collection for post processing stages.
+struct PostProcessingState {
+    bind_group: BindGroup,
+    render_pipeline: RenderPipeline,
+    texture_view: TextureView,
+}
+
+impl PostProcessingState {
+    /// Upload a new post processing state effect.
+    fn new<T: NoUninit>(
+        buffer_size: Extent2<u32>,
+        device: &Device,
+        uniform: &UniformState<T>,
+        shader: &'static str,
+    ) -> Self {
+        // Create the internal texture for rendering the first pass to
+        let texture = device.create_texture(&TextureDescriptor {
+            label: Some("Post Processing Texture"),
+            size: Extent3d {
+                width: buffer_size.w,
+                height: buffer_size.h,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: TextureDimension::D2,
+            format: TextureFormat::Rgba8UnormSrgb,
+            usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::TEXTURE_BINDING,
+            view_formats: &[],
+        });
+        let texture_view = texture.create_view(&TextureViewDescriptor::default());
+
+        // Create the bind group layout for the screen after it has been upscaled
+        let bind_group_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+            label: Some("Post Processing Bind Group Layout"),
+            entries: &[BindGroupLayoutEntry {
+                binding: 0,
+                visibility: ShaderStages::FRAGMENT,
+                ty: BindingType::Texture {
+                    sample_type: TextureSampleType::Float { filterable: true },
+                    view_dimension: TextureViewDimension::D2,
+                    multisampled: false,
+                },
+                count: None,
+            }],
+        });
+
+        // Create the bind group binding the layout with the texture view
+        let bind_group = device.create_bind_group(&BindGroupDescriptor {
+            label: Some("Post Processing Bind Group"),
+            layout: &bind_group_layout,
+            entries: &[BindGroupEntry {
+                binding: 0,
+                resource: BindingResource::TextureView(&texture_view),
+            }],
+        });
+
+        // Create a new render pipeline first
+        let render_pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
+            label: Some("Post Processing Render Pipeline Layout"),
+            bind_group_layouts: &[&bind_group_layout, &uniform.bind_group_layout],
+            push_constant_ranges: &[],
+        });
+
+        // Load the shaders from disk
+        let shader = device.create_shader_module(ShaderModuleDescriptor {
+            label: Some("Post Processing Texture Shader"),
+            source: ShaderSource::Wgsl(Cow::Borrowed(shader)),
+        });
+
+        let render_pipeline = device.create_render_pipeline(&RenderPipelineDescriptor {
+            label: Some("Post Processing Render Pipeline"),
+            layout: Some(&render_pipeline_layout),
+            vertex: VertexState {
+                buffers: &[],
+                module: &shader,
+                entry_point: "vs_main",
+            },
+            fragment: Some(FragmentState {
+                module: &shader,
+                entry_point: "fs_main",
+                targets: &[Some(ColorTargetState {
+                    format: TextureFormat::Rgba8UnormSrgb,
+                    blend: Some(BlendState {
+                        color: BlendComponent::REPLACE,
+                        alpha: BlendComponent::REPLACE,
+                    }),
+                    write_mask: ColorWrites::ALL,
+                })],
+            }),
+            primitive: PrimitiveState::default(),
+            depth_stencil: None,
+            multisample: MultisampleState::default(),
+            multiview: None,
+        });
+
+        Self {
+            bind_group,
+            render_pipeline,
+            texture_view,
+        }
+    }
+}
+
+/// State data collection for uniforms for a shader.
+struct UniformState<T: NoUninit> {
+    bind_group: BindGroup,
+    bind_group_layout: BindGroupLayout,
+    buffer: Buffer,
+    /// Store the type information.
+    _phantom: PhantomData<T>,
+}
+
+impl<T: NoUninit> UniformState<T> {
+    /// Upload a new uniform.
+    fn new(device: &Device, initial_value: &T) -> Self {
+        // Convert initial value to bytes
+        let contents = bytemuck::bytes_of(initial_value);
+
+        let buffer = device.create_buffer_init(&BufferInitDescriptor {
+            label: Some("Uniform Buffer"),
+            contents,
+            // Allow us to update this buffer
+            usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+        });
+
+        // Create the bind group layout for passing the screen size
+        let bind_group_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+            label: Some("Uniform Bind Group Layout"),
+            entries: &[BindGroupLayoutEntry {
+                binding: 0,
+                visibility: ShaderStages::VERTEX_FRAGMENT,
+                ty: BindingType::Buffer {
+                    ty: BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            }],
+        });
+
+        // Also already create the bind group, since it will be used without changing the size
+        let bind_group = device.create_bind_group(&BindGroupDescriptor {
+            label: Some("Uniform Bind Group"),
+            layout: &bind_group_layout,
+            entries: &[BindGroupEntry {
+                binding: 0,
+                resource: BindingResource::Buffer(buffer.as_entire_buffer_binding()),
+            }],
+        });
+
+        Self {
+            bind_group,
+            buffer,
+            bind_group_layout,
+            _phantom: PhantomData,
+        }
+    }
+
+    /// Update the value of the uniform.
+    fn update(&mut self, value: &T, queue: &Queue) {
+        // Convert value to bytes
+        let data = bytemuck::bytes_of(value);
+
+        // PUpdate the buffer and push to queue
+        queue.write_buffer(&self.buffer, 0, data);
     }
 }

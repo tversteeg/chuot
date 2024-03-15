@@ -50,7 +50,7 @@ impl TexturedVertex {
 /// Raw instance data.
 #[repr(C)]
 #[derive(Debug, Clone)]
-pub struct Instances(Vec<[f32; 2]>);
+pub(crate) struct Instances(Vec<[f32; 2]>);
 
 impl Instances {
     /// Construct from a slice of positions.
@@ -91,4 +91,16 @@ impl Instances {
             }],
         }
     }
+}
+
+/// Screen info uniform information.
+#[repr(C)]
+#[derive(Debug, Default, Clone, Copy, Pod, Zeroable)]
+pub(crate) struct ScreenInfo {
+    /// Output buffer size.
+    pub buffer_size: [f32; 2],
+    /// Upscaling factor.
+    pub upscale_factor: f32,
+    /// Unused data for padding.
+    pub _padding: f32,
 }

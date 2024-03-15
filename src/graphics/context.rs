@@ -1,8 +1,7 @@
 //! Render context passed to each [`crate::PixelGame::render`] call.
 
-use std::collections::HashMap;
-
 use assets_manager::SharedString;
+use hashbrown::HashMap;
 use vek::Vec2;
 
 use crate::sprite::Sprite;
