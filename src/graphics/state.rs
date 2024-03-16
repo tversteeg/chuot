@@ -9,7 +9,7 @@ use std::{
 use bytemuck::NoUninit;
 use hashbrown::HashMap;
 use miette::{IntoDiagnostic, Result, WrapErr};
-use vek::Extent2;
+use vek::{Extent2, Rect};
 use wgpu::{
     util::{BufferInitDescriptor, DeviceExt},
     BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
@@ -27,13 +27,13 @@ use wgpu::{
 use crate::{sprite::Sprite, RenderContext};
 
 use super::{
+    component::RenderState,
     data::ScreenInfo,
-    render::RenderState,
     texture::{TextureRef, UploadedTextureState, PENDING_TEXTURES},
 };
 
 /// Scale at which the pixels are drawn for rotations.
-const PIXEL_UPSCALE: u32 = 2;
+const PIXEL_UPSCALE: u32 = 1;
 
 /// Main render state holding the GPU information.
 pub(crate) struct MainRenderState<'window> {
@@ -57,6 +57,12 @@ pub(crate) struct MainRenderState<'window> {
     uploaded_textures: HashMap<TextureRef, UploadedTextureState>,
     /// Render context passed to each user facing render frame.
     ctx: RenderContext,
+    /// Size of the final buffer to draw.
+    ///
+    /// Will be scaled with integer scaling and letterboxing to fit the screen.
+    buffer_size: Extent2<u32>,
+    /// Letterbox output for the final render pass viewport.
+    letterbox: Rect<f32, f32>,
 }
 
 impl<'window> MainRenderState<'window> {
@@ -176,6 +182,9 @@ impl<'window> MainRenderState<'window> {
         // Construct a default empty render context
         let ctx = RenderContext::default();
 
+        // The letterbox will be changed on resize
+        let letterbox = Rect::new(0.0, 0.0, 1.0, 1.0);
+
         Ok(Self {
             surface,
             device,
@@ -187,6 +196,8 @@ impl<'window> MainRenderState<'window> {
             upscaled_pass,
             uploaded_textures,
             ctx,
+            letterbox,
+            buffer_size,
         })
     }
 
@@ -239,7 +250,7 @@ impl<'window> MainRenderState<'window> {
                     view: &view,
                     resolve_target: None,
                     ops: Operations {
-                        load: LoadOp::Clear(Color::BLACK),
+                        load: LoadOp::Clear(Color::BLUE),
                         store: StoreOp::Store,
                     },
                 })],
@@ -247,7 +258,12 @@ impl<'window> MainRenderState<'window> {
                 timestamp_writes: None,
                 occlusion_query_set: None,
             });
+
             upscaled_render_pass.set_pipeline(&self.upscaled_pass.render_pipeline);
+
+            // Only draw in the calculated letterbox to get nice integer scaling
+            let Rect { x, y, w, h } = self.letterbox;
+            upscaled_render_pass.set_viewport(x, y, w, h, 0.0, 1.0);
 
             // Bind the source texture
             upscaled_render_pass.set_bind_group(0, &self.upscaled_pass.bind_group, &[]);
@@ -275,20 +291,49 @@ impl<'window> MainRenderState<'window> {
         self.config.height = new_size.h.max(1);
         self.surface.configure(&self.device, &self.config);
 
-        /*
-        // Update the screen size buffer to applied in the next render call
-        let screen_size = [new_size.w as f32, new_size.h as f32];
-        self.queue.write_buffer(
-            &self.screen_size_buffer,
-            0,
-            bytemuck::cast_slice(&screen_size),
-        );
-        */
+        // Recalculate the letterbox with the new size
+        self.recalculate_letterbox();
     }
 
     /// Get a mutable reference to the render context for passing to the render call.
     pub(crate) fn ctx(&mut self) -> &mut RenderContext {
         &mut self.ctx
+    }
+
+    /// Recalculate the letterbox based on the size of the surface.
+    fn recalculate_letterbox(&mut self) {
+        // Calculate the integer scaling ratio first
+        let screen_size = Extent2::new(self.config.width, self.config.height);
+        let scale = if screen_size.h * self.buffer_size.w < screen_size.w * self.buffer_size.h {
+            // Height fits
+            screen_size.h / self.buffer_size.h
+        } else {
+            // Width fits
+            screen_size.w / self.buffer_size.w
+        }
+        // We don't want a scale smaller than one
+        .max(1);
+
+        let scaled_buffer_size = self.buffer_size * scale;
+
+        // Calculate the offset to center the scaled rectangle inside the other rectangle
+        let offset = (screen_size - scaled_buffer_size) / 2;
+
+        self.letterbox = Rect::new(
+            offset.w,
+            offset.h,
+            scaled_buffer_size.w,
+            scaled_buffer_size.h,
+        )
+        .as_();
+
+        log::debug!(
+            "Setting new letterbox to ({}:{} x {}:{}) with {scale} scaling",
+            offset.w,
+            offset.h,
+            scaled_buffer_size.w,
+            scaled_buffer_size.h
+        );
     }
 
     /// Upload all pending textures.

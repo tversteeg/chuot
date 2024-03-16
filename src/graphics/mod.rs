@@ -1,9 +1,9 @@
 //! Types and helpers for drawing on the GPU.
 
+pub(crate) mod component;
 pub(crate) mod context;
 pub(crate) mod data;
 pub(crate) mod instance;
-pub(crate) mod render;
 pub(crate) mod state;
 pub(crate) mod texture;
 

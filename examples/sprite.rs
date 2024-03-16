@@ -47,7 +47,7 @@ impl PixelGame for GameState {
     fn render(&mut self, ctx: &mut RenderContext) {
         // Draw sprite, will be loaded from disk if the `hot-reloading` feature is enabled, otherwise it will be embedded in the binary
         for sprite in &self.sprites {
-            ctx.draw_sprite_rotated("crate", sprite.position, sprite.rotation);
+            ctx.draw_sprite_rotated("threeforms", sprite.position, sprite.rotation);
         }
     }
 }
@@ -56,7 +56,7 @@ impl PixelGame for GameState {
 fn main() {
     // Window configuration with huge pixels
     let window_config = WindowConfig {
-        buffer_size: Extent2::new(320, 240),
+        buffer_size: Extent2::new(640, 480),
         scaling: 8,
         ..Default::default()
     };
