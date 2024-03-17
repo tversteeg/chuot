@@ -4,8 +4,10 @@ pub(crate) mod component;
 pub(crate) mod context;
 pub(crate) mod data;
 pub(crate) mod instance;
+pub(crate) mod post_processing;
 pub(crate) mod state;
 pub(crate) mod texture;
+pub(crate) mod uniform;
 
 pub use self::{data::TexturedVertex, instance::Instances, texture::TextureRef};
 

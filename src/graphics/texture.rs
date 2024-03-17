@@ -9,10 +9,12 @@ use assets_manager::SharedString;
 use hashbrown::HashMap;
 use vek::Extent2;
 use wgpu::{
-    AddressMode, BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindingResource,
-    Device, Extent3d, FilterMode, ImageCopyTexture, ImageDataLayout, Origin3d, Queue,
-    SamplerDescriptor, Texture as GpuTexture, TextureAspect, TextureDescriptor, TextureDimension,
-    TextureFormat, TextureUsages, TextureViewDescriptor,
+    AddressMode, BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout,
+    BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingResource, BindingType, Device,
+    Extent3d, FilterMode, ImageCopyTexture, ImageDataLayout, Origin3d, Queue, SamplerBindingType,
+    SamplerDescriptor, ShaderStages, Texture as GpuTexture, TextureAspect, TextureDescriptor,
+    TextureDimension, TextureFormat, TextureSampleType, TextureUsages, TextureViewDescriptor,
+    TextureViewDimension,
 };
 
 /// Reference to an uploaded texture to render.
@@ -152,4 +154,29 @@ where
     pending_textures.insert(id.clone(), PendingTextureState(Box::new(texture)));
 
     id
+}
+
+/// Create the bind group layout.
+pub(super) fn create_bind_group_layout(device: &Device, name: &str) -> BindGroupLayout {
+    device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+        label: Some(name),
+        entries: &[
+            BindGroupLayoutEntry {
+                binding: 0,
+                visibility: ShaderStages::FRAGMENT,
+                ty: BindingType::Texture {
+                    sample_type: TextureSampleType::Float { filterable: true },
+                    view_dimension: TextureViewDimension::D2,
+                    multisampled: false,
+                },
+                count: None,
+            },
+            BindGroupLayoutEntry {
+                binding: 1,
+                visibility: ShaderStages::FRAGMENT,
+                ty: BindingType::Sampler(SamplerBindingType::Filtering),
+                count: None,
+            },
+        ],
+    })
 }

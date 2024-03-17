@@ -56,7 +56,7 @@ impl PixelGame for GameState {
 fn main() {
     // Window configuration with huge pixels
     let window_config = WindowConfig {
-        buffer_size: Extent2::new(640, 480),
+        buffer_size: Extent2::new(320, 240),
         scaling: 8,
         ..Default::default()
     };

@@ -29,7 +29,9 @@ use crate::{sprite::Sprite, RenderContext};
 use super::{
     component::RenderState,
     data::ScreenInfo,
-    texture::{TextureRef, UploadedTextureState, PENDING_TEXTURES},
+    post_processing::PostProcessingState,
+    texture::{PendingTextureState, TextureRef, UploadedTextureState, PENDING_TEXTURES},
+    uniform::UniformState,
 };
 
 /// Scale at which the pixels are drawn for rotations.
@@ -129,27 +131,7 @@ impl<'window> MainRenderState<'window> {
 
         // Create the bind group layout for all textures
         let diffuse_texture_bind_group_layout =
-            device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-                label: Some("Diffuse Texture Bind Group Layout"),
-                entries: &[
-                    BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: ShaderStages::FRAGMENT,
-                        ty: BindingType::Texture {
-                            sample_type: TextureSampleType::Float { filterable: true },
-                            view_dimension: TextureViewDimension::D2,
-                            multisampled: false,
-                        },
-                        count: None,
-                    },
-                    BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: ShaderStages::FRAGMENT,
-                        ty: BindingType::Sampler(SamplerBindingType::Filtering),
-                        count: None,
-                    },
-                ],
-            });
+            super::texture::create_bind_group_layout(&device, "Diffuse Texture Bind Group Layout");
 
         // Create the uniforms
         let screen_info = UniformState::new(
@@ -182,7 +164,7 @@ impl<'window> MainRenderState<'window> {
         // Construct a default empty render context
         let ctx = RenderContext::default();
 
-        // The letterbox will be changed on resize
+        // The letterbox will be changed on resize, but the size cannot be zero because then the buffer will crash
         let letterbox = Rect::new(0.0, 0.0, 1.0, 1.0);
 
         Ok(Self {
@@ -238,42 +220,12 @@ impl<'window> MainRenderState<'window> {
             .get_current_texture()
             .expect("Error acquiring next swap chain texture");
 
+        // Create a texture view from the main render texture
+        let view = frame.texture.create_view(&TextureViewDescriptor::default());
+
         // Second pass, downscale the upscaled buffer
-        {
-            // Create a texture view from the main render texture
-            let view = frame.texture.create_view(&TextureViewDescriptor::default());
-
-            // Start the render pass
-            let mut upscaled_render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
-                label: Some("Upscaled Render Pass"),
-                color_attachments: &[Some(RenderPassColorAttachment {
-                    view: &view,
-                    resolve_target: None,
-                    ops: Operations {
-                        load: LoadOp::Clear(Color::BLUE),
-                        store: StoreOp::Store,
-                    },
-                })],
-                depth_stencil_attachment: None,
-                timestamp_writes: None,
-                occlusion_query_set: None,
-            });
-
-            upscaled_render_pass.set_pipeline(&self.upscaled_pass.render_pipeline);
-
-            // Only draw in the calculated letterbox to get nice integer scaling
-            let Rect { x, y, w, h } = self.letterbox;
-            upscaled_render_pass.set_viewport(x, y, w, h, 0.0, 1.0);
-
-            // Bind the source texture
-            upscaled_render_pass.set_bind_group(0, &self.upscaled_pass.bind_group, &[]);
-
-            // Bind the screen info uniform
-            upscaled_render_pass.set_bind_group(1, &self.screen_info.bind_group, &[]);
-
-            // Draw the 'buffer' defined in the vertex shader
-            upscaled_render_pass.draw(0..3, 0..1);
-        }
+        self.upscaled_pass
+            .render(&mut encoder, &view, &self.screen_info, Some(self.letterbox));
 
         // Draw to the texture
         self.queue.submit(Some(encoder.finish()));
@@ -301,6 +253,10 @@ impl<'window> MainRenderState<'window> {
     }
 
     /// Recalculate the letterbox based on the size of the surface.
+    ///
+    /// # Panics
+    ///
+    /// - When resulting letterbox size is zero.
     fn recalculate_letterbox(&mut self) {
         // Calculate the integer scaling ratio first
         let screen_size = Extent2::new(self.config.width, self.config.height);
@@ -333,6 +289,11 @@ impl<'window> MainRenderState<'window> {
             offset.h,
             scaled_buffer_size.w,
             scaled_buffer_size.h
+        );
+
+        assert!(
+            self.letterbox.w > 0.0 && self.letterbox.h > 0.0,
+            "Error with invalid letterbox size dimensions"
         );
     }
 
@@ -371,174 +332,5 @@ impl<'window> MainRenderState<'window> {
                 // Write the pixels of the texture
                 pending_texture.write(&self.queue, uploaded_texture_state);
             });
-    }
-}
-
-/// State data collection for post processing stages.
-struct PostProcessingState {
-    bind_group: BindGroup,
-    render_pipeline: RenderPipeline,
-    texture_view: TextureView,
-}
-
-impl PostProcessingState {
-    /// Upload a new post processing state effect.
-    fn new<T: NoUninit>(
-        buffer_size: Extent2<u32>,
-        device: &Device,
-        uniform: &UniformState<T>,
-        shader: &'static str,
-    ) -> Self {
-        // Create the internal texture for rendering the first pass to
-        let texture = device.create_texture(&TextureDescriptor {
-            label: Some("Post Processing Texture"),
-            size: Extent3d {
-                width: buffer_size.w,
-                height: buffer_size.h,
-                depth_or_array_layers: 1,
-            },
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: TextureDimension::D2,
-            format: TextureFormat::Rgba8UnormSrgb,
-            usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::TEXTURE_BINDING,
-            view_formats: &[],
-        });
-        let texture_view = texture.create_view(&TextureViewDescriptor::default());
-
-        // Create the bind group layout for the screen after it has been upscaled
-        let bind_group_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-            label: Some("Post Processing Bind Group Layout"),
-            entries: &[BindGroupLayoutEntry {
-                binding: 0,
-                visibility: ShaderStages::FRAGMENT,
-                ty: BindingType::Texture {
-                    sample_type: TextureSampleType::Float { filterable: true },
-                    view_dimension: TextureViewDimension::D2,
-                    multisampled: false,
-                },
-                count: None,
-            }],
-        });
-
-        // Create the bind group binding the layout with the texture view
-        let bind_group = device.create_bind_group(&BindGroupDescriptor {
-            label: Some("Post Processing Bind Group"),
-            layout: &bind_group_layout,
-            entries: &[BindGroupEntry {
-                binding: 0,
-                resource: BindingResource::TextureView(&texture_view),
-            }],
-        });
-
-        // Create a new render pipeline first
-        let render_pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
-            label: Some("Post Processing Render Pipeline Layout"),
-            bind_group_layouts: &[&bind_group_layout, &uniform.bind_group_layout],
-            push_constant_ranges: &[],
-        });
-
-        // Load the shaders from disk
-        let shader = device.create_shader_module(ShaderModuleDescriptor {
-            label: Some("Post Processing Texture Shader"),
-            source: ShaderSource::Wgsl(Cow::Borrowed(shader)),
-        });
-
-        let render_pipeline = device.create_render_pipeline(&RenderPipelineDescriptor {
-            label: Some("Post Processing Render Pipeline"),
-            layout: Some(&render_pipeline_layout),
-            vertex: VertexState {
-                buffers: &[],
-                module: &shader,
-                entry_point: "vs_main",
-            },
-            fragment: Some(FragmentState {
-                module: &shader,
-                entry_point: "fs_main",
-                targets: &[Some(ColorTargetState {
-                    format: TextureFormat::Rgba8UnormSrgb,
-                    blend: Some(BlendState {
-                        color: BlendComponent::REPLACE,
-                        alpha: BlendComponent::REPLACE,
-                    }),
-                    write_mask: ColorWrites::ALL,
-                })],
-            }),
-            primitive: PrimitiveState::default(),
-            depth_stencil: None,
-            multisample: MultisampleState::default(),
-            multiview: None,
-        });
-
-        Self {
-            bind_group,
-            render_pipeline,
-            texture_view,
-        }
-    }
-}
-
-/// State data collection for uniforms for a shader.
-struct UniformState<T: NoUninit> {
-    bind_group: BindGroup,
-    bind_group_layout: BindGroupLayout,
-    buffer: Buffer,
-    /// Store the type information.
-    _phantom: PhantomData<T>,
-}
-
-impl<T: NoUninit> UniformState<T> {
-    /// Upload a new uniform.
-    fn new(device: &Device, initial_value: &T) -> Self {
-        // Convert initial value to bytes
-        let contents = bytemuck::bytes_of(initial_value);
-
-        let buffer = device.create_buffer_init(&BufferInitDescriptor {
-            label: Some("Uniform Buffer"),
-            contents,
-            // Allow us to update this buffer
-            usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
-        });
-
-        // Create the bind group layout for passing the screen size
-        let bind_group_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-            label: Some("Uniform Bind Group Layout"),
-            entries: &[BindGroupLayoutEntry {
-                binding: 0,
-                visibility: ShaderStages::VERTEX_FRAGMENT,
-                ty: BindingType::Buffer {
-                    ty: BufferBindingType::Uniform,
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
-                },
-                count: None,
-            }],
-        });
-
-        // Also already create the bind group, since it will be used without changing the size
-        let bind_group = device.create_bind_group(&BindGroupDescriptor {
-            label: Some("Uniform Bind Group"),
-            layout: &bind_group_layout,
-            entries: &[BindGroupEntry {
-                binding: 0,
-                resource: BindingResource::Buffer(buffer.as_entire_buffer_binding()),
-            }],
-        });
-
-        Self {
-            bind_group,
-            buffer,
-            bind_group_layout,
-            _phantom: PhantomData,
-        }
-    }
-
-    /// Update the value of the uniform.
-    fn update(&mut self, value: &T, queue: &Queue) {
-        // Convert value to bytes
-        let data = bytemuck::bytes_of(value);
-
-        // PUpdate the buffer and push to queue
-        queue.write_buffer(&self.buffer, 0, data);
     }
 }

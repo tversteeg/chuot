@@ -1,7 +1,9 @@
 // Vertex shader
 
 @group(0) @binding(0)
-var input_tex: texture_2d<f32>;
+var t_diffuse: texture_2d<f32>;
+@group(0) @binding(1)
+var s_diffuse: sampler;
 
 struct ScreenInfo {
     @location(0) size: vec2<f32>,
@@ -36,7 +38,8 @@ fn vs_main(@builtin(vertex_index) in_vertex_index: u32) -> VertexOutput {
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    let color = textureLoad(input_tex, vec2<i32>(in.clip_position.xy), 0).rgb;
+    let uv = fma(in.uv, vec2<f32>(0.5), vec2<f32>(0.5));
+    let color = textureSample(t_diffuse, s_diffuse, uv).rgb;
 
     return vec4<f32>(color, 1.0);
 }
