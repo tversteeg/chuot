@@ -1,27 +1,14 @@
 //! Main rendering state.
 
-use std::{
-    borrow::Cow,
-    marker::PhantomData,
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 
-use bytemuck::NoUninit;
 use hashbrown::HashMap;
 use miette::{IntoDiagnostic, Result, WrapErr};
 use vek::{Extent2, Rect};
 use wgpu::{
-    util::{BufferInitDescriptor, DeviceExt},
-    BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
-    BindGroupLayoutEntry, BindingResource, BindingType, BlendComponent, BlendState, Buffer,
-    BufferBindingType, BufferUsages, Color, ColorTargetState, ColorWrites,
-    CommandEncoderDescriptor, Device, DeviceDescriptor, Extent3d, Features, FragmentState,
-    Instance, Limits, LoadOp, MultisampleState, Operations, PipelineLayoutDescriptor,
-    PowerPreference, PrimitiveState, Queue, RenderPassColorAttachment, RenderPassDescriptor,
-    RenderPipeline, RenderPipelineDescriptor, RequestAdapterOptionsBase, SamplerBindingType,
-    ShaderModuleDescriptor, ShaderSource, ShaderStages, StoreOp, Surface, SurfaceConfiguration,
-    TextureDescriptor, TextureDimension, TextureFormat, TextureSampleType, TextureUsages,
-    TextureView, TextureViewDescriptor, TextureViewDimension, VertexState, WindowHandle,
+    BindGroupLayout, CommandEncoderDescriptor, Device, DeviceDescriptor, Features, Instance,
+    Limits, PowerPreference, Queue, RequestAdapterOptionsBase, Surface, SurfaceConfiguration,
+    TextureFormat, TextureUsages, TextureViewDescriptor, WindowHandle,
 };
 
 use crate::{sprite::Sprite, RenderContext};
@@ -30,12 +17,12 @@ use super::{
     component::RenderState,
     data::ScreenInfo,
     post_processing::PostProcessingState,
-    texture::{PendingTextureState, TextureRef, UploadedTextureState, PENDING_TEXTURES},
+    texture::{TextureRef, UploadedTextureState, PENDING_TEXTURES},
     uniform::UniformState,
 };
 
 /// Scale at which the pixels are drawn for rotations.
-const PIXEL_UPSCALE: u32 = 1;
+const PIXEL_UPSCALE: u32 = 2;
 
 /// Main render state holding the GPU information.
 pub(crate) struct MainRenderState<'window> {

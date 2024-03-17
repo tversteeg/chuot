@@ -1,3 +1,5 @@
+// Scaling algorithm based on: https://www.shadertoy.com/view/4l2SRz
+
 // Vertex shader
 
 @group(0) @binding(0)
@@ -45,7 +47,7 @@ fn vs_main(
     let projected_position = instance_matrix * vec3<f32>(model.position.xy, 1.0);
 
     // Draw upscaled
-    let scaled_position = projected_position.xy * screen_info.scale;
+    let scaled_position = projected_position.xy;
 
     // Move from 0..width to -1..1
     let screen_size_half = screen_info.size / 2.0;
@@ -59,8 +61,43 @@ fn vs_main(
 
 // Fragment shader
 
-@fragment
-fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    return textureSample(t_diffuse, s_diffuse, in.tex_coords);
+const epsilon: vec4<f32> = vec4<f32>(1.0 / 255.0);
+
+fn vec4_equal(a: vec4<f32>, b: vec4<f32>) -> f32 {
+    let delta = step(abs(a - b), epsilon);
+
+    return delta.x * delta.y * delta.z * delta.w;
 }
 
+@fragment
+fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+    // Calculate the relative UV offset to see the next pixel
+    let pixel_offset = 1.0 / screen_info.size;
+    
+    // Sample the pixels around the center with (n)orth, (e)ast, (s)outh, (w)est
+    let n = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(0.0, pixel_offset.y));
+    let w = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(-pixel_offset.x, 0.0));
+    let c = textureSample(t_diffuse, s_diffuse, in.tex_coords);
+    let e = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(pixel_offset.x, 0.0));
+    let s = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(0.0, -pixel_offset.y));
+
+    let n_df_s = 1.0 - vec4_equal(n, s);
+    let w_df_e = 1.0 - vec4_equal(w, e);
+    let master = n_df_s * w_df_e;
+    // 0 1
+    // 2 3
+    let e0 = mix(c, w, vec4_equal(w, n) * master);
+    let e1 = mix(c, e, vec4_equal(n, e) * master);
+    let e2 = mix(c, w, vec4_equal(w, s) * master);
+    let e3 = mix(c, e, vec4_equal(s, e) * master);
+
+    let subpixel = fract(in.tex_coords);
+    let sub_step = vec2<f32>(step(0.5, subpixel.x), step(0.5, subpixel.y));
+    let scale2x = mix(
+        mix(e2, e0, sub_step.y),
+        mix(e3, e1, sub_step.y),
+        sub_step.x
+    );
+
+    return scale2x;
+}

@@ -47,7 +47,7 @@ pub struct WindowConfig {
     ///
     /// Defaults to `(320, 280)`.
     pub buffer_size: Extent2<usize>,
-    /// How many times the buffer should be scaled to fit the window.
+    /// Factor applied to the buffer size for the requested window size.
     ///
     /// Defaults to `1`.
     pub scaling: usize,
@@ -102,14 +102,18 @@ where
     R: RenderFn<G> + 'static,
 {
     // Build the window builder with the event loop the user supplied
-    let logical_size = LogicalSize::new(
-        window_config.buffer_size.w as f64,
-        window_config.buffer_size.h as f64,
-    );
     let window_builder = WindowBuilder::new()
         .with_title(window_config.title.clone())
-        .with_inner_size(logical_size)
-        .with_min_inner_size(logical_size);
+        // Apply scaling for the requested size
+        .with_inner_size(LogicalSize::new(
+            (window_config.buffer_size.w * window_config.scaling) as f64,
+            (window_config.buffer_size.h * window_config.scaling) as f64,
+        ))
+        // Don't allow the window to be smaller than the pixel size
+        .with_min_inner_size(LogicalSize::new(
+            window_config.buffer_size.w as f64,
+            window_config.buffer_size.h as f64,
+        ));
 
     #[cfg(not(target_arch = "wasm32"))]
     {

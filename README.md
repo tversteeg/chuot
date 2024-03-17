@@ -65,5 +65,6 @@ sudo apt install libasound2-dev
 
 #### Credits
 
+- [gtoknu](https://www.shadertoy.com/view/4l2SRz) for the branchless scale2x shader.
 - [@damieng](https://damieng.com/typography/zx-origins/beachball/) for the font behind the `default-font` feature.
 - [KenneyNL](https://kenney.nl/assets/ui-audio) for the audio sample in the example.

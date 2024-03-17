@@ -23,7 +23,7 @@ struct GameState {
 impl PixelGame for GameState {
     // Update loop exposing input events we can handle, this is where you would handle the game logic
     fn update(&mut self, input: &Input, mouse_pos: Option<Vec2<usize>>, dt: f64) -> bool {
-        // If the mouse is pressed add a new sprite
+        // If the left mouse button is pressed add a new sprite
         if let Some(mouse_pos) = mouse_pos {
             if input.mouse_pressed(MouseButton::Left) {
                 // Spawn a new sprite in the render loop
@@ -34,10 +34,12 @@ impl PixelGame for GameState {
             }
         }
 
-        // Rotate every sprite a tiny bit
-        self.sprites
-            .iter_mut()
-            .for_each(|sprite| sprite.rotation += dt);
+        // If the right mouse button is held rotate every sprite a tiny bit
+        if input.mouse_held(MouseButton::Right) {
+            self.sprites
+                .iter_mut()
+                .for_each(|sprite| sprite.rotation += dt);
+        }
 
         // Exit when escape is pressed
         input.key_pressed(KeyCode::Escape)
