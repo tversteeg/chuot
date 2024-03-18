@@ -11,7 +11,7 @@ use std::{
 use assets_manager::{loader::Loader, Asset, BoxedError};
 use kira::{
     manager::{backend::DefaultBackend, AudioManager, AudioManagerSettings},
-    sound::static_sound::{StaticSoundData, StaticSoundHandle, StaticSoundSettings},
+    sound::static_sound::{StaticSoundData, StaticSoundSettings},
 };
 use miette::{Context, IntoDiagnostic, Result};
 

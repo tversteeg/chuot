@@ -29,11 +29,11 @@ use crate::{graphics::state::MainRenderState, RenderContext};
 
 /// Update function signature.
 pub(crate) trait UpdateFn<G>:
-    FnMut(&mut G, &WinitInputHelper, Option<Vec2<usize>>, f64) -> bool
+    FnMut(&mut G, &WinitInputHelper, Option<Vec2<f64>>, f64) -> bool
 {
 }
 
-impl<G, T: FnMut(&mut G, &WinitInputHelper, Option<Vec2<usize>>, f64) -> bool> UpdateFn<G> for T {}
+impl<G, T: FnMut(&mut G, &WinitInputHelper, Option<Vec2<f64>>, f64) -> bool> UpdateFn<G> for T {}
 
 /// Render function signature.
 pub(crate) trait RenderFn<G>: FnMut(&mut G, &mut RenderContext) {}
@@ -197,8 +197,13 @@ where
                 g.window.request_redraw();
             }
 
-            // Calculate mouse in pixels
-            let mouse = g.game.input.cursor().map(Vec2::<f32>::from).map(Vec2::as_);
+            // Calculate mouse position in pixels relative to the buffer
+            let mouse = g
+                .game
+                .input
+                .cursor()
+                .and_then(|(x, y)| g.game.render_state.map_coordinate(Vec2::new(x, y)))
+                .map(Vec2::as_);
 
             // Call update and exit when it returns true
             if update(

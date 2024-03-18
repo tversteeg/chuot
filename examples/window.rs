@@ -12,7 +12,7 @@ struct GameState {}
 
 impl PixelGame for GameState {
     // Update loop exposing input events we can handle, this is where you would handle the game logic
-    fn update(&mut self, input: &Input, _mouse_pos: Option<Vec2<usize>>, _dt: f64) -> bool {
+    fn update(&mut self, input: &Input, _mouse_pos: Option<Vec2<f64>>, _dt: f64) -> bool {
         // Exit when escape is pressed
         input.key_pressed(KeyCode::Escape)
     }

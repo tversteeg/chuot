@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 
 use hashbrown::HashMap;
 use miette::{IntoDiagnostic, Result, WrapErr};
-use vek::{Extent2, Rect};
+use vek::{Extent2, Rect, Vec2};
 use wgpu::{
     BindGroupLayout, CommandEncoderDescriptor, Device, DeviceDescriptor, Features, Instance,
     Limits, PowerPreference, Queue, RequestAdapterOptionsBase, Surface, SurfaceConfiguration,
@@ -237,6 +237,19 @@ impl<'window> MainRenderState<'window> {
     /// Get a mutable reference to the render context for passing to the render call.
     pub(crate) fn ctx(&mut self) -> &mut RenderContext {
         &mut self.ctx
+    }
+
+    /// Map a coordinate to relative coordinates of the buffer in the letterbox.
+    pub(crate) fn map_coordinate(&self, coordinate: Vec2<f32>) -> Option<Vec2<f32>> {
+        // Ignore all coordinates outside of the letterbox
+        if !self.letterbox.contains_point(coordinate) {
+            return None;
+        }
+
+        // Calculate the scale from the letterbox
+        let scale = self.letterbox.w / self.buffer_size.w as f32;
+
+        Some((coordinate - self.letterbox.position()) / scale)
     }
 
     /// Recalculate the letterbox based on the size of the surface.

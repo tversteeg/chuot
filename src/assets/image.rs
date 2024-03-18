@@ -15,8 +15,6 @@ use crate::graphics::texture::Texture;
 pub(crate) struct Image {
     /// PNG image reader.
     reader: Reader<Cursor<Vec<u8>>>,
-    /// Colortype that determines how to decode the image.
-    color_type: ColorType,
 }
 
 impl Asset for Image {
@@ -85,6 +83,6 @@ impl Loader<Image> for ImageLoader {
             ))?;
         }
 
-        Ok(Image { reader, color_type })
+        Ok(Image { reader })
     }
 }

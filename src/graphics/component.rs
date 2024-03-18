@@ -6,12 +6,11 @@ use hashbrown::HashMap;
 
 use wgpu::{
     util::{BufferInitDescriptor, DeviceExt},
-    BindGroup, BindGroupLayout, BlendComponent, BlendState, Buffer, BufferUsages, Color,
-    ColorTargetState, ColorWrites, CommandEncoder, Device, FragmentState, FrontFace, IndexFormat,
-    LoadOp, MultisampleState, Operations, PipelineLayoutDescriptor, PolygonMode, PrimitiveState,
-    Queue, RenderPassColorAttachment, RenderPassDescriptor, RenderPipeline,
-    RenderPipelineDescriptor, ShaderModuleDescriptor, ShaderSource, StoreOp, TextureFormat,
-    TextureView, VertexState,
+    BindGroup, BindGroupLayout, BlendState, Buffer, BufferUsages, Color, ColorTargetState,
+    ColorWrites, CommandEncoder, Device, FragmentState, FrontFace, IndexFormat, LoadOp,
+    MultisampleState, Operations, PipelineLayoutDescriptor, PolygonMode, PrimitiveState, Queue,
+    RenderPassColorAttachment, RenderPassDescriptor, RenderPipeline, RenderPipelineDescriptor,
+    ShaderModuleDescriptor, ShaderSource, StoreOp, TextureFormat, TextureView, VertexState,
 };
 
 use super::{

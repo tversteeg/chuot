@@ -92,7 +92,7 @@ where
     /// # Returns
     ///
     /// * `true` if the window and thus the game should be closed
-    fn update(&mut self, input: &Input, mouse_pos: Option<Vec2<usize>>, dt: f64) -> bool;
+    fn update(&mut self, input: &Input, mouse_pos: Option<Vec2<f64>>, dt: f64) -> bool;
 
     /// Render loop, called every render tick.
     fn render(&mut self, ctx: &mut RenderContext);
