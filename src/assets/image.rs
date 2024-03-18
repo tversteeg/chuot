@@ -6,7 +6,7 @@ use std::{borrow::Cow, io::Cursor};
 
 use assets_manager::{loader::Loader, Asset, BoxedError};
 use miette::{Context, IntoDiagnostic};
-use png::{ColorType, Decoder, Reader, Transformations};
+use png::{BitDepth, ColorType, Decoder, Reader, Transformations};
 use vek::Extent2;
 
 use crate::graphics::texture::Texture;
@@ -15,6 +15,8 @@ use crate::graphics::texture::Texture;
 pub(crate) struct Image {
     /// PNG image reader.
     reader: Reader<Cursor<Vec<u8>>>,
+    /// Colortype that determines how to decode the image.
+    color_type: ColorType,
 }
 
 impl Asset for Image {
@@ -37,11 +39,10 @@ impl Texture for Image {
         // Allocate the output buffer
         let mut buf = vec![0; self.reader.output_buffer_size()];
 
-        // Read the image
+        // Read the bytes into the buffer
         self.reader
             .next_frame(&mut buf)
             .expect("Error reading PNG frame");
-
         buf
     }
 }
@@ -58,18 +59,32 @@ impl Loader<Image> for ImageLoader {
 
         // Decode the PNG
         let mut decoder = Decoder::new(cursor);
-        decoder.set_transformations(Transformations::normalize_to_color8());
+
+        // Discard text chunks
+        decoder.set_ignore_text_chunk(true);
+        // Make it faster by not checking if it's correct
+        decoder.ignore_checksums(true);
+
+        // Convert indexed images to RGBA
+        decoder
+            .set_transformations(Transformations::normalize_to_color8() | Transformations::ALPHA);
+
+        // Start parsing the PNG
         let reader = decoder
             .read_info()
             .into_diagnostic()
             .wrap_err("Error reading PNG")?;
 
-        // Ensure the image is RGBA, so we can directly copy the pixels into a GPU texture
-        let color_type = reader.info().color_type;
-        if color_type != ColorType::Rgba && color_type != ColorType::Indexed {
-            Err(miette::miette!("PNG is not RGB with an alpha channel"))?;
+        // Ensure we can use the PNG colors
+        let (color_type, bits) = reader.output_color_type();
+
+        // Must be 8 bit RGBA or indexed
+        if color_type != ColorType::Rgba || bits != BitDepth::Eight {
+            Err(miette::miette!(
+                "PNG is not 8 bit RGB with an alpha channel"
+            ))?;
         }
 
-        Ok(Image { reader })
+        Ok(Image { reader, color_type })
     }
 }

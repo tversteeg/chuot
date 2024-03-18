@@ -10,15 +10,16 @@
 
 <!-- cargo-rdme start -->
 
-Game engine with library features that can be used standalone.
+AGPL licensed and opinionated game engine for pixel-art games.
 
 #### Features
 
-- Window creation with game loop and pixel buffer.
-- Asset management.
-- Bitmap font drawing.
+- Pixel-perfect pixel art rendering with built-in rotsprite rotation shader.
+- Window creation with independent update and render game loop.
+- Hot-reloadable asset management.
 - Sprite loading.
 - Physics engine.
+- Dialogue scripting system.
 - Audio playback.
 
 #### Feature Flags

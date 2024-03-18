@@ -4,7 +4,6 @@ use std::{borrow::Cow, marker::PhantomData};
 
 use hashbrown::HashMap;
 
-
 use wgpu::{
     util::{BufferInitDescriptor, DeviceExt},
     BindGroup, BindGroupLayout, BlendComponent, BlendState, Buffer, BufferUsages, Color,
@@ -84,10 +83,7 @@ impl<R: Render> RenderState<R> {
                 entry_point: "fs_main",
                 targets: &[Some(ColorTargetState {
                     format: TextureFormat::Rgba8UnormSrgb,
-                    blend: Some(BlendState {
-                        color: BlendComponent::REPLACE,
-                        alpha: BlendComponent::REPLACE,
-                    }),
+                    blend: Some(BlendState::ALPHA_BLENDING),
                     write_mask: ColorWrites::ALL,
                 })],
             }),

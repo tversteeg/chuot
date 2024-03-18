@@ -70,10 +70,7 @@ impl Sprite {
 impl Compound for Sprite {
     fn load(cache: AnyCache, id: &SharedString) -> Result<Self, BoxedError> {
         // Load the image
-        let image = cache
-            .load_owned::<Image>(id)
-            .into_diagnostic()
-            .wrap_err("Error loading image for sprite")?;
+        let image = cache.load_owned::<Image>(id)?;
         // Get the size for our sprite
         let size = image.size();
 
@@ -81,12 +78,14 @@ impl Compound for Sprite {
         let image = crate::graphics::texture::upload(id.clone(), image);
 
         // Load the metadata
-        let metadata = cache
-            .load::<SpriteMetadata>(id)
-            .into_diagnostic()
-            .wrap_err("Error loading metadata for sprite")?
-            .read()
-            .clone();
+        let metadata = match cache.load::<SpriteMetadata>(id) {
+            Ok(metadata) => metadata.read().clone(),
+            Err(err) => {
+                log::warn!("Error loading sprite metadata, using default: {err}");
+
+                SpriteMetadata::default()
+            }
+        };
 
         let is_dirty = true;
         let contents = None;
@@ -144,11 +143,11 @@ impl Render for Sprite {
 #[derive(Debug, Clone, Copy, PartialEq, Default, Deserialize)]
 pub enum SpriteOffset {
     /// Middle of the sprite will be rendered at `(0, 0)`.
-    #[default]
     Middle,
     /// Horizontal middle and vertical top will be rendered at `(0, 0)`.
     MiddleTop,
     /// Left top of the sprite will be rendered at `(0, 0)`.
+    #[default]
     LeftTop,
     /// Sprite will be offset with the custom coordinates counting from the left top.
     Custom(Vec2<f64>),
