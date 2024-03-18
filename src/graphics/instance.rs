@@ -4,7 +4,7 @@ use vek::Mat3;
 use wgpu::{VertexAttribute, VertexBufferLayout, VertexFormat, VertexStepMode};
 
 /// Raw representation of the instance type send to the GPU.
-type Instance = [f32; 9];
+type Instance = [f32; 6];
 
 /// Raw instance data.
 ///
@@ -16,7 +16,13 @@ pub struct Instances(Vec<Instance>);
 impl Instances {
     /// Push an instance to draw this frame.
     pub(crate) fn push(&mut self, transformation: Mat3<f32>) {
-        self.0.push(transformation.into_col_array());
+        // Convert matrix to column-oriented array
+        let array = transformation.into_col_array();
+
+        // Only push the matrix vales we actually need
+        // ([2], [5], [8]) is always (0, 0, 1)
+        self.0
+            .push([array[0], array[1], array[3], array[4], array[6], array[7]]);
     }
 
     /// Remove all items.
@@ -46,19 +52,19 @@ impl Instances {
             step_mode: VertexStepMode::Instance,
             attributes: &[
                 VertexAttribute {
-                    format: VertexFormat::Float32x3,
+                    format: VertexFormat::Float32x2,
                     offset: 0,
                     // Must be the next one of `TexturedVertex`
                     shader_location: 2,
                 },
                 VertexAttribute {
-                    format: VertexFormat::Float32x3,
-                    offset: std::mem::size_of::<[f32; 3]>() as u64,
+                    format: VertexFormat::Float32x2,
+                    offset: std::mem::size_of::<[f32; 2]>() as u64,
                     shader_location: 3,
                 },
                 VertexAttribute {
-                    format: VertexFormat::Float32x3,
-                    offset: std::mem::size_of::<[f32; 6]>() as u64,
+                    format: VertexFormat::Float32x2,
+                    offset: std::mem::size_of::<[f32; 4]>() as u64,
                     shader_location: 4,
                 },
             ],

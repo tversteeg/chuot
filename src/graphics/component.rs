@@ -4,6 +4,7 @@ use std::{borrow::Cow, marker::PhantomData};
 
 use hashbrown::HashMap;
 
+
 use wgpu::{
     util::{BufferInitDescriptor, DeviceExt},
     BindGroup, BindGroupLayout, BlendComponent, BlendState, Buffer, BufferUsages, Color,
@@ -18,6 +19,7 @@ use super::{
     data::TexturedVertex,
     instance::Instances,
     texture::{TextureRef, UploadedTextureState},
+    uniform::UniformState,
     Render,
 };
 
@@ -31,6 +33,8 @@ pub(crate) struct RenderState<R: Render> {
     index_buffer: Buffer,
     /// GPU buffer reference to the instances.
     instance_buffer: Buffer,
+    /// Uniform to hold the texture size.
+    texture_size_uniform: UniformState<[f32; 2]>,
     /// Hold the type so we can't have mismatching calls.
     _phantom: PhantomData<R>,
 }
@@ -47,12 +51,16 @@ impl<R: Render> RenderState<R> {
     {
         log::debug!("Creating custom rendering component");
 
+        // Create the uniform for holding the texture size, will be updated by each component itself
+        let texture_size_uniform = UniformState::new(device, &[1.0, 1.0]);
+
         // Create a new render pipeline first
         let render_pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
             label: Some("Component Render Pipeline Layout"),
             bind_group_layouts: &[
                 diffuse_texture_bind_group_layout,
                 screen_info_bind_group_layout,
+                &texture_size_uniform.bind_group_layout,
             ],
             push_constant_ranges: &[],
         });
@@ -131,6 +139,7 @@ impl<R: Render> RenderState<R> {
             vertex_buffer,
             instance_buffer,
             index_buffer,
+            texture_size_uniform,
             _phantom: PhantomData,
         }
     }
@@ -206,6 +215,26 @@ impl<R: Render> RenderState<R> {
                 usage: BufferUsages::INDEX | BufferUsages::COPY_DST,
             });
 
+            // Set the texture size
+            if let Some(texture) = target.texture() {
+                // Get the texture so we can update the size
+                let uploaded_texture = uploaded_textures
+                    .get(texture)
+                    .expect("Error getting uploaded texture");
+
+                let size = uploaded_texture.texture.size();
+
+                log::debug!(
+                    "Setting texture size uniform to ({}x{})",
+                    size.width,
+                    size.height
+                );
+
+                // Update the texture size uniform
+                self.texture_size_uniform
+                    .update(&[size.width as f32, size.height as f32], queue);
+            }
+
             // Target is not dirty anymore
             target.mark_clean();
         }
@@ -244,6 +273,9 @@ impl<R: Render> RenderState<R> {
 
         // Bind the screen size
         render_pass.set_bind_group(1, screen_size_bind_group, &[]);
+
+        // Bind the texture size
+        render_pass.set_bind_group(2, &self.texture_size_uniform.bind_group, &[]);
 
         // Set the target vertices
         render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));

@@ -22,7 +22,7 @@ use super::{
 };
 
 /// Scale at which the pixels are drawn for rotations.
-const PIXEL_UPSCALE: u32 = 2;
+const PIXEL_UPSCALE: u32 = 1;
 
 /// Main render state holding the GPU information.
 pub(crate) struct MainRenderState<'window> {
