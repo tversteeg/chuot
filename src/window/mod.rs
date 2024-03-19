@@ -61,6 +61,16 @@ pub struct WindowConfig {
     ///
     /// Defaults to `60`.
     pub updates_per_second: u32,
+    /// Color of the viewport.
+    ///
+    /// The viewport is the area outside of the buffer when inside a bigger window.
+    ///
+    /// Defaults to `0xFF76428A` (purple).
+    pub viewport_color: u32,
+    /// Color of the background of the buffer.
+    ///
+    /// Defaults to `0xFF9BADB7` (gray).
+    pub background_color: u32,
 }
 
 impl Default for WindowConfig {
@@ -70,6 +80,8 @@ impl Default for WindowConfig {
             scaling: 1,
             title: "Pixel Game".to_string(),
             updates_per_second: 60,
+            viewport_color: 0xFF76428A,
+            background_color: 0xFF9BADB7,
         }
     }
 }
@@ -150,6 +162,8 @@ async fn winit_start<G, U, R>(
     WindowConfig {
         buffer_size,
         updates_per_second,
+        background_color,
+        viewport_color,
         ..
     }: WindowConfig,
 ) -> Result<()>
@@ -166,7 +180,14 @@ where
     let window = Arc::new(window);
 
     // Setup the game and GPU state
-    let state = State::new(buffer_size.as_(), window.clone(), game_state).await?;
+    let state = State::new(
+        buffer_size.as_(),
+        window.clone(),
+        game_state,
+        background_color,
+        viewport_color,
+    )
+    .await?;
 
     // Start the game loop
     game_loop::game_loop(
@@ -247,7 +268,13 @@ struct State<'window, G> {
 
 impl<'window, G> State<'window, G> {
     /// Setup the state including the GPU part.
-    async fn new<W>(buffer_size: Extent2<u32>, window: W, game_state: G) -> Result<Self>
+    async fn new<W>(
+        buffer_size: Extent2<u32>,
+        window: W,
+        game_state: G,
+        background_color: u32,
+        viewport_color: u32,
+    ) -> Result<Self>
     where
         W: WindowHandle + 'window,
     {
@@ -255,9 +282,10 @@ impl<'window, G> State<'window, G> {
         let input = WinitInputHelper::new();
 
         // Create a surface on the window and setup the render state to it
-        let render_state = MainRenderState::new(buffer_size, window)
-            .await
-            .wrap_err("Error setting up the rendering pipeline")?;
+        let render_state =
+            MainRenderState::new(buffer_size, window, background_color, viewport_color)
+                .await
+                .wrap_err("Error setting up the rendering pipeline")?;
 
         // No events yet
         let winit_events = Vec::new();

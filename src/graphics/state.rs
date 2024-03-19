@@ -6,7 +6,7 @@ use hashbrown::HashMap;
 use miette::{IntoDiagnostic, Result, WrapErr};
 use vek::{Extent2, Rect, Vec2};
 use wgpu::{
-    BindGroupLayout, CommandEncoderDescriptor, Device, DeviceDescriptor, Features, Instance,
+    BindGroupLayout, Color, CommandEncoderDescriptor, Device, DeviceDescriptor, Features, Instance,
     Limits, PowerPreference, Queue, RequestAdapterOptionsBase, Surface, SurfaceConfiguration,
     TextureFormat, TextureUsages, TextureViewDescriptor, WindowHandle,
 };
@@ -36,8 +36,6 @@ pub(crate) struct MainRenderState<'window> {
     queue: Queue,
     /// Bind group layout for rendering diffuse textures.
     diffuse_texture_bind_group_layout: BindGroupLayout,
-    /// Intermediate upscaled texture.
-    upscaled_pass: PostProcessingState,
     /// Uniform screen info (size and scale) to the shaders.
     screen_info: UniformState<ScreenInfo>,
     /// Sprite component specific render pipelines.
@@ -50,13 +48,24 @@ pub(crate) struct MainRenderState<'window> {
     ///
     /// Will be scaled with integer scaling and letterboxing to fit the screen.
     buffer_size: Extent2<u32>,
+    /// Intermediate upscaled texture.
+    upscaled_pass: PostProcessingState,
     /// Letterbox output for the final render pass viewport.
     letterbox: Rect<f32, f32>,
+    /// Background color.
+    background_color: Color,
+    /// Viewport color
+    viewport_color: Color,
 }
 
 impl<'window> MainRenderState<'window> {
     /// Create a GPU surface on the window.
-    pub(crate) async fn new<W>(buffer_size: Extent2<u32>, window: W) -> Result<Self>
+    pub(crate) async fn new<W>(
+        buffer_size: Extent2<u32>,
+        window: W,
+        background_color: u32,
+        viewport_color: u32,
+    ) -> Result<Self>
     where
         W: WindowHandle + 'window,
     {
@@ -85,18 +94,19 @@ impl<'window> MainRenderState<'window> {
             .await
             .ok_or_else(|| miette::miette!("Error getting GPU adapter for window"))?;
 
+        // Get the surface capabilities
+        let swapchain_capabilities = surface.get_capabilities(&adapter);
+
         // Create the logical device and command queue
         let adapter_result = adapter
             .request_device(
                 &DeviceDescriptor {
                     label: None,
                     required_features: Features::empty(),
-                    // WebGL doesn't support all features
-                    required_limits: if cfg!(target_arch = "wasm32") {
-                        Limits::downlevel_webgl2_defaults()
-                    } else {
-                        Limits::default()
-                    },
+                    // WebGL doesn't support all features, so use the lowest limits
+                    // On desktop we can use a cfg! flag to set it to defaults, but this will allow us to create an application that might not work on the web
+                    required_limits: Limits::downlevel_webgl2_defaults()
+                        .using_resolution(adapter.limits()),
                 },
                 None,
             )
@@ -110,15 +120,13 @@ impl<'window> MainRenderState<'window> {
             .into_diagnostic()
             .wrap_err("Error getting logical GPU device for surface")?;
 
-        let swapchain_capabilities = surface.get_capabilities(&adapter);
-
         // Configure the render surface
         let config = SurfaceConfiguration {
             usage: TextureUsages::RENDER_ATTACHMENT,
             format: TextureFormat::Rgba8UnormSrgb,
-            // Well be set by scaling
-            width: 1,
-            height: 1,
+            // Will be set by scaling
+            width: buffer_size.w,
+            height: buffer_size.h,
             present_mode: swapchain_capabilities.present_modes[0],
             desired_maximum_frame_latency: 2,
             alpha_mode: swapchain_capabilities.alpha_modes[0],
@@ -164,6 +172,20 @@ impl<'window> MainRenderState<'window> {
         // The letterbox will be changed on resize, but the size cannot be zero because then the buffer will crash
         let letterbox = Rect::new(0.0, 0.0, 1.0, 1.0);
 
+        // Convert the u32 colors to WGPU colors
+        let background_color = Color {
+            a: ((background_color & 0xFF000000) >> 24) as f64 / 255.0,
+            r: ((background_color & 0x00FF0000) >> 16) as f64 / 255.0,
+            g: ((background_color & 0x0000FF00) >> 8) as f64 / 255.0,
+            b: (background_color & 0x000000FF) as f64 / 255.0,
+        };
+        let viewport_color = Color {
+            a: ((viewport_color & 0xFF000000) >> 24) as f64 / 255.0,
+            r: ((viewport_color & 0x00FF0000) >> 16) as f64 / 255.0,
+            g: ((viewport_color & 0x0000FF00) >> 8) as f64 / 255.0,
+            b: (viewport_color & 0x000000FF) as f64 / 255.0,
+        };
+
         Ok(Self {
             surface,
             device,
@@ -172,11 +194,13 @@ impl<'window> MainRenderState<'window> {
             queue,
             diffuse_texture_bind_group_layout,
             screen_info,
-            upscaled_pass,
             uploaded_textures,
             ctx,
-            letterbox,
             buffer_size,
+            letterbox,
+            upscaled_pass,
+            background_color,
+            viewport_color,
         })
     }
 
@@ -190,6 +214,15 @@ impl<'window> MainRenderState<'window> {
             .create_command_encoder(&CommandEncoderDescriptor {
                 label: Some("Pixel Game Command Encoder"),
             });
+
+        // Get the main render texture
+        let frame = self
+            .surface
+            .get_current_texture()
+            .expect("Error acquiring next swap chain texture");
+
+        // Create a texture view from the main render texture
+        let view = frame.texture.create_view(&TextureViewDescriptor::default());
 
         // First pass, render the contents to an upscaled buffer
         if self.ctx.sprites.is_empty() {
@@ -207,22 +240,19 @@ impl<'window> MainRenderState<'window> {
                     &self.device,
                     &self.screen_info.bind_group,
                     &self.uploaded_textures,
+                    self.background_color,
                 );
             });
         }
 
-        // Get the main render texture
-        let frame = self
-            .surface
-            .get_current_texture()
-            .expect("Error acquiring next swap chain texture");
-
-        // Create a texture view from the main render texture
-        let view = frame.texture.create_view(&TextureViewDescriptor::default());
-
         // Second pass, downscale the upscaled buffer
-        self.upscaled_pass
-            .render(&mut encoder, &view, &self.screen_info, Some(self.letterbox));
+        self.upscaled_pass.render(
+            &mut encoder,
+            &view,
+            &self.screen_info,
+            Some(self.letterbox),
+            self.viewport_color,
+        );
 
         // Draw to the texture
         self.queue.submit(Some(encoder.finish()));
@@ -251,6 +281,8 @@ impl<'window> MainRenderState<'window> {
 
     /// Map a coordinate to relative coordinates of the buffer in the letterbox.
     pub(crate) fn map_coordinate(&self, coordinate: Vec2<f32>) -> Option<Vec2<f32>> {
+        // On desktop map the cursor to the viewport
+
         // Ignore all coordinates outside of the letterbox
         if !self.letterbox.contains_point(coordinate) {
             return None;

@@ -134,6 +134,7 @@ impl PostProcessingState {
         view: &TextureView,
         screen_info: &UniformState<ScreenInfo>,
         letterbox: Option<Rect<f32, f32>>,
+        background_color: Color,
     ) {
         // Start the render pass
         let mut upscaled_render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
@@ -142,7 +143,7 @@ impl PostProcessingState {
                 view,
                 resolve_target: None,
                 ops: Operations {
-                    load: LoadOp::Clear(Color::BLUE),
+                    load: LoadOp::Clear(background_color),
                     store: StoreOp::Store,
                 },
             })],

@@ -150,6 +150,7 @@ impl<R: Render> RenderState<R> {
         device: &Device,
         screen_size_bind_group: &BindGroup,
         uploaded_textures: &HashMap<TextureRef, UploadedTextureState>,
+        background_color: Color,
     ) {
         // Target will be rendered
         target.pre_render();
@@ -250,7 +251,7 @@ impl<R: Render> RenderState<R> {
                 view,
                 resolve_target: None,
                 ops: Operations {
-                    load: LoadOp::Clear(Color::GREEN),
+                    load: LoadOp::Clear(background_color),
                     store: StoreOp::Store,
                 },
             })],
