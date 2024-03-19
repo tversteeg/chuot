@@ -4,7 +4,7 @@ use assets_manager::SharedString;
 use hashbrown::HashMap;
 use vek::{Mat3, Vec2};
 
-use crate::sprite::Sprite;
+use crate::{math::Rotation, sprite::Sprite};
 
 use super::Render;
 
@@ -21,6 +21,15 @@ impl RenderContext {
     /// Draw a sprite on the screen at the set position with a rotation of `0`.
     ///
     /// This will load the sprite asset from disk and upload it to the GPU the first time this sprite is referenced.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Asset path of the sprite, see [`crate::assets`] for more information about asset loading and storing.
+    /// * `position` - Absolute position of the target sprite on the buffer in pixels, will be offset by the sprite offset metadata.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
     pub fn draw_sprite(&mut self, path: &str, position: Vec2<f64>) {
         self.load_sprite_if_not_loaded(path);
 
@@ -34,14 +43,36 @@ impl RenderContext {
     /// Draw a sprite on the screen at the set position with the set rotation.
     ///
     /// This will load the sprite asset from disk and upload it to the GPU the first time this sprite is referenced.
-    pub fn draw_sprite_rotated(&mut self, path: &str, position: Vec2<f64>, rotation: f64) {
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Asset path of the sprite, see [`crate::assets`] for more information about asset loading and storing.
+    /// * `position` - Absolute position of the target sprite on the buffer in pixels, will be offset by the sprite offset metadata.
+    /// * `rotation` - Rotation of the target sprite, will be applied using the RotSprite algorithm.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
+    pub fn draw_sprite_rotated(
+        &mut self,
+        path: &str,
+        position: Vec2<f64>,
+        rotation: impl Into<Rotation>,
+    ) {
         self.load_sprite_if_not_loaded(path);
+
+        // Get the rotation as radians
+        let rotation_radians = rotation.into().to_radians();
 
         // Add an instance of the sprite
         self.sprites
             .get_mut(path)
             .expect("Error accessing sprite in context")
-            .push_instance(Mat3::identity().rotated_z(rotation).translated_2d(position));
+            .push_instance(
+                Mat3::identity()
+                    .rotated_z(rotation_radians)
+                    .translated_2d(position),
+            );
     }
 
     /// Load the sprite asset if it doesn't exist yet.
