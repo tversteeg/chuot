@@ -74,7 +74,7 @@ jobs:
 
       # Test all features on the target platform
       - name: Test
-        run: cargo test --features default-font,default-gui,hot-reloading-assets,physics,dialogue,audio
+        run: cargo test --all-features
 
   # Build the WASM target & push it to GitHub pages
   wasm:
@@ -96,7 +96,7 @@ jobs:
 
       # Build the WASM 
       - name: Build
-        run: cargo run --package run-wasm -- --example gui --features default-font,default-gui --release --build-only
+        run: cargo run --package run-wasm -- --example sprite --release --build-only
 
       # Deploy to GitHub pages
       - name: Deploy to GitHub Pages
@@ -104,5 +104,5 @@ jobs:
         env:
           REPO: self
           BRANCH: gh-pages
-          FOLDER: target/wasm-examples/gui
+          FOLDER: target/wasm-examples/sprite
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

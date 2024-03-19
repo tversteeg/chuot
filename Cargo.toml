@@ -22,9 +22,6 @@ default = ["hot-reloading-assets", "physics"]
 # Embed a default pixel font.
 default-font = []
 
-# Embed default graphics for GUI elements.
-default-gui = []
-
 # Enable assets and hot-reload assets from disk when they are saved.
 #
 # Has no effect when building for the web.
@@ -47,27 +44,24 @@ dialogue = ["dep:yarnspinner"]
 audio = ["dep:kira"]
 
 [dependencies]
-blit = { version = "0.8.5", features = ["serde"] }
-image = "0.24.9"
 miette = "7.2.0"
 vek = "0.16.1"
 serde = { version = "1.0.197", features = ["derive"] }
-winit = "0.29.15"
-winit_input_helper = "0.16.0"
-taffy = "0.4.0"
-derive-where = "1.2.7"
-puffin = "0.19.0"
-clipline = "0.2.0"
-bytemuck = "1.15.0"
-bitvec = "1.0.1"
-wgpu = "0.19.3"
 game-loop = { version = "1.1.0", features = ["winit"] }
+winit_input_helper = "0.16.0"
+wgpu = { version = "0.19.3", default-features = false, features = ["webgl", "wgsl"] }
+puffin = "0.19.0"
+bytemuck = { version = "1.15.0", features = ["derive"] }
+bitvec = "1.0.1"
+log = "0.4.21"
+hashbrown = "0.14.3"
+png = "0.17.13"
 
 # `physics` feature
 
 bvh-arena = { version = "1.1.3", optional = true }
 hecs = { version = "0.10.4", optional = true, features = ["macros"] }
-parry2d-f64 = { version = "0.13.6", features = ["simd-stable"], optional = true }
+parry2d-f64 = { version = "0.13.6", optional = true , features = ["simd-stable"] }
 
 # `dialogue` feature
 
@@ -78,44 +72,36 @@ yarnspinner = { version = "0.2.0", optional = true }
 kira = { version = "0.8.7", default-features = false, features = ["cpal", "ogg", "serde"], optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+assets_manager = { version = "0.11.3", default-features = false, features = ["toml", "png", "ahash", "macros"] }
+
 pollster = "0.3.0"
 env_logger = "0.11.3"
 
-assets_manager = { version = "0.11.3", default-features = false, features = ["toml", "png", "ahash", "macros"] }
-
 [target.'cfg(target_arch = "wasm32")'.dependencies]
+assets_manager = { version = "0.11.3", default-features = false, features = ["toml", "png", "embedded", "macros"] }
+
 web-sys = { version = "0.3.69", features = ["CanvasRenderingContext2d", "Document", "Element", "HtmlCanvasElement", "ImageData", "Window"] }
 wasm-bindgen = "0.2.92"
 wasm-bindgen-futures = "0.4.42"
 console_error_panic_hook = "0.1.7"
 
-assets_manager = { version = "0.11.3", default-features = false, features = ["toml", "png", "embedded", "macros"] }
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+# Show nice output for the examples
+miette = { version = "7.2.0", features = ["fancy"] }
+
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+# Show nice output for the examples
+miette = { version = "7.2.0", features = ["fancy-no-syscall"] }
 
 [[example]]
 name = "window"
 
 [[example]]
-name = "font"
-
-[[example]]
-name = "gui"
-required-features = ["default-font", "default-gui"]
-
-[[example]]
-name = "physics"
-required-features = ["default-font", "physics"]
-
-[[example]]
-name = "dialogue"
-required-features = ["default-font", "default-gui", "dialogue"]
+name = "sprite"
 
 [[example]]
 name = "audio"
-required-features = ["default-font", "audio"]
-
-[[example]]
-name = "bitmap"
-required-features = ["default-font"]
+required-features = ["audio"]
 
 [workspace]
 members = ["run-wasm"]
