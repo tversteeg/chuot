@@ -16,7 +16,7 @@ use wgpu::{
 use super::{
     data::TexturedVertex,
     instance::Instances,
-    texture::{TextureRef, UploadedTextureState},
+    texture::{TextureInfo, TextureRef, UploadedTextureState},
     uniform::UniformState,
     Render,
 };
@@ -32,7 +32,7 @@ pub(crate) struct RenderState<R: Render> {
     /// GPU buffer reference to the instances.
     instance_buffer: Buffer,
     /// Uniform to hold the texture size.
-    texture_size_uniform: UniformState<[f32; 2]>,
+    texture_size_uniform: UniformState<TextureInfo>,
     /// Hold the type so we can't have mismatching calls.
     _phantom: PhantomData<R>,
 }
@@ -50,7 +50,7 @@ impl<R: Render> RenderState<R> {
         log::debug!("Creating custom rendering component");
 
         // Create the uniform for holding the texture size, will be updated by each component itself
-        let texture_size_uniform = UniformState::new(device, &[1.0, 1.0]);
+        let texture_size_uniform = UniformState::new(device, &TextureInfo::default());
 
         // Create a new render pipeline first
         let render_pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
@@ -226,8 +226,14 @@ impl<R: Render> RenderState<R> {
                 );
 
                 // Update the texture size uniform
-                self.texture_size_uniform
-                    .update(&[size.width as f32, size.height as f32], queue);
+                // The last values are used for padding to align to 16 bytes
+                self.texture_size_uniform.update(
+                    &TextureInfo {
+                        size: [size.width as f32, size.height as f32],
+                        ..Default::default()
+                    },
+                    queue,
+                );
             }
 
             // Target is not dirty anymore

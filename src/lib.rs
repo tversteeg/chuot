@@ -54,7 +54,6 @@ pub mod assets;
 #[cfg(feature = "audio")]
 pub mod audio;
 pub mod bitmap;
-pub mod canvas;
 #[cfg(feature = "dialogue")]
 pub mod dialogue;
 //pub mod font;

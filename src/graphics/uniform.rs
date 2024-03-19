@@ -11,6 +11,8 @@ use wgpu::{
 };
 
 /// State data collection for uniforms for a shader.
+///
+/// Type must be aligned to 16 bytes.
 pub(crate) struct UniformState<T: NoUninit> {
     pub(crate) bind_group_layout: BindGroupLayout,
     pub(crate) bind_group: BindGroup,
@@ -24,6 +26,13 @@ impl<T: NoUninit> UniformState<T> {
     pub(crate) fn new(device: &Device, initial_value: &T) -> Self {
         // Convert initial value to bytes
         let contents = bytemuck::bytes_of(initial_value);
+
+        // Ensure that the data has an alignment of 16 bytes, which is needed by WASM
+        assert!(
+            contents.len() % 16 == 0,
+            "Uniform of type '{}' is not aligned to 16 bytes",
+            std::any::type_name::<T>(),
+        );
 
         let buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: Some("Uniform Buffer"),

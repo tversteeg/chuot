@@ -6,6 +6,7 @@ use std::{
 };
 
 use assets_manager::SharedString;
+use bytemuck::{Pod, Zeroable};
 use hashbrown::HashMap;
 use vek::Extent2;
 use wgpu::{
@@ -31,6 +32,16 @@ pub trait Texture {
 
     /// Image representation we can upload to the GPU.
     fn to_rgba_image(&mut self) -> Vec<u8>;
+}
+
+/// Texture size for the uniform.
+#[repr(C, align(16))]
+#[derive(Debug, Default, Copy, Clone, Pod, Zeroable)]
+pub(super) struct TextureInfo {
+    /// Size of the texture in pixels.
+    pub(super) size: [f32; 2],
+    /// Padding for alignment.
+    pub(super) _padding: [f32; 2],
 }
 
 /// Texture state for textures that have been uploaded to the GPU holding bind group and texture reference.

@@ -5,12 +5,13 @@ use std::borrow::Cow;
 use bytemuck::NoUninit;
 use vek::{Extent2, Rect};
 use wgpu::{
-    AddressMode, BindGroup, BindGroupDescriptor, BindGroupEntry, BindingResource, BlendComponent, BlendState, Color,
-    ColorTargetState, ColorWrites, CommandEncoder, Device, Extent3d, FilterMode, FragmentState,
-    LoadOp, MultisampleState, Operations, PipelineLayoutDescriptor, PrimitiveState,
-    RenderPassColorAttachment, RenderPassDescriptor, RenderPipeline, RenderPipelineDescriptor, SamplerDescriptor, ShaderModuleDescriptor, ShaderSource, StoreOp,
-    TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
-    TextureView, TextureViewDescriptor, VertexState,
+    AddressMode, BindGroup, BindGroupDescriptor, BindGroupEntry, BindingResource, BlendComponent,
+    BlendState, Color, ColorTargetState, ColorWrites, CommandEncoder, Device, Extent3d, FilterMode,
+    FragmentState, LoadOp, MultisampleState, Operations, PipelineLayoutDescriptor, PrimitiveState,
+    RenderPassColorAttachment, RenderPassDescriptor, RenderPipeline, RenderPipelineDescriptor,
+    SamplerDescriptor, ShaderModuleDescriptor, ShaderSource, StoreOp, TextureDescriptor,
+    TextureDimension, TextureFormat, TextureUsages, TextureView, TextureViewDescriptor,
+    VertexState,
 };
 
 use super::{data::ScreenInfo, uniform::UniformState};

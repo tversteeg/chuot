@@ -1,9 +1,7 @@
 //! Data types that can be send to the GPU.
 
-
-
 use bytemuck::{Pod, Zeroable};
-use vek::{Vec2};
+use vek::Vec2;
 use wgpu::{VertexAttribute, VertexBufferLayout, VertexFormat, VertexStepMode};
 
 /// Position with a UV coordinate for rendering a vertex with a texture.

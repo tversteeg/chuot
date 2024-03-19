@@ -11,10 +11,14 @@ var s_diffuse: sampler;
 
 struct ScreenInfo {
     @location(0) size: vec2<f32>,
+    // WASM needs to types to be aligned to 16 bytes
+    @location(1) _padding: vec2<f32>,
 }
 
 struct TextureInfo {
     @location(0) size: vec2<f32>,
+    // WASM needs to types to be aligned to 16 bytes
+    @location(1) _padding: vec2<f32>,
 }
 
 @group(1) @binding(0)
@@ -30,7 +34,7 @@ struct VertexInput {
 
 struct InstanceInput {
     // Matrix type is not supported in vertex input, construct it from 3 vec3's
-    // The last row of the matrix is always 0 0 1 so we can save some bytes by constructing that ourselvel
+    // The last row of the matrix is always 0 0 1 so we can save some bytes by constructing that ourselves
     @location(2) mat_0: vec2<f32>,
     @location(3) mat_1: vec2<f32>,
     @location(4) mat_2: vec2<f32>,

@@ -6,7 +6,7 @@ use std::ops::Range;
 
 use assets_manager::{AnyCache, Asset, BoxedError, Compound, SharedString};
 
-use miette::{Result};
+use miette::Result;
 use serde::Deserialize;
 use vek::{Extent2, Vec2};
 

@@ -5,14 +5,6 @@ var t_diffuse: texture_2d<f32>;
 @group(0) @binding(1)
 var s_diffuse: sampler;
 
-struct ScreenInfo {
-    @location(0) size: vec2<f32>,
-    @location(1) scale: f32,
-}
-
-@group(1) @binding(0)
-var<uniform> screen_info: ScreenInfo;
-
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
     @location(0) uv: vec2<f32>,

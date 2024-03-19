@@ -63,11 +63,15 @@ impl<'window> MainRenderState<'window> {
         // Get a handle to our GPU
         let instance = Instance::default();
 
+        log::debug!("Creating GPU surface on the window");
+
         // Create a GPU surface on the window
         let surface = instance
             .create_surface(window)
             .into_diagnostic()
             .wrap_err("Error creating surface on window")?;
+
+        log::debug!("Requesting adapter");
 
         // Request an adapter
         let adapter = instance
@@ -82,7 +86,7 @@ impl<'window> MainRenderState<'window> {
             .ok_or_else(|| miette::miette!("Error getting GPU adapter for window"))?;
 
         // Create the logical device and command queue
-        let (device, queue) = adapter
+        let adapter_result = adapter
             .request_device(
                 &DeviceDescriptor {
                     label: None,
@@ -96,7 +100,13 @@ impl<'window> MainRenderState<'window> {
                 },
                 None,
             )
-            .await
+            .await;
+
+        // For some reason `into_diagnostic` doesn't work for this call on WASM
+        #[cfg(target_arch = "wasm32")]
+        let (device, queue) = adapter_result.expect("Error getting logical GPU device for surface");
+        #[cfg(not(target_arch = "wasm32"))]
+        let (device, queue) = adapter_result
             .into_diagnostic()
             .wrap_err("Error getting logical GPU device for surface")?;
 
