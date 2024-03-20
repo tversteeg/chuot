@@ -71,7 +71,7 @@ impl DistanceConstraint {
 
 impl Constraint<2> for DistanceConstraint {
     fn solve(&mut self, rigidbodies: &mut HopSlotMap<RigidBodyKey, RigidBody>, dt: f64) {
-        puffin::profile_function!("Solve distance constraint");
+        profiling::scope!("Solve distance constraint");
 
         let [a, b] = self.rigidbodies_mut(rigidbodies);
 

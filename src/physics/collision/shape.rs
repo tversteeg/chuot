@@ -38,7 +38,7 @@ impl Shape {
 
     /// Create a horizontal heightmap.
     pub fn heightmap(heights: &[f64], spacing: f64) -> Self {
-        puffin::profile_scope!("Heightmap shape");
+        profiling::scope!("Heightmap shape");
 
         let shape = SharedShape::heightfield(
             DVector::from_row_slice(heights),
@@ -50,7 +50,7 @@ impl Shape {
 
     /// Create a polygon from a linestrip.
     pub fn linestrip(vertices: &[Vec2<f64>]) -> Self {
-        puffin::profile_scope!("Linestrip shape");
+        profiling::scope!("Linestrip shape");
 
         let shape = SharedShape::polyline(
             vertices
@@ -90,7 +90,7 @@ impl Shape {
     ///
     /// * `shapes` - List of shapes with the local transformation, rotation and shape of the subshapes.
     pub fn compound(shapes: impl IntoIterator<Item = (Vec2<f64>, f64, Shape)>) -> Self {
-        puffin::profile_scope!("Compound shape");
+        profiling::scope!("Compound shape");
 
         let shape = SharedShape::compound(
             shapes
@@ -109,7 +109,7 @@ impl Shape {
 
     /// Axis aligned bounding box.
     pub fn aabr(&self, iso: Iso) -> Aabr<f64> {
-        puffin::profile_function!();
+        profiling::scope!("AABR shape");
 
         let aabb = self.0.compute_aabb(&iso.into());
         let min = Vec2::new(aabb.mins.x, aabb.mins.y);
@@ -137,7 +137,7 @@ impl Shape {
         let ab_pos = a_pos_na.inv_mul(&b_pos_na);
 
         {
-            puffin::profile_scope!("Finding collision contacts");
+            profiling::scope!("Finding collision contacts");
 
             DefaultQueryDispatcher
                 .contact_manifolds(
@@ -151,7 +151,7 @@ impl Shape {
                 .expect("Collision failed");
         }
 
-        puffin::profile_scope!("Mapping all contacts in manifold");
+        profiling::scope!("Mapping all contacts in manifold");
         for manifold in state.manifolds.iter() {
             if manifold.points.is_empty() {
                 continue;

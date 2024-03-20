@@ -1,5 +1,7 @@
 #[cfg(not(target_arch = "wasm32"))]
 mod desktop;
+#[cfg(feature = "in-game-profiler")]
+mod in_game_profiler;
 #[cfg(target_arch = "wasm32")]
 mod web;
 
@@ -138,6 +140,9 @@ where
     }
     #[cfg(target_arch = "wasm32")]
     {
+        // Show logs
+        console_log::init_with_level(log::Level::Debug).expect("Error setting up logger");
+
         // Show panics in the browser console log
         std::panic::set_hook(Box::new(console_error_panic_hook::hook));
 
@@ -197,25 +202,32 @@ where
         updates_per_second,
         0.1,
         move |g| {
-            // Update the input from the window events
-            g.game.input.step_with_window_events(&g.game.window_events);
-            g.game.window_events.clear();
+            // Tell the profiler we're starting a new game frame
+            profiling::finish_frame!();
 
-            // Handle close requests
-            if g.game.input.close_requested() {
-                g.exit();
-                return;
-            }
+            {
+                profiling::scope!("Internal update");
 
-            // Resize render surface if window is resized
-            if let Some(new_size) = g.game.input.window_resized() {
-                // Resize GPU surface
-                g.game
-                    .render_state
-                    .resize(Extent2::new(new_size.width, new_size.height));
+                // Update the input from the window events
+                g.game.input.step_with_window_events(&g.game.window_events);
+                g.game.window_events.clear();
 
-                // On MacOS the window needs to be redrawn manually after resizing
-                g.window.request_redraw();
+                // Handle close requests
+                if g.game.input.close_requested() {
+                    g.exit();
+                    return;
+                }
+
+                // Resize render surface if window is resized
+                if let Some(new_size) = g.game.input.window_resized() {
+                    // Resize GPU surface
+                    g.game
+                        .render_state
+                        .resize(Extent2::new(new_size.width, new_size.height));
+
+                    // On MacOS the window needs to be redrawn manually after resizing
+                    g.window.request_redraw();
+                }
             }
 
             // Calculate mouse position in pixels relative to the buffer
@@ -226,26 +238,64 @@ where
                 .and_then(|(x, y)| g.game.render_state.map_coordinate(Vec2::new(x, y)))
                 .map(Vec2::as_);
 
-            // Call update and exit when it returns true
-            if update(
-                &mut g.game.game_state,
-                &g.game.input,
-                mouse,
-                (updates_per_second as f64).recip(),
-            ) {
-                g.exit();
+            {
+                profiling::scope!("User update");
+
+                // Call update and exit when it returns true
+                if update(
+                    &mut g.game.game_state,
+                    &g.game.input,
+                    mouse,
+                    (updates_per_second as f64).recip(),
+                ) {
+                    g.exit();
+                }
             }
         },
         move |g| {
-            // Get the items to be rendered for the game frame
-            render(&mut g.game.game_state, g.game.render_state.ctx());
+            profiling::finish_frame!();
 
-            // Render everything
-            g.game.render_state.render();
+            {
+                profiling::scope!("User render");
+
+                // Get the items to be rendered for the game frame
+                render(&mut g.game.game_state, g.game.render_state.ctx_mut());
+            }
+
+            {
+                profiling::scope!("Internal render");
+
+                // Render everything
+                #[cfg(feature = "in-game-profiler")]
+                {
+                    let screen_size = g.game.render_state.screen_size();
+
+                    g.game.render_state.render(|device, queue, encoder, view| {
+                        g.game.in_game_profiler.render(
+                            device,
+                            queue,
+                            encoder,
+                            view,
+                            screen_size,
+                            &g.window,
+                        )
+                    });
+                }
+                #[cfg(not(feature = "in-game-profiler"))]
+                g.game
+                    .render_state
+                    .render(|_device, _queue, _encoder, _view| ());
+            }
         },
         |g, event| {
             // Keep track of all window events which are handled in the update loop
             if let Event::WindowEvent { event, .. } = event {
+                // Update in-game profiler user input
+                #[cfg(feature = "in-game-profiler")]
+                g.game
+                    .in_game_profiler
+                    .handle_window_event(&g.window, event);
+
                 g.game.window_events.push(event.clone());
             }
         },
@@ -264,6 +314,9 @@ struct State<'window, G> {
     render_state: MainRenderState<'window>,
     /// Winit events happening for the input helper.
     window_events: Vec<WindowEvent>,
+    /// In-game profiler window.
+    #[cfg(feature = "in-game-profiler")]
+    in_game_profiler: in_game_profiler::InGameProfiler,
 }
 
 impl<'window, G> State<'window, G> {
@@ -276,25 +329,35 @@ impl<'window, G> State<'window, G> {
         viewport_color: u32,
     ) -> Result<Self>
     where
-        W: WindowHandle + 'window,
+        W: WindowHandle + Clone + 'window,
     {
         // Setup the winit input helper state
         let input = WinitInputHelper::new();
 
         // Create a surface on the window and setup the render state to it
-        let render_state =
-            MainRenderState::new(buffer_size, window, background_color, viewport_color)
-                .await
-                .wrap_err("Error setting up the rendering pipeline")?;
+        let render_state = MainRenderState::new(
+            buffer_size,
+            window.clone(),
+            background_color,
+            viewport_color,
+        )
+        .await
+        .wrap_err("Error setting up the rendering pipeline")?;
 
         // No events yet
-        let winit_events = Vec::new();
+        let window_events = Vec::new();
+
+        // Setup the in-game profiler
+        #[cfg(feature = "in-game-profiler")]
+        let in_game_profiler = in_game_profiler::InGameProfiler::new(render_state.device(), window);
 
         Ok(Self {
             game_state,
             input,
             render_state,
-            window_events: winit_events,
+            window_events,
+            #[cfg(feature = "in-game-profiler")]
+            in_game_profiler,
         })
     }
 }

@@ -63,7 +63,7 @@ impl Physics {
 
     /// Simulate a single step.
     pub fn step(&mut self, dt: f64, settings: &PhysicsSettings) {
-        puffin::profile_scope!("Physics step");
+        profiling::scope!("Physics step");
 
         // Deltatime for each sub-step
         let sub_dt = dt / settings.substeps as f64;
@@ -72,28 +72,28 @@ impl Physics {
         self.narrow_phase_state.clear_step();
 
         {
-            puffin::profile_scope!("Remove dropped rigidbodies");
+            profiling::scope!("Remove dropped rigidbodies");
 
             // Destroy every rigidbody handle that has no references anymore
             self.rigidbodies.destroy_dropped(&mut self.world);
         }
 
         {
-            puffin::profile_scope!("Reset constraints");
+            profiling::scope!("Reset constraints");
 
             // Reset every constraint for calculating the sub-steps since they are iterative
             self.reset_constraints();
         }
 
         {
-            puffin::profile_scope!("Broad phase collision detection");
+            profiling::scope!("Broad phase collision detection");
 
             // Do a broad phase collision check to get possible colliding pairs
             self.collision_broad_phase(dt);
         }
 
         for _ in 0..settings.substeps {
-            puffin::profile_scope!("Substep");
+            profiling::scope!("Substep");
 
             // Integrate the rigidbodies, applying velocities and forces
             self.rigidbodies
@@ -117,7 +117,7 @@ impl Physics {
 
         /*
         {
-            puffin::profile_scope!("Mark sleeping");
+            profiling::scope!("Mark sleeping");
             // Finalize velocity based on position offset
             self.rigidbodies
                 .iter_mut()
@@ -151,7 +151,7 @@ impl Physics {
     ///
     /// Fills the list of broad-phase collisions.
     fn collision_broad_phase(&mut self, dt: f64) {
-        puffin::profile_scope!("Broad phase");
+        profiling::scope!("Broad phase");
 
         self.broad_phase_collisions.clear();
 
@@ -169,7 +169,7 @@ impl Physics {
             );
         }
 
-        puffin::profile_scope!("Transfer BVH pairs");
+        profiling::scope!("Transfer BVH pairs");
 
         // Put all pairs into a separate array
         bvh.for_each_overlaping_pair(|a, b| self.broad_phase_collisions.push((*a, *b)));
@@ -183,7 +183,7 @@ impl Physics {
 
         // Narrow-phase with SAT
         for (a, b) in self.broad_phase_collisions.iter() {
-            puffin::profile_scope!("Narrow collision");
+            profiling::scope!("Narrow collision");
 
             debug_assert_ne!(a, b);
 
@@ -235,7 +235,7 @@ impl Physics {
         self.penetration_constraints.clear();
 
         {
-            puffin::profile_scope!("Collision responses to penetration constraints");
+            profiling::scope!("Collision responses to penetration constraints");
 
             // Generate penetration constraint
             for (a, b, response) in self.narrow_phase_state.substep_collisions.iter() {
@@ -247,7 +247,7 @@ impl Physics {
 
     /// Debug information for all constraints.
     pub fn debug_info_constraints(&self) -> Vec<(Vec2<f64>, Vec2<f64>, CollisionResponse)> {
-        puffin::profile_scope!("Debug constraint info");
+        profiling::scope!("Debug constraint info");
 
         // Create an ECS view for the rigidbodies, this is good for random access and performance
         let mut rigidbody_query = self.world.query::<RigidBodyQuery>();
@@ -271,7 +271,7 @@ impl Physics {
 
     /// Debug information, all vertices from all rigid bodies.
     pub fn debug_info_vertices(&self) -> Vec<Vec<Vec2<f64>>> {
-        puffin::profile_scope!("Debug vertices info");
+        profiling::scope!("Debug vertices info");
 
         // Create an ECS view for the rigidbodies, this is good for random access and performance
         self.world

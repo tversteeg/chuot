@@ -10,11 +10,10 @@ use wgpu::{
     FragmentState, LoadOp, MultisampleState, Operations, PipelineLayoutDescriptor, PrimitiveState,
     RenderPassColorAttachment, RenderPassDescriptor, RenderPipeline, RenderPipelineDescriptor,
     SamplerDescriptor, ShaderModuleDescriptor, ShaderSource, StoreOp, TextureDescriptor,
-    TextureDimension, TextureFormat, TextureUsages, TextureView, TextureViewDescriptor,
-    VertexState,
+    TextureDimension, TextureUsages, TextureView, TextureViewDescriptor, VertexState,
 };
 
-use super::{data::ScreenInfo, uniform::UniformState};
+use super::{data::ScreenInfo, state::PREFERRED_TEXTURE_FORMAT, uniform::UniformState};
 
 /// State data collection for post processing stages.
 pub(crate) struct PostProcessingState {
@@ -43,7 +42,7 @@ impl PostProcessingState {
             mip_level_count: 1,
             sample_count: 1,
             dimension: TextureDimension::D2,
-            format: TextureFormat::Rgba8UnormSrgb,
+            format: PREFERRED_TEXTURE_FORMAT,
             usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::TEXTURE_BINDING,
             view_formats: &[],
         });
@@ -106,7 +105,7 @@ impl PostProcessingState {
                 module: &shader,
                 entry_point: "fs_main",
                 targets: &[Some(ColorTargetState {
-                    format: TextureFormat::Rgba8UnormSrgb,
+                    format: PREFERRED_TEXTURE_FORMAT,
                     blend: Some(BlendState {
                         color: BlendComponent::REPLACE,
                         alpha: BlendComponent::REPLACE,

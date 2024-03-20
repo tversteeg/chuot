@@ -10,8 +10,10 @@ use wgpu::{
     ColorWrites, CommandEncoder, Device, FragmentState, FrontFace, IndexFormat, LoadOp,
     MultisampleState, Operations, PipelineLayoutDescriptor, PolygonMode, PrimitiveState, Queue,
     RenderPassColorAttachment, RenderPassDescriptor, RenderPipeline, RenderPipelineDescriptor,
-    ShaderModuleDescriptor, ShaderSource, StoreOp, TextureFormat, TextureView, VertexState,
+    ShaderModuleDescriptor, ShaderSource, StoreOp, TextureView, VertexState,
 };
+
+use crate::graphics::state::PREFERRED_TEXTURE_FORMAT;
 
 use super::{
     data::TexturedVertex,
@@ -20,6 +22,8 @@ use super::{
     uniform::UniformState,
     Render,
 };
+
+// TODO: batch all textures split by sampler arrays with the max value get from adapter
 
 /// Simple render state holding buffers and instances required for rendering somethging.
 pub(crate) struct RenderState<R: Render> {
@@ -81,7 +85,7 @@ impl<R: Render> RenderState<R> {
                 module: &shader,
                 entry_point: "fs_main",
                 targets: &[Some(ColorTargetState {
-                    format: TextureFormat::Rgba8UnormSrgb,
+                    format: PREFERRED_TEXTURE_FORMAT,
                     blend: Some(BlendState::ALPHA_BLENDING),
                     write_mask: ColorWrites::ALL,
                 })],
@@ -112,7 +116,7 @@ impl<R: Render> RenderState<R> {
         let instance_buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: Some("Instance Buffer"),
             contents: &[],
-            usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
+            usage: BufferUsages::VERTEX | BufferUsages::COPY_DST | BufferUsages::STORAGE,
         });
 
         // Create the vertex buffer
@@ -185,12 +189,14 @@ impl<R: Render> RenderState<R> {
             self.instance_buffer = device.create_buffer_init(&BufferInitDescriptor {
                 label: Some("Instance Buffer"),
                 contents: instances_bytes,
-                usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
+                usage: BufferUsages::VERTEX | BufferUsages::COPY_DST | BufferUsages::STORAGE,
             });
         }
 
         // Upload the buffers if dirty
         if target.is_dirty() {
+            profiling::scope!("Re-uploading buffers for dirty texture");
+
             log::debug!(
                 "Custom rendering component is dirty, re-uploading vertex and index buffers"
             );

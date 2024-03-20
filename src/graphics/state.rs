@@ -6,9 +6,10 @@ use hashbrown::HashMap;
 use miette::{IntoDiagnostic, Result, WrapErr};
 use vek::{Extent2, Rect, Vec2};
 use wgpu::{
-    BindGroupLayout, Color, CommandEncoderDescriptor, Device, DeviceDescriptor, Features, Instance,
-    Limits, PowerPreference, Queue, RequestAdapterOptionsBase, Surface, SurfaceConfiguration,
-    TextureFormat, TextureUsages, TextureViewDescriptor, WindowHandle,
+    BindGroupLayout, Color, CommandEncoder, CommandEncoderDescriptor, Device, DeviceDescriptor,
+    Features, Instance, Limits, PowerPreference, Queue, RequestAdapterOptionsBase, Surface,
+    SurfaceConfiguration, TextureFormat, TextureUsages, TextureView, TextureViewDescriptor,
+    WindowHandle,
 };
 
 use crate::{sprite::Sprite, RenderContext};
@@ -21,8 +22,10 @@ use super::{
     uniform::UniformState,
 };
 
-/// Scale at which the pixels are drawn for rotations.
-const PIXEL_UPSCALE: u32 = 1;
+/// Texture format we prefer to use for everything.
+///
+/// We choose sRGB since most source images are created with this format and otherwise everything will be quite dark.
+pub(crate) const PREFERRED_TEXTURE_FORMAT: TextureFormat = TextureFormat::Rgba8UnormSrgb;
 
 /// Main render state holding the GPU information.
 pub(crate) struct MainRenderState<'window> {
@@ -48,8 +51,8 @@ pub(crate) struct MainRenderState<'window> {
     ///
     /// Will be scaled with integer scaling and letterboxing to fit the screen.
     buffer_size: Extent2<u32>,
-    /// Intermediate upscaled texture.
-    upscaled_pass: PostProcessingState,
+    /// Post processing effect to downscale the result to a viewport with the exact buffer size.
+    downscale: PostProcessingState,
     /// Letterbox output for the final render pass viewport.
     letterbox: Rect<f32, f32>,
     /// Background color.
@@ -123,14 +126,14 @@ impl<'window> MainRenderState<'window> {
         // Configure the render surface
         let config = SurfaceConfiguration {
             usage: TextureUsages::RENDER_ATTACHMENT,
-            format: TextureFormat::Rgba8UnormSrgb,
+            format: PREFERRED_TEXTURE_FORMAT,
             // Will be set by scaling
             width: buffer_size.w,
             height: buffer_size.h,
             present_mode: swapchain_capabilities.present_modes[0],
             desired_maximum_frame_latency: 2,
             alpha_mode: swapchain_capabilities.alpha_modes[0],
-            view_formats: vec![],
+            view_formats: vec![PREFERRED_TEXTURE_FORMAT],
         };
         surface.configure(&device, &config);
 
@@ -143,17 +146,16 @@ impl<'window> MainRenderState<'window> {
             &device,
             &ScreenInfo {
                 buffer_size: [buffer_size.w as f32, buffer_size.h as f32],
-                upscale_factor: PIXEL_UPSCALE as f32,
                 ..Default::default()
             },
         );
 
         // Create the postprocessing effects
-        let upscaled_pass = PostProcessingState::new(
-            buffer_size * PIXEL_UPSCALE,
+        let downscale = PostProcessingState::new(
+            buffer_size,
             &device,
             &screen_info,
-            include_str!("./shaders/upscale.wgsl"),
+            include_str!("./shaders/downscale.wgsl"),
         );
 
         // Create a custom pipeline for each component
@@ -173,18 +175,8 @@ impl<'window> MainRenderState<'window> {
         let letterbox = Rect::new(0.0, 0.0, 1.0, 1.0);
 
         // Convert the u32 colors to WGPU colors
-        let background_color = Color {
-            a: ((background_color & 0xFF000000) >> 24) as f64 / 255.0,
-            r: ((background_color & 0x00FF0000) >> 16) as f64 / 255.0,
-            g: ((background_color & 0x0000FF00) >> 8) as f64 / 255.0,
-            b: (background_color & 0x000000FF) as f64 / 255.0,
-        };
-        let viewport_color = Color {
-            a: ((viewport_color & 0xFF000000) >> 24) as f64 / 255.0,
-            r: ((viewport_color & 0x00FF0000) >> 16) as f64 / 255.0,
-            g: ((viewport_color & 0x0000FF00) >> 8) as f64 / 255.0,
-            b: (viewport_color & 0x000000FF) as f64 / 255.0,
-        };
+        let background_color = super::u32_to_wgpu_color(background_color);
+        let viewport_color = super::u32_to_wgpu_color(viewport_color);
 
         Ok(Self {
             surface,
@@ -198,44 +190,57 @@ impl<'window> MainRenderState<'window> {
             ctx,
             buffer_size,
             letterbox,
-            upscaled_pass,
+            downscale,
             background_color,
             viewport_color,
         })
     }
 
     /// Render the frame and call the user `render` function.
-    pub(crate) fn render(&mut self) {
+    pub(crate) fn render(
+        &mut self,
+        mut custom_pass_cb: impl FnMut(&Device, &Queue, &mut CommandEncoder, &TextureView),
+    ) {
         // Upload the pending textures
         self.upload_textures();
 
-        let mut encoder = self
-            .device
-            .create_command_encoder(&CommandEncoderDescriptor {
-                label: Some("Pixel Game Command Encoder"),
-            });
+        let mut encoder = {
+            profiling::scope!("Create command encoder");
+
+            self.device
+                .create_command_encoder(&CommandEncoderDescriptor {
+                    label: Some("Pixel Game Command Encoder"),
+                })
+        };
 
         // Get the main render texture
-        let frame = self
-            .surface
-            .get_current_texture()
-            .expect("Error acquiring next swap chain texture");
+        let surface_texture = {
+            profiling::scope!("Retrieve surface texture");
+
+            self.surface
+                .get_current_texture()
+                .expect("Error acquiring next swap chain texture")
+        };
 
         // Create a texture view from the main render texture
-        let view = frame.texture.create_view(&TextureViewDescriptor::default());
+        let surface_view = surface_texture
+            .texture
+            .create_view(&TextureViewDescriptor::default());
 
-        // First pass, render the contents to an upscaled buffer
+        // First pass, render the contents to a custom buffer
         if self.ctx.sprites.is_empty() {
             // Nothing to render, render the solid background color
             todo!()
         } else {
+            profiling::scope!("Render sprites");
+
             // Render each sprite
             self.ctx.sprites.iter_mut().for_each(|(_, sprite)| {
                 // Render the sprite
                 self.sprite_render_state.render(
                     sprite,
                     &mut encoder,
-                    &self.upscaled_pass.texture_view,
+                    &self.downscale.texture_view,
                     &self.queue,
                     &self.device,
                     &self.screen_info.bind_group,
@@ -245,20 +250,35 @@ impl<'window> MainRenderState<'window> {
             });
         }
 
-        // Second pass, downscale the upscaled buffer
-        self.upscaled_pass.render(
-            &mut encoder,
-            &view,
-            &self.screen_info,
-            Some(self.letterbox),
-            self.viewport_color,
-        );
+        // Second pass, render the custom buffer to the viewport
+        {
+            profiling::scope!("Render downscale pass");
+
+            self.downscale.render(
+                &mut encoder,
+                &surface_view,
+                &self.screen_info,
+                Some(self.letterbox),
+                self.viewport_color,
+            );
+        }
+
+        // Call the callback that allows other parts of the program to add a render pass
+        custom_pass_cb(&self.device, &self.queue, &mut encoder, &surface_view);
 
         // Draw to the texture
-        self.queue.submit(Some(encoder.finish()));
+        {
+            profiling::scope!("Submit queue");
+
+            self.queue.submit(Some(encoder.finish()));
+        }
 
         // Show the texture in the window
-        frame.present();
+        {
+            profiling::scope!("Present surface texture");
+
+            surface_texture.present();
+        }
     }
 
     // Resize the surface.
@@ -275,8 +295,24 @@ impl<'window> MainRenderState<'window> {
     }
 
     /// Get a mutable reference to the render context for passing to the render call.
-    pub(crate) fn ctx(&mut self) -> &mut RenderContext {
+    pub(crate) fn ctx_mut(&mut self) -> &mut RenderContext {
         &mut self.ctx
+    }
+
+    /// Get a reference to WGPU device.
+    ///
+    /// Is allowed to be unused because the `in-game-profiler` feature flag uses it.
+    #[allow(unused)]
+    pub(crate) fn device(&self) -> &Device {
+        &self.device
+    }
+
+    /// Size of the screen in pixels.
+    ///
+    /// Is allowed to be unused because the `in-game-profiler` feature flag uses it.
+    #[allow(unused)]
+    pub(crate) fn screen_size(&self) -> Extent2<u32> {
+        Extent2::new(self.config.width, self.config.height)
     }
 
     /// Map a coordinate to relative coordinates of the buffer in the letterbox.
@@ -341,6 +377,8 @@ impl<'window> MainRenderState<'window> {
 
     /// Upload all pending textures.
     fn upload_textures(&mut self) {
+        profiling::scope!("Upload pending textures");
+
         // Get a reference to the pending textures map
         let mut pending_textures = PENDING_TEXTURES
             // If it doesn't exist yet create a new one

@@ -55,7 +55,7 @@ impl PenetrationConstraint {
 
     /// Calculate and apply friction between bodies.
     fn solve_friction(&mut self, a: &mut RigidBodyQuery, b: &mut RigidBodyQuery, dt: f64) {
-        puffin::profile_scope!("Solve friction");
+        profiling::scope!("Solve friction");
 
         // Rotate the attachments
         let a_attachment = a.rotate(self.a_attachment());
@@ -108,7 +108,7 @@ impl PenetrationConstraint {
 
     /// Calculate and apply contact velocities after solve step.
     pub fn solve_velocities(&self, rigidbodies: &mut View<RigidBodyQuery>, dt: f64) {
-        puffin::profile_scope!("Solve velocities");
+        profiling::scope!("Solve velocities");
 
         if self.lambda().abs() <= std::f64::EPSILON {
             // Nothing happened in this constraint
@@ -196,7 +196,7 @@ impl PenetrationConstraint {
 
 impl Constraint<2> for PenetrationConstraint {
     fn solve(&mut self, rigidbodies: &mut View<RigidBodyQuery>, dt: f64) {
-        puffin::profile_scope!("Solve penetration constraint");
+        profiling::scope!("Solve penetration constraint");
 
         if self.response.penetration <= std::f64::EPSILON {
             // Ignore fake collisions

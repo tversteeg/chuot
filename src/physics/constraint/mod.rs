@@ -35,7 +35,7 @@ pub trait Constraint<const RIGIDBODIES: usize> {
         bodies: [(InvMass, Inertia); AMOUNT],
         dt: f64,
     ) -> f64 {
-        puffin::profile_scope!("Delta lambda");
+        profiling::scope!("Delta lambda");
 
         let generalized_inverse_mass_sum: f64 = gradients
             .into_iter()
@@ -80,7 +80,7 @@ pub trait PositionalConstraint: Constraint<2> {
         apply_on_kinematic: bool,
         dt: f64,
     ) {
-        puffin::profile_scope!("Apply positional constraint forces");
+        profiling::scope!("Apply positional constraint forces");
 
         let a_world_position = a.local_to_world(a_attachment);
         let b_world_position = b.local_to_world(b_attachment);

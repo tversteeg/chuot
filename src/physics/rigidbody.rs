@@ -414,7 +414,7 @@ impl RigidBodyHandle {
     /// Upgrade the rigidbody handle from an existing entity.
     #[must_use]
     fn from_entity(entity: Entity, physics: &Physics) -> Option<Self> {
-        puffin::profile_scope!("Converting rigidbody entity to reference");
+        profiling::scope!("Converting rigidbody entity to reference");
 
         // PERF: find a way to do this in O(1)
         physics
@@ -458,7 +458,7 @@ impl RigidBodySystems {
     ///
     /// Should be called at the beginning of a physics step.
     pub fn destroy_dropped(&mut self, world: &mut World) {
-        puffin::profile_scope!("Destroy dropped rigidbodies");
+        profiling::scope!("Destroy dropped rigidbodies");
 
         self.rigidbody_references.retain(|(reference, rigidbody)| {
             if reference.strong_count() == 0 {
@@ -474,33 +474,33 @@ impl RigidBodySystems {
 
     /// Perform an integration step on all rigidbodies where it applies.
     pub fn integrate(&mut self, world: &mut World, dt: f64, gravity: f64) {
-        puffin::profile_scope!("Integrate");
+        profiling::scope!("Integrate");
 
         // PERF: use premade queries
 
         {
-            puffin::profile_scope!("Store position");
+            profiling::scope!("Store position");
             for (_id, (pos, prev_pos)) in world.query_mut::<(&mut Position, &mut PrevPosition)>() {
                 prev_pos.0 = pos.0;
             }
         }
 
         {
-            puffin::profile_scope!("Linear damping");
+            profiling::scope!("Linear damping");
             for (_id, (vel, lin_damping)) in world.query_mut::<(&mut Velocity, &LinearDamping)>() {
                 vel.0 *= 1.0 / (1.0 + dt * lin_damping.0);
             }
         }
 
         {
-            puffin::profile_scope!("Gravity");
+            profiling::scope!("Gravity");
             for (_id, (vel, inv_mass)) in world.query_mut::<(&mut Velocity, &InvMass)>() {
                 vel.0 += (dt * Vec2::new(0.0, gravity)) / inv_mass.0.recip();
             }
         }
 
         {
-            puffin::profile_scope!("External force");
+            profiling::scope!("External force");
             for (_id, (vel, ext_force, inv_mass)) in
                 world.query_mut::<(&mut Velocity, &LinearExternalForce, &InvMass)>()
             {
@@ -509,14 +509,14 @@ impl RigidBodySystems {
         }
 
         {
-            puffin::profile_scope!("Add velocity to translation");
+            profiling::scope!("Add velocity to translation");
             for (_id, (trans, vel)) in world.query_mut::<(&mut Translation, &Velocity)>() {
                 trans.0 += dt * vel.0;
             }
         }
 
         {
-            puffin::profile_scope!("Store orientation");
+            profiling::scope!("Store orientation");
             for (_id, (rot, prev_rot)) in world.query_mut::<(&Orientation, &mut PrevOrientation)>()
             {
                 prev_rot.0 = rot.0;
@@ -524,7 +524,7 @@ impl RigidBodySystems {
         }
 
         {
-            puffin::profile_scope!("Angular damping");
+            profiling::scope!("Angular damping");
             for (_id, (ang_vel, ang_damping)) in
                 world.query_mut::<(&mut AngularVelocity, &AngularDamping)>()
             {
@@ -533,7 +533,7 @@ impl RigidBodySystems {
         }
 
         {
-            puffin::profile_scope!("Angular external forces");
+            profiling::scope!("Angular external forces");
             for (_id, (ang_vel, ang_ext_force, inertia)) in
                 world.query_mut::<(&mut AngularVelocity, &AngularExternalForce, &Inertia)>()
             {
@@ -542,7 +542,7 @@ impl RigidBodySystems {
         }
 
         {
-            puffin::profile_scope!("Add angular velocity to orientation");
+            profiling::scope!("Add angular velocity to orientation");
             for (_id, (rot, ang_vel)) in world.query_mut::<(&mut Orientation, &AngularVelocity)>() {
                 rot.0 += dt * ang_vel.0;
             }
@@ -555,14 +555,14 @@ impl RigidBodySystems {
         let inv_dt = dt.recip();
 
         {
-            puffin::profile_scope!("Store velocity");
+            profiling::scope!("Store velocity");
             for (_id, (vel, prev_vel)) in world.query_mut::<(&Velocity, &mut PrevVelocity)>() {
                 prev_vel.0 = vel.0;
             }
         }
 
         {
-            puffin::profile_scope!("Apply velocity");
+            profiling::scope!("Apply velocity");
             for (_id, (vel, pos, prev_pos, trans)) in
                 world.query_mut::<(&mut Velocity, &Position, &PrevPosition, &Translation)>()
             {
@@ -571,7 +571,7 @@ impl RigidBodySystems {
         }
 
         {
-            puffin::profile_scope!("Store angular velocity");
+            profiling::scope!("Store angular velocity");
             for (_id, (ang_vel, prev_ang_vel)) in
                 world.query_mut::<(&AngularVelocity, &mut PrevAngularVelocity)>()
             {
@@ -580,7 +580,7 @@ impl RigidBodySystems {
         }
 
         {
-            puffin::profile_scope!("Apply angular velocity");
+            profiling::scope!("Apply angular velocity");
             for (_id, (ang_vel, rot, prev_rot)) in
                 world.query_mut::<(&mut AngularVelocity, &Orientation, &PrevOrientation)>()
             {
@@ -591,7 +591,7 @@ impl RigidBodySystems {
 
     /// Perform an solve step on all rigidbodies where the translation is added to the position.
     pub fn apply_translation(&mut self, world: &mut World) {
-        puffin::profile_scope!("Apply translation");
+        profiling::scope!("Apply translation");
         for (_id, (pos, trans)) in world.query_mut::<(&mut Position, &mut Translation)>() {
             pos.0 += trans.0;
             trans.0 = Vec2::zero();
