@@ -6,7 +6,7 @@ authors = ["Thomas Versteeg <t@versteeg.email>"]
 license = "AGPL-3.0"
 homepage = "https://github.com/tversteeg/pixel-game-lib"
 readme = "README.md"
-description = "Utility library for 2D pixel-based games"
+description = "AGPL licensed and opinionated game engine for pixel-art games"
 documentation = "https://docs.rs/pixel-game-lib"
 repository = "https://github.com/tversteeg/pixel-game-lib.git"
 keywords = ["gamedev", "utility"]
@@ -17,10 +17,7 @@ categories = [
 rust-version = "1.74.0"
 
 [features]
-default = ["hot-reloading-assets", "physics"]
-
-# Embed a default pixel font.
-default-font = []
+default = ["hot-reloading-assets"]
 
 # Enable assets and hot-reload assets from disk when they are saved.
 #
@@ -89,7 +86,7 @@ puffin_egui = { version = "0.26.0", optional = true }
 
 # Dependencies specifically for desktop
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-assets_manager = { version = "0.11.3", default-features = false, features = ["toml", "png", "ahash", "macros"] }
+assets_manager = { version = "0.11.4", default-features = false, features = ["toml", "ahash", "macros"] }
 wgpu = "0.19.3"
 
 pollster = "0.3.0"
@@ -101,7 +98,7 @@ puffin = { version = "0.19.0", optional = true }
 
 # Dependencies specifically for WASM
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-assets_manager = { version = "0.11.3", default-features = false, features = ["toml", "png", "embedded", "macros"] }
+assets_manager = { version = "0.11.4", default-features = false, features = ["toml", "embedded", "macros"] }
 
 wgpu = { version = "0.19.3", default-features = false, features = ["webgl", "wgsl"] }
 console_log = "1.0.0"

@@ -53,10 +53,8 @@
 pub mod assets;
 #[cfg(feature = "audio")]
 pub mod audio;
-pub mod bitmap;
 #[cfg(feature = "dialogue")]
 pub mod dialogue;
-//pub mod font;
 pub mod graphics;
 pub mod math;
 #[cfg(feature = "physics")]
