@@ -48,7 +48,7 @@ audio = ["dep:kira"]
 
 [dependencies]
 blit = { version = "0.8.5", features = ["serde"] }
-image = "0.24.9"
+image = "0.25.0"
 miette = "7.2.0"
 vek = "0.16.1"
 game-loop = "1.1.0"
