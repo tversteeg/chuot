@@ -6,6 +6,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0-alpha](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.8.0...pixel-game-lib-v0.9.0-alpha) - 2024-03-20
+
+### Added
+- *(profile)* Allow `in-game-profiler` feature flag for showing a profiler overlay, use proper color space for background and viewport colors
+- *(window)* [**breaking**] add `background_color` and `viewport_color` options to `WindowConfig`
+- *(graphics)* update Scale2X to Scale3X with proper sampling
+- *(graphics)* use Scale2X for upscaling the sprites
+- *(graphics)* create letterbox with in the future integer scaling for the buffer
+- *(graphics)* expose `RenderContext::draw_sprite_rotated` which also allows future 2D scaling and skewing
+- *(graphics)* make `Sprite` a GPU instanced rendering pipeline
+- *(bitmap)* add `from_bitvec` and `clone_with_padding` to `BitMap`
+- *(bitmap)* implement floodfill
+- *(bitmap)* allow toggling a single value
+- *(bitmap)* add `BitMap` for 2D masking operations on buffers
+
+### Fixed
+- *(graphics)* [**breaking**] Use `Into<Rotation>` as argument for `draw_sprite_rotated`
+- *(wasm)* build again on WASM with WebGL2 and cleanup
+- *(project)* use proper relative mouse coordinates and cleanup small pieces of code and examples
+- *(graphics)* use proper alpha blending for components
+- *(graphics)* properly render output buffer in viewport
+- *(graphics)* render pixel graphics to proper buffer size with upscaling and downscaling preparing for rotsprite like algorithms
+- *(deps)* update rust crate winit to 0.29.15
+- *(deps)* update rust crate bytemuck to 1.15.0
+- *(deps)* update rust crate miette to 7.2.0
+- *(deps)* update rust crate blit to 0.8.5
+
+### Other
+- *(project)* cleanup and prepare for beta release
+- *(ci)* fix test and wasm-build step
+- *(project)* [**breaking**] make `window` function private, batch render calls in `render` trait method with `RenderContext`
+- *(project)* [**breaking**] remove gui, reorganize most components related to rendering
+- *(window)* [**breaking**] start replacing CPU based pixel renderer with GPU based one
+
 ## [0.8.0](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.7.0...pixel-game-lib-v0.8.0) - 2024-03-06
 
 ### Added
