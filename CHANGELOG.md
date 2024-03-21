@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0-alpha.1](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.9.0-alpha...pixel-game-lib-v0.9.0-alpha.1) - 2024-03-21
+
+### Fixed
+- *(build)* fix compilation for WASM target
+- *(window)* handle exit event
+
+### Other
+- *(project)* [**breaking**] replace `PixelGame::update` & `PixelGame::render` with singular `PixelGame::tick`, change vek library to glam and glamour
+
 ## [0.9.0-alpha](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.8.0...pixel-game-lib-v0.9.0-alpha) - 2024-03-20
 
 ### Added
