@@ -195,7 +195,7 @@ impl Context {
     /// # Panics
     ///
     /// - When internal [`RwLock`] is poisoned.
-    fn read<R>(&self, reader: impl FnOnce(&ContextInner) -> R) -> R {
+    pub(crate) fn read<R>(&self, reader: impl FnOnce(&ContextInner) -> R) -> R {
         profiling::scope!("Context read");
 
         reader(&self.inner.read().expect("RwLock is poisoned"))

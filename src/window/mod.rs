@@ -193,7 +193,7 @@ where
             // Pass every event to the input helper, when it returns `true` it's time to run the logic
             if input.update(&event) {
                 // Exit when the window is destroyed or closed
-                if input.close_requested() || input.destroyed() {
+                if input.close_requested() || input.destroyed() || ctx.read(|ctx| ctx.exit) {
                     elwt.exit();
                     return;
                 }
