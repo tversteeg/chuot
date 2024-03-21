@@ -7,13 +7,13 @@ use egui_winit::{
     egui::{FullOutput, ViewportId},
     State,
 };
-use game_loop::winit::{event::WindowEvent, window::Window};
+use glamour::Size2;
 use puffin_egui::egui::Context;
-use vek::Extent2;
 use wgpu::{
     CommandEncoder, Device, LoadOp, Operations, Queue, RenderPassColorAttachment,
     RenderPassDescriptor, StoreOp, TextureView, WindowHandle,
 };
+use winit::{event::WindowEvent, window::Window};
 
 use crate::graphics::state::PREFERRED_TEXTURE_FORMAT;
 
@@ -53,7 +53,7 @@ impl InGameProfiler {
         queue: &Queue,
         encoder: &mut CommandEncoder,
         view: &TextureView,
-        screen_size: Extent2<u32>,
+        screen_size: Size2,
         window: &Window,
     ) {
         profiling::scope!("Render profiling window");
@@ -82,7 +82,7 @@ impl InGameProfiler {
         }
 
         let screen_descriptor = ScreenDescriptor {
-            size_in_pixels: screen_size.into_array(),
+            size_in_pixels: [screen_size.width as u32, screen_size.height as u32],
             pixels_per_point,
         };
 

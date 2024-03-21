@@ -6,9 +6,9 @@ use std::ops::Range;
 
 use assets_manager::{AnyCache, Asset, BoxedError, Compound, SharedString};
 
+use glamour::{Size2, Vector2};
 use miette::Result;
 use serde::Deserialize;
-use vek::{Extent2, Vec2};
 
 use crate::{
     assets::image::Image,
@@ -29,7 +29,7 @@ pub(crate) struct Sprite {
     /// Reference of the texture to render.
     image: TextureRef,
     /// Size of the image in pixels.
-    size: Extent2<u32>,
+    size: Size2<u32>,
     /// Sprite metadata.
     metadata: SpriteMetadata,
     /// Instances to draw this frame.
@@ -44,7 +44,7 @@ pub(crate) struct Sprite {
 
 impl Sprite {
     /// Size of the image.
-    pub(crate) fn size(&self) -> Extent2<u32> {
+    pub(crate) fn size(&self) -> Size2<u32> {
         self.size
     }
 
@@ -55,14 +55,27 @@ impl Sprite {
             return;
         }
 
-        let offset = self.metadata.offset.offset(self.size().as_()).as_();
-        let size = self.size().as_();
+        let width = self.size.width as f32;
+        let height = self.size.height as f32;
+        let offset = self.metadata.offset.offset(Size2::new(width, height));
 
         self.contents = Some([
-            TexturedVertex::new(Vec2::new(0.0, 0.0) + offset, 0.0, Vec2::new(0.0, 0.0)),
-            TexturedVertex::new(Vec2::new(size.w, 0.0) + offset, 0.0, Vec2::new(1.0, 0.0)),
-            TexturedVertex::new(Vec2::new(size.w, size.h) + offset, 0.0, Vec2::new(1.0, 1.0)),
-            TexturedVertex::new(Vec2::new(0.0, size.h) + offset, 0.0, Vec2::new(0.0, 1.0)),
+            TexturedVertex::new(Vector2::new(0.0, 0.0) + offset, 0.0, Vector2::new(0.0, 0.0)),
+            TexturedVertex::new(
+                Vector2::new(width, 0.0) + offset,
+                0.0,
+                Vector2::new(1.0, 0.0),
+            ),
+            TexturedVertex::new(
+                Vector2::new(width, height) + offset,
+                0.0,
+                Vector2::new(1.0, 1.0),
+            ),
+            TexturedVertex::new(
+                Vector2::new(0.0, height) + offset,
+                0.0,
+                Vector2::new(0.0, 1.0),
+            ),
         ]);
     }
 }
@@ -150,16 +163,18 @@ pub enum SpriteOffset {
     #[default]
     LeftTop,
     /// Sprite will be offset with the custom coordinates counting from the left top.
-    Custom(Vec2<f64>),
+    Custom(Vector2),
 }
 
 impl SpriteOffset {
     /// Get the offset based on the sprite size.
-    pub fn offset(&self, sprite_size: Extent2<f64>) -> Vec2<f64> {
+    pub fn offset(&self, sprite_size: Size2) -> Vector2 {
         match self {
-            SpriteOffset::Middle => Vec2::new(-sprite_size.w / 2.0, -sprite_size.h / 2.0),
-            SpriteOffset::MiddleTop => Vec2::new(-sprite_size.w / 2.0, 0.0),
-            SpriteOffset::LeftTop => Vec2::zero(),
+            SpriteOffset::Middle => {
+                Vector2::new(-sprite_size.width / 2.0, -sprite_size.height / 2.0)
+            }
+            SpriteOffset::MiddleTop => Vector2::new(-sprite_size.width / 2.0, 0.0),
+            SpriteOffset::LeftTop => Vector2::ZERO,
             SpriteOffset::Custom(offset) => *offset,
         }
     }

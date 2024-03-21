@@ -1,10 +1,21 @@
 //! Type for exposing instancing functionality in the [`crate::graphics::Render`] trait.
 
-use vek::Mat3;
+use bytemuck::{Pod, Zeroable};
+use glam::Affine2;
+use glamour::{Matrix2, Vector2};
 use wgpu::{VertexAttribute, VertexBufferLayout, VertexFormat, VertexStepMode};
 
 /// Raw representation of the instance type send to the GPU.
-type Instance = [f32; 6];
+#[repr(C, align(16))]
+#[derive(Debug, Default, Copy, Clone, Pod, Zeroable)]
+struct Instance {
+    /// Rotation and skewing.
+    matrix: Matrix2<f32>,
+    /// Translation.
+    translation: Vector2,
+    /// Alignment padding.
+    _padding: u64,
+}
 
 /// Raw instance data.
 ///
@@ -15,14 +26,12 @@ pub struct Instances(Vec<Instance>);
 
 impl Instances {
     /// Push an instance to draw this frame.
-    pub(crate) fn push(&mut self, transformation: Mat3<f32>) {
-        // Convert matrix to column-oriented array
-        let array = transformation.into_col_array();
-
-        // Only push the matrix vales we actually need
-        // ([2], [5], [8]) is always (0, 0, 1)
-        self.0
-            .push([array[0], array[1], array[3], array[4], array[6], array[7]]);
+    pub(crate) fn push(&mut self, transformation: Affine2) {
+        self.0.push(Instance {
+            matrix: transformation.matrix2.into(),
+            translation: transformation.translation.into(),
+            ..Default::default()
+        });
     }
 
     /// Remove all items.

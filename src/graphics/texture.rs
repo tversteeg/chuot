@@ -7,8 +7,8 @@ use std::{
 
 use assets_manager::SharedString;
 use bytemuck::{Pod, Zeroable};
+use glamour::Size2;
 use hashbrown::HashMap;
-use vek::Extent2;
 use wgpu::{
     AddressMode, BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout,
     BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingResource, BindingType, Device,
@@ -28,7 +28,7 @@ pub(super) static PENDING_TEXTURES: OnceLock<Arc<Mutex<HashMap<TextureRef, Pendi
 /// Allow something to upload a texture to the GPU.
 pub trait Texture {
     /// Dimensions of the texture.
-    fn size(&self) -> Extent2<u32>;
+    fn size(&self) -> Size2<u32>;
 
     /// Image representation we can upload to the GPU.
     fn to_rgba_image(&mut self) -> Vec<u8>;
@@ -68,8 +68,8 @@ impl PendingTextureState {
         let texture = device.create_texture(&TextureDescriptor {
             label: Some(&Cow::Borrowed("Diffuse Texture")),
             size: Extent3d {
-                width: size.w,
-                height: size.h,
+                width: size.width,
+                height: size.height,
                 depth_or_array_layers: 1,
             },
             mip_level_count: 1,
@@ -136,13 +136,13 @@ impl PendingTextureState {
             // Layout of the texture
             ImageDataLayout {
                 offset: 0,
-                bytes_per_row: Some(4 * size.w),
-                rows_per_image: Some(size.h),
+                bytes_per_row: Some(4 * size.width),
+                rows_per_image: Some(size.height),
             },
             // Texture size
             Extent3d {
-                width: size.w,
-                height: size.h,
+                width: size.width,
+                height: size.height,
                 depth_or_array_layers: 1,
             },
         );

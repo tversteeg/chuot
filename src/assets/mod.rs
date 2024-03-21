@@ -1,4 +1,4 @@
-//! Types for handling the assets and their caches.
+//! Types for creating custom assets.
 
 pub(crate) mod image;
 
@@ -65,38 +65,8 @@ type Assets = AssetCache<assets_manager::source::Embedded<'static>>;
 /// All external data.
 static ASSETS: OnceLock<Assets> = OnceLock::new();
 
-/// Load a reference to any asset.
-///
-/// Sets up the asset manager once, which can be accessed with the global function in this module.
-///
-/// # Arguments
-///
-/// * `path` - Directory structure of the asset file in `assets/` where every `/` is a `.`.
-pub fn asset<T>(path: impl AsRef<str>) -> AssetReadGuard<'static, T>
-where
-    T: Compound,
-{
-    asset_cache().load_expect(path.as_ref()).read()
-}
-
-/// Load a clone of any asset.
-///
-/// Sets up the asset manager once, which can be accessed with the global function in this module.
-///
-/// # Arguments
-///
-/// * `path` - Directory structure of the asset file in `assets/` where every `/` is a `.`.
-pub fn asset_owned<T>(path: impl AsRef<str>) -> T
-where
-    T: Compound,
-{
-    asset_cache()
-        .load_owned(path.as_ref())
-        .expect("Could not load owned asset")
-}
-
 /// Get or initialize the asset cache.
-fn asset_cache() -> &'static Assets {
+pub(crate) fn asset_cache() -> &'static Assets {
     let cache = ASSETS.get_or_init(|| {
         // Load the assets from disk, allows hot-reloading
         #[cfg(not(any(target_arch = "wasm32", feature = "embedded-assets")))]

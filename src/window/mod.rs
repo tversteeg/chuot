@@ -1,3 +1,5 @@
+//! Spawn a winit window and run the game loop.
+
 #[cfg(not(target_arch = "wasm32"))]
 mod desktop;
 #[cfg(feature = "in-game-profiler")]
@@ -5,42 +7,23 @@ mod in_game_profiler;
 #[cfg(target_arch = "wasm32")]
 mod web;
 
-/// Re-export winit types.
-pub use game_loop::winit::{
-    dpi::PhysicalSize,
-    event::MouseButton,
-    keyboard::{Key, KeyCode},
-};
-/// Re-export winit_input_helper type.
-pub use winit_input_helper::WinitInputHelper as Input;
-
 use std::sync::Arc;
 
-use game_loop::winit::{
+use glamour::{Size2, Vector2};
+use miette::{IntoDiagnostic, Result, WrapErr};
+use winit::{
     dpi::LogicalSize,
-    event::{Event, WindowEvent},
-    event_loop::EventLoop,
+    event_loop::{ControlFlow, EventLoop},
     window::{Window, WindowBuilder},
 };
-use miette::{Context, IntoDiagnostic, Result};
-use vek::{Extent2, Vec2};
-use wgpu::WindowHandle;
 use winit_input_helper::WinitInputHelper;
 
-use crate::{graphics::state::MainRenderState, RenderContext};
+use crate::{graphics::state::MainRenderState, Context};
 
-/// Update function signature.
-pub(crate) trait UpdateFn<G>:
-    FnMut(&mut G, &WinitInputHelper, Option<Vec2<f64>>, f64) -> bool
-{
-}
+/// Tick function signature.
+pub(crate) trait TickFn<G>: FnMut(&mut G, Context) {}
 
-impl<G, T: FnMut(&mut G, &WinitInputHelper, Option<Vec2<f64>>, f64) -> bool> UpdateFn<G> for T {}
-
-/// Render function signature.
-pub(crate) trait RenderFn<G>: FnMut(&mut G, &mut RenderContext) {}
-
-impl<G, T: FnMut(&mut G, &mut RenderContext)> RenderFn<G> for T {}
+impl<G, T: FnMut(&mut G, Context)> TickFn<G> for T {}
 
 /// Window configuration.
 #[derive(Debug, Clone)]
@@ -48,11 +31,11 @@ pub struct WindowConfig {
     /// Amount of pixels for the canvas.
     ///
     /// Defaults to `(320, 280)`.
-    pub buffer_size: Extent2<usize>,
+    pub buffer_size: Size2,
     /// Factor applied to the buffer size for the requested window size.
     ///
     /// Defaults to `1`.
-    pub scaling: usize,
+    pub scaling: f32,
     /// Name in the title bar.
     ///
     /// On WASM this will display as a header underneath the rendered content.
@@ -78,8 +61,8 @@ pub struct WindowConfig {
 impl Default for WindowConfig {
     fn default() -> Self {
         Self {
-            buffer_size: Extent2::new(320, 280),
-            scaling: 1,
+            buffer_size: Size2::new(320.0, 280.0),
+            scaling: 1.0,
             title: "Pixel Game".to_string(),
             updates_per_second: 60,
             viewport_color: 0xFF76428A,
@@ -104,29 +87,23 @@ impl Default for WindowConfig {
 /// # Errors
 ///
 /// - When the audio manager could not find a device to play audio on.
-pub(crate) fn window<G, U, R>(
-    game_state: G,
-    window_config: WindowConfig,
-    update: U,
-    render: R,
-) -> Result<()>
+pub(crate) fn window<G, T>(game_state: G, window_config: WindowConfig, tick: T) -> Result<()>
 where
     G: 'static,
-    U: UpdateFn<G> + 'static,
-    R: RenderFn<G> + 'static,
+    T: TickFn<G> + 'static,
 {
     // Build the window builder with the event loop the user supplied
     let window_builder = WindowBuilder::new()
         .with_title(window_config.title.clone())
         // Apply scaling for the requested size
         .with_inner_size(LogicalSize::new(
-            (window_config.buffer_size.w * window_config.scaling) as f64,
-            (window_config.buffer_size.h * window_config.scaling) as f64,
+            window_config.buffer_size.width * window_config.scaling,
+            window_config.buffer_size.height * window_config.scaling,
         ))
         // Don't allow the window to be smaller than the pixel size
         .with_min_inner_size(LogicalSize::new(
-            window_config.buffer_size.w as f64,
-            window_config.buffer_size.h as f64,
+            window_config.buffer_size.width,
+            window_config.buffer_size.height,
         ));
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -135,7 +112,7 @@ where
         env_logger::init();
 
         pollster::block_on(async {
-            desktop::window(window_builder, game_state, window_config, update, render).await
+            desktop::window(window_builder, game_state, window_config, tick).await
         })
     }
     #[cfg(target_arch = "wasm32")]
@@ -148,7 +125,7 @@ where
 
         // Web window function is async, so we need to spawn it into a local async runtime
         wasm_bindgen_futures::spawn_local(async {
-            web::window(window_builder, game_state, window_config, update, render)
+            web::window(window_builder, game_state, window_config, tick)
                 .await
                 .expect("Error opening WASM window")
         });
@@ -158,12 +135,11 @@ where
 }
 
 /// Open a winit window with an event loop.
-async fn winit_start<G, U, R>(
+async fn winit_start<G, T>(
     event_loop: EventLoop<()>,
     window: Window,
-    game_state: G,
-    mut update: U,
-    mut render: R,
+    mut game_state: G,
+    mut tick: T,
     WindowConfig {
         buffer_size,
         updates_per_second,
@@ -174,190 +150,112 @@ async fn winit_start<G, U, R>(
 ) -> Result<()>
 where
     G: 'static,
-    U: UpdateFn<G> + 'static,
-    R: RenderFn<G> + 'static,
+    T: TickFn<G> + 'static,
 {
-    // Setup the audio
-    #[cfg(feature = "audio")]
-    crate::audio::init_audio()?;
-
-    // Wrap the window in an atomic reference counter, needed for game_loop
+    // Wrap the window in an atomic reference counter so it can be shared in multiple places
     let window = Arc::new(window);
 
-    // Setup the game and GPU state
-    let state = State::new(
-        buffer_size.as_(),
+    // Setup the winit input helper state
+    let mut input = WinitInputHelper::new();
+
+    // Create a surface on the window and setup the render state to it
+    let mut render_state = MainRenderState::new(
+        buffer_size,
         window.clone(),
-        game_state,
         background_color,
         viewport_color,
     )
-    .await?;
+    .await
+    .wrap_err("Error setting up the rendering pipeline")?;
 
-    // Start the game loop
-    game_loop::game_loop(
-        event_loop,
-        window,
-        state,
-        updates_per_second,
-        0.1,
-        move |g| {
-            // Tell the profiler we're starting a new game frame
-            profiling::finish_frame!();
+    // Setup the context passed to the tick function implemented by the user
+    let mut ctx = Context::new();
 
-            {
-                profiling::scope!("Internal update");
+    // Setup the in-game profiler
+    #[cfg(feature = "in-game-profiler")]
+    let mut in_game_profiler =
+        in_game_profiler::InGameProfiler::new(render_state.device(), window.clone());
 
-                // Update the input from the window events
-                g.game.input.step_with_window_events(&g.game.window_events);
-                g.game.window_events.clear();
+    log::debug!("Opening window with game loop");
 
-                // Handle close requests
-                if g.game.input.close_requested() {
-                    g.exit();
+    // Set the event loop to polling so we don't have to wait for new events to draw new frames
+    event_loop.set_control_flow(ControlFlow::Poll);
+
+    // Start the window and game loop
+    event_loop
+        .run(move |event, elwt| {
+            // Update egui inside in-game-profiler
+            #[cfg(feature = "in-game-profiler")]
+            if let winit::event::Event::WindowEvent { event, .. } = &event {
+                in_game_profiler.handle_window_event(&window, event);
+            };
+
+            // Pass every event to the input helper, when it returns `true` it's time to run the logic
+            if input.update(&event) {
+                // Exit when the window is destroyed or closed
+                if input.close_requested() || input.destroyed() {
+                    elwt.exit();
                     return;
                 }
 
                 // Resize render surface if window is resized
-                if let Some(new_size) = g.game.input.window_resized() {
+                if let Some(new_size) = input.window_resized() {
                     // Resize GPU surface
-                    g.game
-                        .render_state
-                        .resize(Extent2::new(new_size.width, new_size.height));
+
+                    render_state.resize(Size2::new(new_size.width, new_size.height));
 
                     // On MacOS the window needs to be redrawn manually after resizing
-                    g.window.request_redraw();
+                    window.request_redraw();
                 }
-            }
 
-            // Calculate mouse position in pixels relative to the buffer
-            let mouse = g
-                .game
-                .input
-                .cursor()
-                .and_then(|(x, y)| g.game.render_state.map_coordinate(Vec2::new(x, y)))
-                .map(Vec2::as_);
+                // Set the updated state for the context
+                ctx.write(|ctx| {
+                    // Set the mouse position
+                    ctx.mouse = input
+                        .cursor()
+                        .and_then(|(x, y)| render_state.map_coordinate(Vector2::new(x, y)));
 
-            {
-                profiling::scope!("User update");
+                    // Embed the input
+                    // TODO: remove clone
+                    ctx.input = input.clone();
+                });
 
-                // Call update and exit when it returns true
-                if update(
-                    &mut g.game.game_state,
-                    &g.game.input,
-                    mouse,
-                    (updates_per_second as f64).recip(),
-                ) {
-                    g.exit();
-                }
-            }
-        },
-        move |g| {
-            profiling::finish_frame!();
-
-            {
-                profiling::scope!("User render");
-
-                // Get the items to be rendered for the game frame
-                render(&mut g.game.game_state, g.game.render_state.ctx_mut());
-            }
-
-            {
-                profiling::scope!("Internal render");
-
-                // Render everything
-                #[cfg(feature = "in-game-profiler")]
+                // Call the tick function with the context
                 {
-                    let screen_size = g.game.render_state.screen_size();
+                    profiling::scope!("Tick");
 
-                    g.game.render_state.render(|device, queue, encoder, view| {
-                        g.game.in_game_profiler.render(
-                            device,
-                            queue,
-                            encoder,
-                            view,
-                            screen_size,
-                            &g.window,
-                        )
-                    });
+                    tick(&mut game_state, ctx.clone());
                 }
-                #[cfg(not(feature = "in-game-profiler"))]
-                g.game
-                    .render_state
-                    .render(|_device, _queue, _encoder, _view| ());
+
+                {
+                    profiling::scope!("Render");
+
+                    // Render everything
+                    #[cfg(feature = "in-game-profiler")]
+                    {
+                        let screen_size = render_state.screen_size();
+
+                        render_state.render(&mut ctx, |device, queue, encoder, view| {
+                            in_game_profiler.render(
+                                device,
+                                queue,
+                                encoder,
+                                view,
+                                screen_size,
+                                &window,
+                            )
+                        });
+                    }
+                    #[cfg(not(feature = "in-game-profiler"))]
+                    render_state.render(&mut ctx, |_device, _queue, _encoder, _view| ());
+                }
+
+                // Tell the profiler we've executed a tick
+                profiling::finish_frame!();
             }
-        },
-        |g, event| {
-            // Keep track of all window events which are handled in the update loop
-            if let Event::WindowEvent { event, .. } = event {
-                // Update in-game profiler user input
-                #[cfg(feature = "in-game-profiler")]
-                g.game
-                    .in_game_profiler
-                    .handle_window_event(&g.window, event);
-
-                g.game.window_events.push(event.clone());
-            }
-        },
-    )
-    .into_diagnostic()
-    .wrap_err("Error running game loop")
-}
-
-/// Pass multiple fields to the game state.
-struct State<'window, G> {
-    /// User passed game state.
-    game_state: G,
-    /// Winit input helper state.
-    input: WinitInputHelper,
-    /// Hold the global GPU references and information.
-    render_state: MainRenderState<'window>,
-    /// Winit events happening for the input helper.
-    window_events: Vec<WindowEvent>,
-    /// In-game profiler window.
-    #[cfg(feature = "in-game-profiler")]
-    in_game_profiler: in_game_profiler::InGameProfiler,
-}
-
-impl<'window, G> State<'window, G> {
-    /// Setup the state including the GPU part.
-    async fn new<W>(
-        buffer_size: Extent2<u32>,
-        window: W,
-        game_state: G,
-        background_color: u32,
-        viewport_color: u32,
-    ) -> Result<Self>
-    where
-        W: WindowHandle + Clone + 'window,
-    {
-        // Setup the winit input helper state
-        let input = WinitInputHelper::new();
-
-        // Create a surface on the window and setup the render state to it
-        let render_state = MainRenderState::new(
-            buffer_size,
-            window.clone(),
-            background_color,
-            viewport_color,
-        )
-        .await
-        .wrap_err("Error setting up the rendering pipeline")?;
-
-        // No events yet
-        let window_events = Vec::new();
-
-        // Setup the in-game profiler
-        #[cfg(feature = "in-game-profiler")]
-        let in_game_profiler = in_game_profiler::InGameProfiler::new(render_state.device(), window);
-
-        Ok(Self {
-            game_state,
-            input,
-            render_state,
-            window_events,
-            #[cfg(feature = "in-game-profiler")]
-            in_game_profiler,
         })
-    }
+        .into_diagnostic()
+        .wrap_err("Error running game loop")?;
+
+    Ok(())
 }

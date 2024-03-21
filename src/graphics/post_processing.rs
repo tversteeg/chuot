@@ -1,9 +1,10 @@
 //! State for post-processing shaders.
 
+use core::f32;
 use std::borrow::Cow;
 
 use bytemuck::NoUninit;
-use vek::{Extent2, Rect};
+use glamour::{Rect, Size2};
 use wgpu::{
     AddressMode, BindGroup, BindGroupDescriptor, BindGroupEntry, BindingResource, BlendComponent,
     BlendState, Color, ColorTargetState, ColorWrites, CommandEncoder, Device, Extent3d, FilterMode,
@@ -26,7 +27,7 @@ pub(crate) struct PostProcessingState {
 impl PostProcessingState {
     /// Upload a new post processing state effect.
     pub(crate) fn new<T: NoUninit>(
-        buffer_size: Extent2<u32>,
+        buffer_size: Size2,
         device: &Device,
         uniform: &UniformState<T>,
         shader: &'static str,
@@ -35,8 +36,8 @@ impl PostProcessingState {
         let texture = device.create_texture(&TextureDescriptor {
             label: Some("Post Processing Texture"),
             size: Extent3d {
-                width: buffer_size.w,
-                height: buffer_size.h,
+                width: buffer_size.width as u32,
+                height: buffer_size.height as u32,
                 depth_or_array_layers: 1,
             },
             mip_level_count: 1,
@@ -132,7 +133,7 @@ impl PostProcessingState {
         encoder: &mut CommandEncoder,
         view: &TextureView,
         screen_info: &UniformState<ScreenInfo>,
-        letterbox: Option<Rect<f32, f32>>,
+        letterbox: Option<Rect>,
         background_color: Color,
     ) {
         // Start the render pass
@@ -154,8 +155,15 @@ impl PostProcessingState {
         upscaled_render_pass.set_pipeline(&self.render_pipeline);
 
         // Only draw in the calculated letterbox to get nice integer scaling
-        if let Some(Rect { x, y, w, h }) = letterbox {
-            upscaled_render_pass.set_viewport(x, y, w, h, 0.0, 1.0);
+        if let Some(Rect { origin, size }) = letterbox {
+            upscaled_render_pass.set_viewport(
+                origin.x,
+                origin.y,
+                size.width,
+                size.height,
+                0.0,
+                1.0,
+            );
         }
 
         // Bind the source texture

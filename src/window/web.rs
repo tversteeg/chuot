@@ -1,24 +1,22 @@
-use game_loop::winit::{
-    event_loop::EventLoop, platform::web::WindowBuilderExtWebSys, window::WindowBuilder,
-};
+//! Setting up a window for WASM platforms.
+
 use miette::{Context, IntoDiagnostic, Result};
 use wasm_bindgen::JsCast;
 use web_sys::HtmlCanvasElement;
+use winit::{event_loop::EventLoop, platform::web::WindowBuilderExtWebSys, window::WindowBuilder};
 
-use super::{RenderFn, UpdateFn, WindowConfig};
+use super::{TickFn, WindowConfig};
 
 /// Desktop implementation of opening a window.
-pub(crate) async fn window<G, U, R>(
+pub(crate) async fn window<G, T>(
     window_builder: WindowBuilder,
     game_state: G,
     window_config: WindowConfig,
-    update: U,
-    render: R,
+    tick: T,
 ) -> Result<()>
 where
     G: 'static,
-    U: UpdateFn<G> + 'static,
-    R: RenderFn<G> + 'static,
+    T: TickFn<G> + 'static,
 {
     // Create a canvas the winit window can be attached to
     let window = web_sys::window().ok_or_else(|| miette::miette!("Error finding web window"))?;
@@ -67,13 +65,5 @@ where
     canvas.set_width((window_config.buffer_size.w * window_config.scaling) as u32);
     canvas.set_height((window_config.buffer_size.h * window_config.scaling) as u32);
 
-    crate::window::winit_start(
-        event_loop,
-        window,
-        game_state,
-        update,
-        render,
-        window_config,
-    )
-    .await
+    crate::window::winit_start(event_loop, window, game_state, tick, window_config).await
 }

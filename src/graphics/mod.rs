@@ -1,7 +1,6 @@
 //! Types and helpers for drawing on the GPU.
 
 pub(crate) mod component;
-pub(crate) mod context;
 pub(crate) mod data;
 pub(crate) mod instance;
 pub(crate) mod post_processing;
@@ -14,7 +13,7 @@ pub use self::{data::TexturedVertex, instance::Instances, texture::TextureRef};
 
 use std::ops::Range;
 
-use vek::Mat3;
+use glam::Affine2;
 use wgpu::{Color, PrimitiveTopology};
 
 /// Allow something to be rendered on the GPU.
@@ -64,8 +63,8 @@ pub trait Render {
     /// # Arguments
     ///
     /// * `transformation` - Absolute 2D transformation matrix of where the instance should be drawn.
-    fn push_instance(&mut self, transformation: Mat3<f64>) {
-        self.instances_mut().push(transformation.as_());
+    fn push_instance(&mut self, transformation: Affine2) {
+        self.instances_mut().push(transformation);
     }
 
     /// Definition of the primitive type.

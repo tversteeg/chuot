@@ -5,9 +5,9 @@
 use std::{borrow::Cow, io::Cursor};
 
 use assets_manager::{loader::Loader, Asset, BoxedError};
+use glamour::Size2;
 use miette::{Context, IntoDiagnostic};
 use png::{BitDepth, ColorType, Decoder, Reader, Transformations};
-use vek::Extent2;
 
 use crate::graphics::texture::Texture;
 
@@ -25,10 +25,10 @@ impl Asset for Image {
 }
 
 impl Texture for Image {
-    fn size(&self) -> Extent2<u32> {
+    fn size(&self) -> Size2<u32> {
         let info = self.reader.info();
 
-        Extent2::new(info.width, info.height)
+        Size2::new(info.width, info.height)
     }
 
     fn to_rgba_image(&mut self) -> Vec<u8> {

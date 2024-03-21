@@ -18,15 +18,38 @@ AGPL licensed and opinionated game engine for pixel-art games.
 - Window creation with independent update and render game loop.
 - Hot-reloadable asset management.
 - Sprite loading.
-- Physics engine.
 - Dialogue scripting system.
 - Audio playback.
+- In game profiler GUI.
+
+#### Usage
+
+Using this crate is quite simple, there is a single trait [`PixelGame`] with a single required function, [`PixelGame::tick`] that needs to be implemented for a state.
+
+```rust
+use pixel_game_lib::{PixelGame, Context, WindowConfig};
+
+struct MyGame;
+
+impl PixelGame for MyGame {
+  fn tick(&mut self, ctx: Context) {
+    // ..
+  }
+}
+
+// In main
+let game = MyGame;
+
+game.run(WindowConfig::default())?;
+```
 
 #### Feature Flags
 
-##### `default-font`
+All major feature flags are enabled by default, I would recommend installing `pixel_game_lib` with `default-features = false` and adding the required features as needed.
 
-Implements [`Default`] for [`font::Font`] with a font that's embedded into memory.
+```sh
+cargo add pixel_game_lib --no-default-features
+```
 
 ##### `hot-reloading-assets` (default)
 
@@ -38,16 +61,12 @@ Has no effect on the web target.
 Bake _all_ assets in the `assets/` folder in the binary.
 When creating a release binary this feature flag should be enabled.
 
-##### `physics`
-
-Enable the 2D XPBD-based physics engine.
-
-##### `dialogue`
+##### `dialogue` (default)
 
 A thin wrapper around [Yarn Spinner](https://www.yarnspinner.dev/).
 Allows creating hot-reloadable dialogue systems.
 
-##### `audio`
+##### `audio` (default)
 
 A thin wrapper around [Kira](https://docs.rs/kira/latest/kira/).
 Play sounds and music files which can be hot-reloadable using assets.
@@ -61,6 +80,12 @@ On Linux you need to install `asound2-dev`:
 ```sh
 sudo apt install libasound2-dev
 ```
+
+##### `in-game-profiler` (default)
+
+A profiler window overlay, implemented with [puffin_egui](https://docs.rs/puffin_egui/latest/puffin_egui/).
+
+Other profiling methods in your game can also be implemented, the [profiling](https://docs.rs/profiling/latest/profiling/) crate is enabled even when this feature flag is disabled.
 
 <!-- cargo-rdme end -->
 

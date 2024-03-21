@@ -2,9 +2,9 @@
 
 use std::sync::{Arc, Mutex};
 
+use glamour::{Contains, Rect, Size2, Vector2};
 use hashbrown::HashMap;
 use miette::{IntoDiagnostic, Result, WrapErr};
-use vek::{Extent2, Rect, Vec2};
 use wgpu::{
     BindGroupLayout, Color, CommandEncoder, CommandEncoderDescriptor, Device, DeviceDescriptor,
     Features, Instance, Limits, PowerPreference, Queue, RequestAdapterOptionsBase, Surface,
@@ -12,7 +12,7 @@ use wgpu::{
     WindowHandle,
 };
 
-use crate::{sprite::Sprite, RenderContext};
+use crate::{sprite::Sprite, Context};
 
 use super::{
     component::RenderState,
@@ -45,16 +45,14 @@ pub(crate) struct MainRenderState<'window> {
     sprite_render_state: RenderState<Sprite>,
     /// Uploaded textures.
     uploaded_textures: HashMap<TextureRef, UploadedTextureState>,
-    /// Render context passed to each user facing render frame.
-    ctx: RenderContext,
     /// Size of the final buffer to draw.
     ///
     /// Will be scaled with integer scaling and letterboxing to fit the screen.
-    buffer_size: Extent2<u32>,
+    buffer_size: Size2<f32>,
     /// Post processing effect to downscale the result to a viewport with the exact buffer size.
     downscale: PostProcessingState,
     /// Letterbox output for the final render pass viewport.
-    letterbox: Rect<f32, f32>,
+    letterbox: Rect,
     /// Background color.
     background_color: Color,
     /// Viewport color
@@ -64,7 +62,7 @@ pub(crate) struct MainRenderState<'window> {
 impl<'window> MainRenderState<'window> {
     /// Create a GPU surface on the window.
     pub(crate) async fn new<W>(
-        buffer_size: Extent2<u32>,
+        buffer_size: Size2,
         window: W,
         background_color: u32,
         viewport_color: u32,
@@ -128,8 +126,8 @@ impl<'window> MainRenderState<'window> {
             usage: TextureUsages::RENDER_ATTACHMENT,
             format: PREFERRED_TEXTURE_FORMAT,
             // Will be set by scaling
-            width: buffer_size.w,
-            height: buffer_size.h,
+            width: buffer_size.width as u32,
+            height: buffer_size.height as u32,
             present_mode: swapchain_capabilities.present_modes[0],
             desired_maximum_frame_latency: 2,
             alpha_mode: swapchain_capabilities.alpha_modes[0],
@@ -145,7 +143,7 @@ impl<'window> MainRenderState<'window> {
         let screen_info = UniformState::new(
             &device,
             &ScreenInfo {
-                buffer_size: [buffer_size.w as f32, buffer_size.h as f32],
+                buffer_size: buffer_size.cast::<f32>(),
                 ..Default::default()
             },
         );
@@ -168,11 +166,8 @@ impl<'window> MainRenderState<'window> {
         // We don't have any textures uploaded yet
         let uploaded_textures = HashMap::new();
 
-        // Construct a default empty render context
-        let ctx = RenderContext::default();
-
         // The letterbox will be changed on resize, but the size cannot be zero because then the buffer will crash
-        let letterbox = Rect::new(0.0, 0.0, 1.0, 1.0);
+        let letterbox = Rect::new(Vector2::ZERO, Size2::splat(1.0));
 
         // Convert the u32 colors to WGPU colors
         let background_color = super::u32_to_wgpu_color(background_color);
@@ -187,7 +182,6 @@ impl<'window> MainRenderState<'window> {
             diffuse_texture_bind_group_layout,
             screen_info,
             uploaded_textures,
-            ctx,
             buffer_size,
             letterbox,
             downscale,
@@ -199,6 +193,7 @@ impl<'window> MainRenderState<'window> {
     /// Render the frame and call the user `render` function.
     pub(crate) fn render(
         &mut self,
+        ctx: &mut Context,
         mut custom_pass_cb: impl FnMut(&Device, &Queue, &mut CommandEncoder, &TextureView),
     ) {
         // Upload the pending textures
@@ -228,27 +223,29 @@ impl<'window> MainRenderState<'window> {
             .create_view(&TextureViewDescriptor::default());
 
         // First pass, render the contents to a custom buffer
-        if self.ctx.sprites.is_empty() {
-            // Nothing to render, render the solid background color
-            todo!()
-        } else {
-            profiling::scope!("Render sprites");
+        ctx.write(|ctx| {
+            if ctx.sprites.is_empty() {
+                // Nothing to render, render the solid background color
+                todo!()
+            } else {
+                profiling::scope!("Render sprites");
 
-            // Render each sprite
-            self.ctx.sprites.iter_mut().for_each(|(_, sprite)| {
-                // Render the sprite
-                self.sprite_render_state.render(
-                    sprite,
-                    &mut encoder,
-                    &self.downscale.texture_view,
-                    &self.queue,
-                    &self.device,
-                    &self.screen_info.bind_group,
-                    &self.uploaded_textures,
-                    self.background_color,
-                );
-            });
-        }
+                // Render each sprite
+                ctx.sprites.iter_mut().for_each(|(_, sprite)| {
+                    // Render the sprite
+                    self.sprite_render_state.render(
+                        sprite,
+                        &mut encoder,
+                        &self.downscale.texture_view,
+                        &self.queue,
+                        &self.device,
+                        &self.screen_info.bind_group,
+                        &self.uploaded_textures,
+                        self.background_color,
+                    );
+                });
+            }
+        });
 
         // Second pass, render the custom buffer to the viewport
         {
@@ -282,21 +279,20 @@ impl<'window> MainRenderState<'window> {
     }
 
     // Resize the surface.
-    pub(crate) fn resize(&mut self, new_size: Extent2<u32>) {
-        log::debug!("Resizing the surface to {new_size}");
+    pub(crate) fn resize(&mut self, new_size: Size2<u32>) {
+        log::debug!(
+            "Resizing the surface to ({}x{})",
+            new_size.width,
+            new_size.height
+        );
 
         // Ensure that the render surface is at least 1 pixel big, otherwise an error would occur
-        self.config.width = new_size.w.max(1);
-        self.config.height = new_size.h.max(1);
+        self.config.width = new_size.width.max(1);
+        self.config.height = new_size.height.max(1);
         self.surface.configure(&self.device, &self.config);
 
         // Recalculate the letterbox with the new size
         self.recalculate_letterbox();
-    }
-
-    /// Get a mutable reference to the render context for passing to the render call.
-    pub(crate) fn ctx_mut(&mut self) -> &mut RenderContext {
-        &mut self.ctx
     }
 
     /// Get a reference to WGPU device.
@@ -311,23 +307,23 @@ impl<'window> MainRenderState<'window> {
     ///
     /// Is allowed to be unused because the `in-game-profiler` feature flag uses it.
     #[allow(unused)]
-    pub(crate) fn screen_size(&self) -> Extent2<u32> {
-        Extent2::new(self.config.width, self.config.height)
+    pub(crate) fn screen_size(&self) -> Size2<f32> {
+        Size2::new(self.config.width as f32, self.config.height as f32)
     }
 
     /// Map a coordinate to relative coordinates of the buffer in the letterbox.
-    pub(crate) fn map_coordinate(&self, coordinate: Vec2<f32>) -> Option<Vec2<f32>> {
+    pub(crate) fn map_coordinate(&self, coordinate: Vector2) -> Option<Vector2> {
         // On desktop map the cursor to the viewport
 
         // Ignore all coordinates outside of the letterbox
-        if !self.letterbox.contains_point(coordinate) {
+        if !self.letterbox.contains(coordinate.as_point()) {
             return None;
         }
 
         // Calculate the scale from the letterbox
-        let scale = self.letterbox.w / self.buffer_size.w as f32;
+        let scale = self.letterbox.width() / self.buffer_size.width;
 
-        Some((coordinate - self.letterbox.position()) / scale)
+        Some((coordinate - self.letterbox.origin.to_vector()) / scale)
     }
 
     /// Recalculate the letterbox based on the size of the surface.
@@ -337,40 +333,36 @@ impl<'window> MainRenderState<'window> {
     /// - When resulting letterbox size is zero.
     fn recalculate_letterbox(&mut self) {
         // Calculate the integer scaling ratio first
-        let screen_size = Extent2::new(self.config.width, self.config.height);
-        let scale = if screen_size.h * self.buffer_size.w < screen_size.w * self.buffer_size.h {
-            // Height fits
-            screen_size.h / self.buffer_size.h
-        } else {
-            // Width fits
-            screen_size.w / self.buffer_size.w
-        }
-        // We don't want a scale smaller than one
-        .max(1);
+        let buffer_width_u32 = self.buffer_size.width as u32;
+        let buffer_height_u32 = self.buffer_size.height as u32;
+        let scale =
+            if self.config.height * buffer_width_u32 < self.config.width * buffer_height_u32 {
+                // Height fits
+                self.config.height / buffer_height_u32
+            } else {
+                // Width fits
+                self.config.width / buffer_width_u32
+            }
+            // We don't want a scale smaller than one
+            .max(1);
 
-        let scaled_buffer_size = self.buffer_size * scale;
+        let scaled_buffer_size = self.buffer_size * scale as f32;
 
         // Calculate the offset to center the scaled rectangle inside the other rectangle
-        let offset = (screen_size - scaled_buffer_size) / 2;
+        let offset = ((self.screen_size() - scaled_buffer_size) / 2.0).to_vector();
 
-        self.letterbox = Rect::new(
-            offset.w,
-            offset.h,
-            scaled_buffer_size.w,
-            scaled_buffer_size.h,
-        )
-        .as_();
+        self.letterbox = Rect::new(offset, scaled_buffer_size).cast();
 
         log::debug!(
             "Setting new letterbox to ({}:{} x {}:{}) with {scale} scaling",
-            offset.w,
-            offset.h,
-            scaled_buffer_size.w,
-            scaled_buffer_size.h
+            offset.x,
+            offset.y,
+            scaled_buffer_size.width,
+            scaled_buffer_size.height
         );
 
         assert!(
-            self.letterbox.w > 0.0 && self.letterbox.h > 0.0,
+            self.letterbox.width() > 0.0 && self.letterbox.height() > 0.0,
             "Error with invalid letterbox size dimensions"
         );
     }
