@@ -43,11 +43,6 @@ pub(crate) struct Sprite {
 }
 
 impl Sprite {
-    /// Size of the image.
-    pub(crate) fn size(&self) -> Size2<u32> {
-        self.size
-    }
-
     /// Compute the coordinates and UV for this sprite based on the offset.
     fn set_contents(&mut self) {
         // Only compute when something changed

@@ -1,6 +1,5 @@
 //! State for post-processing shaders.
 
-use core::f32;
 use std::borrow::Cow;
 
 use bytemuck::NoUninit;

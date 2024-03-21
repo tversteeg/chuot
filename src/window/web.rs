@@ -59,11 +59,11 @@ where
     // Ensure the pixels are not rendered with wrong filtering and that the size is correct
     canvas.style().set_css_text(&format!(
         "display:block; margin: auto; image-rendering: pixelated; width: {}px; height: {}px",
-        window_config.buffer_size.w * window_config.scaling,
-        window_config.buffer_size.h * window_config.scaling
+        (window_config.buffer_size.width * window_config.scaling).round(),
+        (window_config.buffer_size.height * window_config.scaling).round()
     ));
-    canvas.set_width((window_config.buffer_size.w * window_config.scaling) as u32);
-    canvas.set_height((window_config.buffer_size.h * window_config.scaling) as u32);
+    canvas.set_width((window_config.buffer_size.width * window_config.scaling) as u32);
+    canvas.set_height((window_config.buffer_size.height * window_config.scaling) as u32);
 
     crate::window::winit_start(event_loop, window, game_state, tick, window_config).await
 }
