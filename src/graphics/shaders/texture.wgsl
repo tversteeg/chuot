@@ -16,16 +16,15 @@ struct ScreenInfo {
 }
 
 struct TextureInfo {
-    @location(0) size: vec2<f32>,
-    // WASM needs to types to be aligned to 16 bytes
-    @location(1) _padding: vec2<f32>,
+    @location(0) offset: vec2<u32>,
+    @location(0) size: vec2<u32>,
 }
 
 @group(1) @binding(0)
 var<uniform> screen_info: ScreenInfo;
 
 @group(2) @binding(0)
-var<uniform> texture_info: TextureInfo;
+var<uniform> texture_info: array<TextureInfo, 1024>;
 
 struct VertexInput {
     @location(0) position: vec3<f32>,
@@ -38,6 +37,8 @@ struct InstanceInput {
     @location(2) mat_0: vec2<f32>,
     @location(3) mat_1: vec2<f32>,
     @location(4) mat_2: vec2<f32>,
+    // Which texture to render
+    @location(5) tex: u32,
 }
 
 struct VertexOutput {
@@ -231,6 +232,8 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     // Take the sample of the exact pixel
     let c = textureSample(t_diffuse, s_diffuse, in.tex_coords);
 
+    return c;
+/*
     // Don't apply the algorithm when no rotations or skewing occurs
     if in.only_translated_or_reflected == 1.0 {
         return c;
@@ -254,4 +257,5 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
     // Apply a Scale3x block
     return scale3x(nw, n, ne, w, c, e, sw, s, se, subpixel);
+    */
 }

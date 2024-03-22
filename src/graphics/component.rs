@@ -16,11 +16,8 @@ use wgpu::{
 use crate::graphics::state::PREFERRED_TEXTURE_FORMAT;
 
 use super::{
-    data::TexturedVertex,
-    instance::Instances,
-    texture::{TextureInfo, TextureRef, UploadedTextureState},
-    uniform::UniformState,
-    Render,
+    atlas::Atlas, data::TexturedVertex, instance::Instances, texture::TextureRef,
+    uniform::UniformState, Render,
 };
 
 // TODO: batch all textures split by sampler arrays with the max value get from adapter
@@ -35,8 +32,6 @@ pub(crate) struct RenderState<R: Render> {
     index_buffer: Buffer,
     /// GPU buffer reference to the instances.
     instance_buffer: Buffer,
-    /// Uniform to hold the texture size.
-    texture_size_uniform: UniformState<TextureInfo>,
     /// Hold the type so we can't have mismatching calls.
     _phantom: PhantomData<R>,
 }
@@ -53,16 +48,12 @@ impl<R: Render> RenderState<R> {
     {
         log::debug!("Creating custom rendering component");
 
-        // Create the uniform for holding the texture size, will be updated by each component itself
-        let texture_size_uniform = UniformState::new(device, &TextureInfo::default());
-
         // Create a new render pipeline first
         let render_pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
             label: Some("Component Render Pipeline Layout"),
             bind_group_layouts: &[
                 diffuse_texture_bind_group_layout,
                 screen_info_bind_group_layout,
-                &texture_size_uniform.bind_group_layout,
             ],
             push_constant_ranges: &[],
         });
@@ -138,7 +129,6 @@ impl<R: Render> RenderState<R> {
             vertex_buffer,
             instance_buffer,
             index_buffer,
-            texture_size_uniform,
             _phantom: PhantomData,
         }
     }
@@ -153,7 +143,7 @@ impl<R: Render> RenderState<R> {
         queue: &Queue,
         device: &Device,
         screen_size_bind_group: &BindGroup,
-        uploaded_textures: &HashMap<TextureRef, UploadedTextureState>,
+        texture_atlas: &Atlas,
         background_color: Color,
     ) {
         // Target will be rendered
@@ -217,32 +207,6 @@ impl<R: Render> RenderState<R> {
                 usage: BufferUsages::INDEX | BufferUsages::COPY_DST,
             });
 
-            // Set the texture size
-            if let Some(texture) = target.texture() {
-                // Get the texture so we can update the size
-                let uploaded_texture = uploaded_textures
-                    .get(texture)
-                    .expect("Error getting uploaded texture");
-
-                let size = uploaded_texture.texture.size();
-
-                log::debug!(
-                    "Setting texture size uniform to ({}x{})",
-                    size.width,
-                    size.height
-                );
-
-                // Update the texture size uniform
-                // The last values are used for padding to align to 16 bytes
-                self.texture_size_uniform.update(
-                    &TextureInfo {
-                        size: [size.width as f32, size.height as f32],
-                        ..Default::default()
-                    },
-                    queue,
-                );
-            }
-
             // Target is not dirty anymore
             target.mark_clean();
         }
@@ -269,21 +233,13 @@ impl<R: Render> RenderState<R> {
         // Set our pipeline
         render_pass.set_pipeline(&self.render_pipeline);
 
-        // Get the texture state from the reference
-        if let Some(texture) = target.texture() {
-            let uploaded_texture = uploaded_textures
-                .get(texture)
-                .expect("Error getting uploaded texture");
-
-            // Bind the texture
-            render_pass.set_bind_group(0, &uploaded_texture.bind_group, &[]);
-        }
+        // Bind the atlas texture
+        render_pass.set_bind_group(0, &texture_atlas.bind_group, &[]);
+        // Bind the atlas texture info
+        render_pass.set_bind_group(1, &texture_atlas.rects.bind_group, &[]);
 
         // Bind the screen size
-        render_pass.set_bind_group(1, screen_size_bind_group, &[]);
-
-        // Bind the texture size
-        render_pass.set_bind_group(2, &self.texture_size_uniform.bind_group, &[]);
+        render_pass.set_bind_group(2, screen_size_bind_group, &[]);
 
         // Set the target vertices
         render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));

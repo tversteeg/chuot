@@ -2,16 +2,14 @@
 
 use std::sync::{Arc, RwLock};
 
+use assets_manager::SharedString;
 use glam::Affine2;
 use glamour::Vector2;
 use hashbrown::HashMap;
 use winit::{event::MouseButton, keyboard::KeyCode};
 use winit_input_helper::WinitInputHelper;
 
-use crate::{
-    graphics::{Render, TextureRef},
-    sprite::Sprite,
-};
+use crate::{graphics::Render, sprite::Sprite};
 
 /// Context containing most functionality for interfacing with the game engine.
 ///
@@ -225,14 +223,17 @@ pub(crate) struct ContextInner {
     /// Exoses methods for detecting mouse and keyboard events.
     pub(crate) input: WinitInputHelper,
     /// All sprite instances to render.
-    pub(crate) sprites: HashMap<TextureRef, Sprite>,
+    pub(crate) sprites: HashMap<SharedString, Sprite>,
 }
 
 impl ContextInner {
     /// Load the sprite asset if it doesn't exist yet.
     fn load_sprite_if_not_loaded(&mut self, path: &str) {
         if !self.sprites.contains_key(path) {
+            // Load the sprite from disk
             let sprite = crate::asset_owned(path);
+
+            // Keep track of it, to see if it needs to be updated or not
             self.sprites.insert(path.into(), sprite);
         }
     }

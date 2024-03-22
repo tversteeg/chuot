@@ -12,14 +12,11 @@ use wgpu::{
     WindowHandle,
 };
 
-use crate::{sprite::Sprite, Context};
+use crate::{graphics::texture::PendingOrUploaded, sprite::Sprite, Context};
 
 use super::{
-    component::RenderState,
-    data::ScreenInfo,
-    post_processing::PostProcessingState,
-    texture::{TextureRef, UploadedTextureState, PENDING_TEXTURES},
-    uniform::UniformState,
+    atlas::Atlas, component::RenderState, data::ScreenInfo, post_processing::PostProcessingState,
+    texture::TextureRef, uniform::UniformState,
 };
 
 /// Texture format we prefer to use for everything.
@@ -37,14 +34,12 @@ pub(crate) struct MainRenderState<'window> {
     config: SurfaceConfiguration,
     /// GPU queue.
     queue: Queue,
-    /// Bind group layout for rendering diffuse textures.
-    diffuse_texture_bind_group_layout: BindGroupLayout,
     /// Uniform screen info (size and scale) to the shaders.
     screen_info: UniformState<ScreenInfo>,
     /// Sprite component specific render pipelines.
     sprite_render_state: RenderState<Sprite>,
-    /// Uploaded textures.
-    uploaded_textures: HashMap<TextureRef, UploadedTextureState>,
+    /// Texture atlas.
+    atlas: Atlas,
     /// Size of the final buffer to draw.
     ///
     /// Will be scaled with integer scaling and letterboxing to fit the screen.
@@ -135,10 +130,6 @@ impl<'window> MainRenderState<'window> {
         };
         surface.configure(&device, &config);
 
-        // Create the bind group layout for all textures
-        let diffuse_texture_bind_group_layout =
-            super::texture::create_bind_group_layout(&device, "Diffuse Texture Bind Group Layout");
-
         // Create the uniforms
         let screen_info = UniformState::new(
             &device,
@@ -156,15 +147,15 @@ impl<'window> MainRenderState<'window> {
             include_str!("./shaders/downscale.wgsl"),
         );
 
+        // Create a new texture atlas
+        let atlas = Atlas::new(&device);
+
         // Create a custom pipeline for each component
         let sprite_render_state = RenderState::new(
             &device,
-            &diffuse_texture_bind_group_layout,
+            &atlas.bind_group_layout,
             &screen_info.bind_group_layout,
         );
-
-        // We don't have any textures uploaded yet
-        let uploaded_textures = HashMap::new();
 
         // The letterbox will be changed on resize, but the size cannot be zero because then the buffer will crash
         let letterbox = Rect::new(Vector2::ZERO, Size2::splat(1.0));
@@ -179,14 +170,13 @@ impl<'window> MainRenderState<'window> {
             config,
             sprite_render_state,
             queue,
-            diffuse_texture_bind_group_layout,
             screen_info,
-            uploaded_textures,
             buffer_size,
             letterbox,
             downscale,
             background_color,
             viewport_color,
+            atlas,
         })
     }
 
@@ -197,7 +187,7 @@ impl<'window> MainRenderState<'window> {
         mut custom_pass_cb: impl FnMut(&Device, &Queue, &mut CommandEncoder, &TextureView),
     ) {
         // Upload the pending textures
-        self.upload_textures();
+        self.upload_textures(ctx);
 
         let mut encoder = {
             profiling::scope!("Create command encoder");
@@ -240,7 +230,7 @@ impl<'window> MainRenderState<'window> {
                         &self.queue,
                         &self.device,
                         &self.screen_info.bind_group,
-                        &self.uploaded_textures,
+                        &self.atlas,
                         self.background_color,
                     );
                 });
@@ -368,41 +358,14 @@ impl<'window> MainRenderState<'window> {
     }
 
     /// Upload all pending textures.
-    fn upload_textures(&mut self) {
+    fn upload_textures(&mut self, ctx: &mut Context) {
         profiling::scope!("Upload pending textures");
 
-        // Get a reference to the pending textures map
-        let mut pending_textures = PENDING_TEXTURES
-            // If it doesn't exist yet create a new one
-            .get_or_init(|| Arc::new(Mutex::new(HashMap::new())))
-            .lock()
-            .expect("Error locking mutex");
-
-        // Remove all pending textures and upload them
-        pending_textures
-            .drain()
-            .for_each(|(texture_ref, pending_texture)| {
-                if !self.uploaded_textures.contains_key(&texture_ref) {
-                    log::debug!("Uploading texture '{texture_ref}'");
-
-                    // Upload not-yet-uploaded textures
-                    self.uploaded_textures.insert(
-                        texture_ref.clone(),
-                        pending_texture
-                            .upload(&self.device, &self.diffuse_texture_bind_group_layout),
-                    );
-                }
-
-                // Get a reference to possibly just uploaded state
-                let uploaded_texture_state = self
-                    .uploaded_textures
-                    .get(&texture_ref)
-                    .expect("Error getting uploaded texture");
-
-                log::debug!("Writing texture data for '{texture_ref}'");
-
-                // Write the pixels of the texture
-                pending_texture.write(&self.queue, uploaded_texture_state);
-            });
+        // Upload the un-uploaded sprites
+        ctx.write(|ctx| {
+            ctx.sprites.iter_mut().for_each(|(_, sprite)| {
+                sprite.image.upload(&mut self.atlas, &self.queue);
+            })
+        });
     }
 }

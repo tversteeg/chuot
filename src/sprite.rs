@@ -15,7 +15,7 @@ use crate::{
     graphics::{
         data::TexturedVertex,
         instance::Instances,
-        texture::{Texture, TextureRef},
+        texture::{PendingOrUploaded, Texture, TextureRef},
         Render,
     },
 };
@@ -24,10 +24,9 @@ use crate::{
 const INDICES: &[u16] = &[0, 1, 3, 3, 1, 2];
 
 /// Sprite that can be drawn on the  canvas.
-#[derive(Debug)]
 pub(crate) struct Sprite {
     /// Reference of the texture to render.
-    image: TextureRef,
+    pub(crate) image: PendingOrUploaded<Image>,
     /// Size of the image in pixels.
     size: Size2<u32>,
     /// Sprite metadata.
@@ -82,9 +81,6 @@ impl Compound for Sprite {
         // Get the size for our sprite
         let size = image.size();
 
-        // Store the image for uploading to the GPU, and keep the reference
-        let image = crate::graphics::texture::upload(id.clone(), image);
-
         // Load the metadata
         let metadata = match cache.load::<SpriteMetadata>(id) {
             Ok(metadata) => metadata.read().clone(),
@@ -95,13 +91,16 @@ impl Compound for Sprite {
             }
         };
 
+        // Mark the image as a texture not being uploaded yet
+        let image = PendingOrUploaded::new(image);
+
         let is_dirty = true;
         let contents = None;
         let instances = Instances::default();
 
         Ok(Self {
-            size,
             image,
+            size,
             metadata,
             is_dirty,
             contents,
@@ -135,8 +134,8 @@ impl Render for Sprite {
         INDICES
     }
 
-    fn texture(&self) -> Option<&TextureRef> {
-        Some(&self.image)
+    fn texture(&self) -> Option<TextureRef> {
+        self.image.as_ref()
     }
 
     fn pre_render(&mut self) {

@@ -3,7 +3,31 @@
 use bytemuck::{Pod, Zeroable};
 use glam::Affine2;
 use glamour::{Matrix2, Vector2};
-use wgpu::{VertexAttribute, VertexBufferLayout, VertexFormat, VertexStepMode};
+
+/// WGPU attributes.
+const ATTRIBUTES: &[wgpu::VertexAttribute] = &[
+    wgpu::VertexAttribute {
+        format: wgpu::VertexFormat::Float32x2,
+        offset: 0,
+        // Must be the next one of `TexturedVertex`
+        shader_location: 2,
+    },
+    wgpu::VertexAttribute {
+        format: wgpu::VertexFormat::Float32x2,
+        offset: std::mem::size_of::<[f32; 2]>() as u64,
+        shader_location: 3,
+    },
+    wgpu::VertexAttribute {
+        format: wgpu::VertexFormat::Float32x2,
+        offset: std::mem::offset_of!(Instance, translation) as u64,
+        shader_location: 4,
+    },
+    wgpu::VertexAttribute {
+        format: wgpu::VertexFormat::Uint32,
+        offset: std::mem::offset_of!(Instance, texture_ref) as u64,
+        shader_location: 5,
+    },
+];
 
 /// Raw representation of the instance type send to the GPU.
 #[repr(C, align(16))]
@@ -13,8 +37,10 @@ struct Instance {
     matrix: Matrix2<f32>,
     /// Translation.
     translation: Vector2,
+    /// Texture to render.
+    texture_ref: u32,
     /// Alignment padding.
-    _padding: u64,
+    _padding: u32,
 }
 
 /// Raw instance data.
@@ -55,28 +81,11 @@ impl Instances {
     }
 
     /// WGPU descriptor.
-    pub(crate) fn descriptor() -> VertexBufferLayout<'static> {
-        VertexBufferLayout {
+    pub(crate) fn descriptor() -> wgpu::VertexBufferLayout<'static> {
+        wgpu::VertexBufferLayout {
             array_stride: std::mem::size_of::<Instance>() as u64,
-            step_mode: VertexStepMode::Instance,
-            attributes: &[
-                VertexAttribute {
-                    format: VertexFormat::Float32x2,
-                    offset: 0,
-                    // Must be the next one of `TexturedVertex`
-                    shader_location: 2,
-                },
-                VertexAttribute {
-                    format: VertexFormat::Float32x2,
-                    offset: std::mem::size_of::<[f32; 2]>() as u64,
-                    shader_location: 3,
-                },
-                VertexAttribute {
-                    format: VertexFormat::Float32x2,
-                    offset: std::mem::size_of::<[f32; 4]>() as u64,
-                    shader_location: 4,
-                },
-            ],
+            step_mode: wgpu::VertexStepMode::Instance,
+            attributes: ATTRIBUTES,
         }
     }
 }

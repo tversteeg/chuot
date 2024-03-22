@@ -49,8 +49,27 @@ impl PostProcessingState {
         let texture_view = texture.create_view(&TextureViewDescriptor::default());
 
         // Create the bind group layout for the screen after it has been upscaled
-        let bind_group_layout =
-            super::texture::create_bind_group_layout(device, "Post Processing Bind Group Layout");
+        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("Post Processing Bind Group Layout"),
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        multisampled: false,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+            ],
+        });
 
         // Create the sampler we use to sample from the input texture view
         let input_sampler = device.create_sampler(&SamplerDescriptor {

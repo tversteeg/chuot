@@ -1,5 +1,6 @@
 //! Types and helpers for drawing on the GPU.
 
+pub(crate) mod atlas;
 pub(crate) mod component;
 pub(crate) mod data;
 pub(crate) mod instance;
@@ -41,7 +42,7 @@ pub trait Render {
     /// Texture reference to bind and render.
     ///
     /// If `None` no texture binding will be applied.
-    fn texture(&self) -> Option<&TextureRef> {
+    fn texture(&self) -> Option<TextureRef> {
         None
     }
 
