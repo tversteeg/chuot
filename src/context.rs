@@ -38,13 +38,7 @@ impl Context {
     /// - When asset failed loading.
     #[inline]
     pub fn draw_sprite(&mut self, path: &str, position: Vector2) {
-        // Add an instance of the sprite
-        self.write(|ctx| {
-            ctx.sprites
-                .get_mut(path)
-                .expect("Error accessing sprite in context")
-                .push_instance(Affine2::from_translation(position.into()));
-        });
+        self.draw_sprite_rotated(path, position, 0.0);
     }
 
     /// Draw a sprite on the screen at the set position with the set rotation.
@@ -66,10 +60,18 @@ impl Context {
         self.write(|ctx| {
             ctx.load_sprite_if_not_loaded(path);
 
-            ctx.sprites
+            let sprite = ctx
+                .sprites
                 .get_mut(path)
-                .expect("Error accessing sprite in context")
-                .push_instance(Affine2::from_angle_translation(rotation, position.into()));
+                .expect("Error accessing sprite in context");
+
+            // Push the instance if the texture is already uploaded
+            if let Some(texture_ref) = sprite.texture_ref() {
+                sprite.push_instance(
+                    Affine2::from_angle_translation(rotation, position.into()),
+                    texture_ref,
+                );
+            }
         });
     }
 

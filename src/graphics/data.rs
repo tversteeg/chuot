@@ -52,8 +52,6 @@ impl TexturedVertex {
 pub(crate) struct ScreenInfo {
     /// Output buffer size.
     pub buffer_size: Size2,
-    /// Upscaling factor.
-    pub upscale_factor: f32,
     /// Unused data for padding.
-    pub _padding: f32,
+    pub _padding: u64,
 }

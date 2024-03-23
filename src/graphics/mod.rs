@@ -64,8 +64,8 @@ pub trait Render {
     /// # Arguments
     ///
     /// * `transformation` - Absolute 2D transformation matrix of where the instance should be drawn.
-    fn push_instance(&mut self, transformation: Affine2) {
-        self.instances_mut().push(transformation);
+    fn push_instance(&mut self, transformation: Affine2, texture: TextureRef) {
+        self.instances_mut().push(transformation, texture);
     }
 
     /// Definition of the primitive type.

@@ -9,22 +9,22 @@ var t_diffuse: texture_2d<f32>;
 @group(0) @binding(1)
 var s_diffuse: sampler;
 
+struct TextureInfo {
+    @location(0) offset: vec2<f32>,
+    @location(1) size: vec2<f32>,
+}
+
 struct ScreenInfo {
     @location(0) size: vec2<f32>,
     // WASM needs to types to be aligned to 16 bytes
     @location(1) _padding: vec2<f32>,
 }
 
-struct TextureInfo {
-    @location(0) offset: vec2<u32>,
-    @location(0) size: vec2<u32>,
-}
-
 @group(1) @binding(0)
-var<uniform> screen_info: ScreenInfo;
+var<uniform> tex_info: array<TextureInfo, 1024>;
 
 @group(2) @binding(0)
-var<uniform> texture_info: array<TextureInfo, 1024>;
+var<uniform> screen_info: ScreenInfo;
 
 struct VertexInput {
     @location(0) position: vec3<f32>,
@@ -37,8 +37,8 @@ struct InstanceInput {
     @location(2) mat_0: vec2<f32>,
     @location(3) mat_1: vec2<f32>,
     @location(4) mat_2: vec2<f32>,
-    // Which texture to render
-    @location(5) tex: u32,
+    // Which texture to render, dimensions are stored in the uniform buffer
+    @location(5) tex_index: u32,
 }
 
 struct VertexOutput {
@@ -67,8 +67,13 @@ fn vs_main(
     let screen_size_half = screen_info.size / 2.0;
     let offset = 1.0 - projected_position.xy / screen_size_half;
 
+    // Get the texture rectangle from the atlas
+    let subrect = tex_info[instance.tex_index];
+    // Move the 0..1 texture coordinates to relative coordinates within the 4096x4096 atlas texture for the specified texture
+    let tex_coords = (subrect.offset + subrect.size * model.tex_coords) / 4096.0;
+
     var out: VertexOutput;
-    out.tex_coords = model.tex_coords;
+    out.tex_coords = tex_coords;
     out.clip_position = vec4<f32>(vec3<f32>(-offset, model.position.z), 1.0);
 
     // Check if we have any skewing, scaling or rotation
@@ -232,18 +237,18 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     // Take the sample of the exact pixel
     let c = textureSample(t_diffuse, s_diffuse, in.tex_coords);
 
-    return c;
-/*
     // Don't apply the algorithm when no rotations or skewing occurs
     if in.only_translated_or_reflected == 1.0 {
         return c;
     }
 
+    return c;
+/*
     // Calculate the relative UV offset to see the next pixel
-    let pixel_offset = 1.0 / texture_info.size;
+    let pixel_offset = 1.0 / 4096.0;
 
     // Offset of the UV within the pixel
-    let subpixel = fract(in.tex_coords * texture_info.size);
+    let subpixel = fract(in.tex_coords * tex_info.size);
     
     // Sample the pixels around the center with (n)orth, (e)ast, (s)outh, (w)est
     let nw = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(-pixel_offset.x, pixel_offset.y));

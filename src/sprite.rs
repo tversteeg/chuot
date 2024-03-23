@@ -42,6 +42,15 @@ pub(crate) struct Sprite {
 }
 
 impl Sprite {
+    /// Get the texture reference.
+    ///
+    /// # Returns
+    ///
+    /// - `None` when the texture is not uploaded yet.
+    pub(crate) fn texture_ref(&self) -> Option<TextureRef> {
+        self.image.try_as_ref()
+    }
+
     /// Compute the coordinates and UV for this sprite based on the offset.
     fn set_contents(&mut self) {
         // Only compute when something changed
@@ -135,7 +144,7 @@ impl Render for Sprite {
     }
 
     fn texture(&self) -> Option<TextureRef> {
-        self.image.as_ref()
+        self.image.try_as_ref()
     }
 
     fn pre_render(&mut self) {

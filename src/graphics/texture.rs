@@ -37,7 +37,7 @@ impl<T: Texture> PendingOrUploaded<T> {
     }
 
     /// Get the reference as an option, if not uploaded yet.
-    pub fn as_ref(&self) -> Option<TextureRef> {
+    pub fn try_as_ref(&self) -> Option<TextureRef> {
         match self {
             PendingOrUploaded::Pending(..) => None,
             PendingOrUploaded::Uploaded(texture_ref) => Some(*texture_ref),
@@ -49,6 +49,8 @@ impl<T: Texture> PendingOrUploaded<T> {
         if let Self::Uploaded(..) = self {
             return;
         }
+
+        log::debug!("New texture detected, adding to atlas");
 
         // First take the value, replacing it with a default ref we will overwrite
         let Self::Pending(texture) = std::mem::take(self) else {

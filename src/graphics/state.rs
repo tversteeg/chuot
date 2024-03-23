@@ -151,11 +151,7 @@ impl<'window> MainRenderState<'window> {
         let atlas = Atlas::new(&device);
 
         // Create a custom pipeline for each component
-        let sprite_render_state = RenderState::new(
-            &device,
-            &atlas.bind_group_layout,
-            &screen_info.bind_group_layout,
-        );
+        let sprite_render_state = RenderState::new(&device, &screen_info.bind_group_layout, &atlas);
 
         // The letterbox will be changed on resize, but the size cannot be zero because then the buffer will crash
         let letterbox = Rect::new(Vector2::ZERO, Size2::splat(1.0));
@@ -339,7 +335,9 @@ impl<'window> MainRenderState<'window> {
         let scaled_buffer_size = self.buffer_size * scale as f32;
 
         // Calculate the offset to center the scaled rectangle inside the other rectangle
-        let offset = ((self.screen_size() - scaled_buffer_size) / 2.0).to_vector();
+        let offset = ((self.screen_size() - scaled_buffer_size) / 2.0)
+            .to_vector()
+            .round();
 
         self.letterbox = Rect::new(offset, scaled_buffer_size).cast();
 

@@ -40,8 +40,8 @@ impl<R: Render> RenderState<R> {
     /// Create the state by calling the [`Render`] trait implementations on the type.
     pub(crate) fn new(
         device: &Device,
-        diffuse_texture_bind_group_layout: &BindGroupLayout,
         screen_info_bind_group_layout: &BindGroupLayout,
+        texture_atlas: &Atlas,
     ) -> Self
     where
         R: Render,
@@ -52,7 +52,8 @@ impl<R: Render> RenderState<R> {
         let render_pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
             label: Some("Component Render Pipeline Layout"),
             bind_group_layouts: &[
-                diffuse_texture_bind_group_layout,
+                &texture_atlas.bind_group_layout,
+                &texture_atlas.rects.bind_group_layout,
                 screen_info_bind_group_layout,
             ],
             push_constant_ranges: &[],

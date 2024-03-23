@@ -16,7 +16,6 @@ use wgpu::{
 pub(crate) struct UniformState<T: NoUninit> {
     pub(crate) bind_group_layout: BindGroupLayout,
     pub(crate) bind_group: BindGroup,
-    buffer: Buffer,
     /// Store the type information.
     _phantom: PhantomData<T>,
 }
@@ -68,19 +67,9 @@ impl<T: NoUninit> UniformState<T> {
 
         Self {
             bind_group,
-            buffer,
             bind_group_layout,
             _phantom: PhantomData,
         }
-    }
-
-    /// Update the value of the uniform.
-    pub(crate) fn update(&mut self, value: &T, queue: &Queue) {
-        // Convert value to bytes
-        let data = bytemuck::bytes_of(value);
-
-        // PUpdate the buffer and push to queue
-        queue.write_buffer(&self.buffer, 0, data);
     }
 }
 

@@ -4,6 +4,8 @@ use bytemuck::{Pod, Zeroable};
 use glam::Affine2;
 use glamour::{Matrix2, Vector2};
 
+use super::TextureRef;
+
 /// WGPU attributes.
 const ATTRIBUTES: &[wgpu::VertexAttribute] = &[
     wgpu::VertexAttribute {
@@ -52,10 +54,11 @@ pub struct Instances(Vec<Instance>);
 
 impl Instances {
     /// Push an instance to draw this frame.
-    pub(crate) fn push(&mut self, transformation: Affine2) {
+    pub(crate) fn push(&mut self, transformation: Affine2, texture_ref: TextureRef) {
         self.0.push(Instance {
             matrix: transformation.matrix2.into(),
             translation: transformation.translation.into(),
+            texture_ref: texture_ref as u32,
             ..Default::default()
         });
     }

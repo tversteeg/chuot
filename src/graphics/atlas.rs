@@ -23,7 +23,7 @@ pub(crate) struct Atlas {
     /// GPU bind group layout.
     pub(crate) bind_group_layout: wgpu::BindGroupLayout,
     /// GPU uniform buffer holding all atlassed texture rectangles.
-    pub(crate) rects: UniformArrayState<Rect<u32>>,
+    pub(crate) rects: UniformArrayState<Rect<f32>>,
     /// Packer algorithm used.
     packer: SkylinePacker,
 }
@@ -137,6 +137,8 @@ impl Atlas {
             .insert(size.width, size.height)
             .expect("New texture could not be packed, not enough space");
 
+        log::debug!("Added texture to atlas at ({x}x{y}:{w}x{h})");
+
         assert_eq!(size.width, w);
         assert_eq!(size.height, h);
 
@@ -166,7 +168,13 @@ impl Atlas {
         );
 
         // Push the newly packed dimensions to the uniform buffer, returning the reference to it
-        let uniform_index = self.rects.push(&Rect::new(Vector2::new(x, y), size), queue);
+        let uniform_index = self.rects.push(
+            &Rect::new(
+                Vector2::new(x as f32, y as f32),
+                Size2::new(w as f32, h as f32),
+            ),
+            queue,
+        );
 
         uniform_index as TextureRef
     }
