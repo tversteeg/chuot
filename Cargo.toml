@@ -58,7 +58,7 @@ png = "0.17.13"
 profiling = "1.0.15"
 winit = "0.29.15"
 winit_input_helper = "0.16.0"
-glam = { version = "0.26.0", features = ["bytemuck"] }
+glam = { version = "0.27.0", features = ["bytemuck"] }
 glamour = { version = "0.10.2", features = ["serde"] }
 
 # `dialogue` feature
