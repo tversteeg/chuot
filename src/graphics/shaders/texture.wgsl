@@ -2,6 +2,9 @@
 //!
 //! This shader applies a novel single-pass rotsprite rotation by using UV subpixel relative coordinates to "downscale" an "upscaled" Scale4X sample.
 
+// Size of both width and height of the atlas texture
+const ATLAS_TEXTURE_SIZE: f32 = 4096.0;
+
 // Vertex shader
 
 @group(0) @binding(0)
@@ -70,7 +73,7 @@ fn vs_main(
     // Get the texture rectangle from the atlas
     let subrect = tex_info[instance.tex_index];
     // Move the 0..1 texture coordinates to relative coordinates within the 4096x4096 atlas texture for the specified texture
-    let tex_coords = (subrect.offset + subrect.size * model.tex_coords) / 4096.0;
+    let tex_coords = (subrect.offset + subrect.size * model.tex_coords) / ATLAS_TEXTURE_SIZE;
 
     var out: VertexOutput;
     out.tex_coords = tex_coords;
@@ -89,14 +92,18 @@ fn vs_main(
 
 // Fragment shader
 
-const epsilon: vec4<f32> = vec4<f32>(1.0 / 255.0);
+// Smallest value to compare pixel colors with
+const EPSILON: vec4<f32> = vec4<f32>(1.0 / 255.0);
+
+// Offset needed for moving a single pixel
+const PIXEL_OFFSET: f32 = 1.0 / ATLAS_TEXTURE_SIZE;
 
 // Calculate branchless equality between two vectors.
 //
-// Returns `1.0` if equal within the epsilon, otherwise `0.0`.
+// Returns `1.0` if equal within the EPSILON, otherwise `0.0`.
 fn vec4_eq(a: vec4<f32>, b: vec4<f32>) -> f32 {
-    // Calculate the difference between each component, and return `0.0` or `1.0` depending on whether it's bigger than epsilon
-    let delta = step(abs(a - b), epsilon);
+    // Calculate the difference between each component, and return `0.0` or `1.0` depending on whether it's bigger than EPSILON
+    let delta = step(abs(a - b), EPSILON);
 
     // If any component is zero multiplying them with the other components will still return zero, AKA there's inequality
     return delta.x * delta.y * delta.z * delta.w;
@@ -104,7 +111,7 @@ fn vec4_eq(a: vec4<f32>, b: vec4<f32>) -> f32 {
 
 // Calculate branchless inequality between two vectors.
 //
-// Returns `0.0` if equal within the epsilon, otherwise `1.0`.
+// Returns `0.0` if equal within the EPSILON, otherwise `1.0`.
 fn vec4_neq(a: vec4<f32>, b: vec4<f32>) -> f32 {
     return 1.0 - vec4_eq(a, b);
 }
@@ -242,25 +249,19 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         return c;
     }
 
-    return c;
-/*
-    // Calculate the relative UV offset to see the next pixel
-    let pixel_offset = 1.0 / 4096.0;
-
     // Offset of the UV within the pixel
-    let subpixel = fract(in.tex_coords * tex_info.size);
+    let subpixel = fract(in.tex_coords * ATLAS_TEXTURE_SIZE);
     
     // Sample the pixels around the center with (n)orth, (e)ast, (s)outh, (w)est
-    let nw = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(-pixel_offset.x, pixel_offset.y));
-    let n = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(0.0, pixel_offset.y));
-    let ne = textureSample(t_diffuse, s_diffuse, in.tex_coords + pixel_offset);
-    let w = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(-pixel_offset.x, 0.0));
-    let e = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(pixel_offset.x, 0.0));
-    let sw = textureSample(t_diffuse, s_diffuse, in.tex_coords - pixel_offset);
-    let s = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(0.0, -pixel_offset.y));
-    let se = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(pixel_offset.x, -pixel_offset.y));
+    let nw = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(-PIXEL_OFFSET, PIXEL_OFFSET));
+    let n = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(0.0, PIXEL_OFFSET));
+    let ne = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(PIXEL_OFFSET));
+    let w = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(-PIXEL_OFFSET, 0.0));
+    let e = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(PIXEL_OFFSET, 0.0));
+    let sw = textureSample(t_diffuse, s_diffuse, in.tex_coords - vec2<f32>(PIXEL_OFFSET));
+    let s = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(0.0, -PIXEL_OFFSET));
+    let se = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(PIXEL_OFFSET, -PIXEL_OFFSET));
 
     // Apply a Scale3x block
     return scale3x(nw, n, ne, w, c, e, sw, s, se, subpixel);
-    */
 }
