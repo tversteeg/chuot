@@ -2,11 +2,9 @@
 //!
 //! Can be loaded as an asset when the `asset` feature flag is set.
 
-use std::ops::Range;
-
 use assets_manager::{AnyCache, Asset, BoxedError, Compound, SharedString};
-
-use glamour::{Size2, Vector2};
+use glam::Affine2;
+use glamour::{Angle, Size2, Transform2, Vector2};
 use miette::Result;
 use serde::Deserialize;
 
@@ -15,71 +13,63 @@ use crate::{
     graphics::{
         data::TexturedVertex,
         instance::Instances,
-        texture::{PendingOrUploaded, Texture, TextureRef},
-        Render,
+        texture::{PendingOrUploaded, Texture},
     },
 };
-
-/// Two triangles forming a rectangle to draw the sprite on the GPU.
-const INDICES: &[u16] = &[0, 1, 3, 3, 1, 2];
 
 /// Sprite that can be drawn on the  canvas.
 pub(crate) struct Sprite {
     /// Reference of the texture to render.
     pub(crate) image: PendingOrUploaded<Image>,
-    /// Size of the image in pixels.
-    size: Size2<u32>,
+    /// Size of the image in a form we can calculate with without casting.
+    size: Size2,
     /// Sprite metadata.
     metadata: SpriteMetadata,
-    /// Instances to draw this frame.
-    instances: Instances,
-    /// Sprite needs to be updated on the GPU.
-    is_dirty: bool,
-    /// Graphics information for rendering the sprite.
-    ///
-    /// Only computed when actually used.
-    contents: Option<[TexturedVertex; 4]>,
 }
 
 impl Sprite {
-    /// Get the texture reference.
-    ///
-    /// # Returns
-    ///
-    /// - `None` when the texture is not uploaded yet.
-    pub(crate) fn texture_ref(&self) -> Option<TextureRef> {
-        self.image.try_as_ref()
+    /// Create from an image.
+    pub(crate) fn from_image(image: Image, metadata: SpriteMetadata) -> Self {
+        // Mark the image as a texture not being uploaded yet
+        let image = PendingOrUploaded::new(image);
+
+        let size = image.size();
+        let size = Size2::new(size.width as f32, size.height as f32);
+
+        Self {
+            image,
+            size,
+            metadata,
+        }
     }
 
-    /// Compute the coordinates and UV for this sprite based on the offset.
-    fn set_contents(&mut self) {
-        // Only compute when something changed
-        if !self.is_dirty && self.contents.is_some() {
-            return;
+    /// Draw the sprite if the texture is already uploaded.
+    pub(crate) fn draw(&mut self, position: Vector2, rotation: Angle, instances: &mut Instances) {
+        // First translate negatively from the center point
+        let transform = Transform2::from_translation(self.metadata.offset.offset(self.size))
+            // Then apply the rotation so it rotates around the offset
+            .then_rotate(rotation)
+            // Finally move it to the correct position
+            .then_translate(position);
+
+        if let Some(texture_ref) = self.image.try_as_ref() {
+            instances.push(Affine2::from_mat3(transform.matrix.into()), texture_ref);
         }
+    }
 
-        let width = self.size.width as f32;
-        let height = self.size.height as f32;
-        let offset = self.metadata.offset.offset(Size2::new(width, height));
+    /// Vertices for the instanced sprite quad.
+    pub(crate) fn vertices() -> [TexturedVertex; 4] {
+        [
+            TexturedVertex::new(Vector2::new(0.0, 0.0), 0.0, Vector2::new(0.0, 0.0)),
+            TexturedVertex::new(Vector2::new(1.0, 0.0), 0.0, Vector2::new(1.0, 0.0)),
+            TexturedVertex::new(Vector2::new(1.0, 1.0), 0.0, Vector2::new(1.0, 1.0)),
+            TexturedVertex::new(Vector2::new(0.0, 1.0), 0.0, Vector2::new(0.0, 1.0)),
+        ]
+    }
 
-        self.contents = Some([
-            TexturedVertex::new(Vector2::new(0.0, 0.0) + offset, 0.0, Vector2::new(0.0, 0.0)),
-            TexturedVertex::new(
-                Vector2::new(width, 0.0) + offset,
-                0.0,
-                Vector2::new(1.0, 0.0),
-            ),
-            TexturedVertex::new(
-                Vector2::new(width, height) + offset,
-                0.0,
-                Vector2::new(1.0, 1.0),
-            ),
-            TexturedVertex::new(
-                Vector2::new(0.0, height) + offset,
-                0.0,
-                Vector2::new(0.0, 1.0),
-            ),
-        ]);
+    /// Indices for the instanced sprite quad.
+    pub(crate) fn indices() -> [u16; 6] {
+        [0, 1, 3, 3, 1, 2]
     }
 }
 
@@ -87,8 +77,6 @@ impl Compound for Sprite {
     fn load(cache: AnyCache, id: &SharedString) -> Result<Self, BoxedError> {
         // Load the image
         let image = cache.load_owned::<Image>(id)?;
-        // Get the size for our sprite
-        let size = image.size();
 
         // Load the metadata
         let metadata = match cache.load::<SpriteMetadata>(id) {
@@ -100,64 +88,13 @@ impl Compound for Sprite {
             }
         };
 
-        // Mark the image as a texture not being uploaded yet
-        let image = PendingOrUploaded::new(image);
-
-        let is_dirty = true;
-        let contents = None;
-        let instances = Instances::default();
-
-        Ok(Self {
-            image,
-            size,
-            metadata,
-            is_dirty,
-            contents,
-            instances,
-        })
-    }
-}
-
-impl Render for Sprite {
-    fn is_dirty(&self) -> bool {
-        self.is_dirty
-    }
-
-    fn mark_clean(&mut self) {
-        self.is_dirty = false;
-    }
-
-    fn instances_mut(&mut self) -> &mut Instances {
-        &mut self.instances
-    }
-
-    fn range(&self) -> Range<u32> {
-        0..INDICES.len() as u32
-    }
-
-    fn vertices(&self) -> &[TexturedVertex] {
-        self.contents.as_ref().expect("Missing computed content")
-    }
-
-    fn indices(&self) -> &[u16] {
-        INDICES
-    }
-
-    fn texture(&self) -> Option<TextureRef> {
-        self.image.try_as_ref()
-    }
-
-    fn pre_render(&mut self) {
-        // Calculate the contents if they haven't been set yet
-        if self.contents.is_none() {
-            self.set_contents();
-        }
+        Ok(Self::from_image(image, metadata))
     }
 }
 
 /// Center of the sprite.
 #[derive(Debug, Clone, Copy, PartialEq, Default, Deserialize)]
-pub enum SpriteOffset {
+pub(crate) enum SpriteOffset {
     /// Middle of the sprite will be rendered at `(0, 0)`.
     Middle,
     /// Horizontal middle and vertical top will be rendered at `(0, 0)`.
@@ -171,7 +108,7 @@ pub enum SpriteOffset {
 
 impl SpriteOffset {
     /// Get the offset based on the sprite size.
-    pub fn offset(&self, sprite_size: Size2) -> Vector2 {
+    pub(crate) fn offset(&self, sprite_size: Size2) -> Vector2 {
         match self {
             SpriteOffset::Middle => {
                 Vector2::new(-sprite_size.width / 2.0, -sprite_size.height / 2.0)

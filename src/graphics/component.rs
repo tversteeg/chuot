@@ -1,99 +1,83 @@
 //! Expose render functionality on different types through traits.
 
-use std::{borrow::Cow, marker::PhantomData};
+use std::borrow::Cow;
 
-use hashbrown::HashMap;
+use wgpu::util::{BufferInitDescriptor, DeviceExt};
 
-use wgpu::{
-    util::{BufferInitDescriptor, DeviceExt},
-    BindGroup, BindGroupLayout, BlendState, Buffer, BufferUsages, Color, ColorTargetState,
-    ColorWrites, CommandEncoder, Device, FragmentState, FrontFace, IndexFormat, LoadOp,
-    MultisampleState, Operations, PipelineLayoutDescriptor, PolygonMode, PrimitiveState, Queue,
-    RenderPassColorAttachment, RenderPassDescriptor, RenderPipeline, RenderPipelineDescriptor,
-    ShaderModuleDescriptor, ShaderSource, StoreOp, TextureView, VertexState,
-};
+use crate::{graphics::state::PREFERRED_TEXTURE_FORMAT, sprite::Sprite};
 
-use crate::graphics::state::PREFERRED_TEXTURE_FORMAT;
-
-use super::{
-    atlas::Atlas, data::TexturedVertex, instance::Instances, texture::TextureRef,
-    uniform::UniformState, Render,
-};
-
-// TODO: batch all textures split by sampler arrays with the max value get from adapter
+use super::{atlas::Atlas, data::TexturedVertex, instance::Instances};
 
 /// Simple render state holding buffers and instances required for rendering somethging.
-pub(crate) struct RenderState<R: Render> {
+pub(crate) struct SpriteRenderState {
     /// Pipeline of the rendering itself.
-    render_pipeline: RenderPipeline,
+    render_pipeline: wgpu::RenderPipeline,
     /// GPU buffer reference to the vertices.
-    vertex_buffer: Buffer,
+    vertex_buffer: wgpu::Buffer,
     /// GPU buffer reference to the indices.
-    index_buffer: Buffer,
+    index_buffer: wgpu::Buffer,
     /// GPU buffer reference to the instances.
-    instance_buffer: Buffer,
-    /// Hold the type so we can't have mismatching calls.
-    _phantom: PhantomData<R>,
+    instance_buffer: wgpu::Buffer,
+    /// Amount of indices to render.
+    indices: u32,
 }
 
-impl<R: Render> RenderState<R> {
+impl SpriteRenderState {
     /// Create the state by calling the [`Render`] trait implementations on the type.
     pub(crate) fn new(
-        device: &Device,
-        screen_info_bind_group_layout: &BindGroupLayout,
+        device: &wgpu::Device,
+        screen_info_bind_group_layout: &wgpu::BindGroupLayout,
         texture_atlas: &Atlas,
-    ) -> Self
-    where
-        R: Render,
-    {
+    ) -> Self {
         log::debug!("Creating custom rendering component");
 
         // Create a new render pipeline first
-        let render_pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
-            label: Some("Component Render Pipeline Layout"),
-            bind_group_layouts: &[
-                &texture_atlas.bind_group_layout,
-                &texture_atlas.rects.bind_group_layout,
-                screen_info_bind_group_layout,
-            ],
-            push_constant_ranges: &[],
-        });
+        let render_pipeline_layout =
+            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("Component Render Pipeline Layout"),
+                bind_group_layouts: &[
+                    &texture_atlas.bind_group_layout,
+                    &texture_atlas.rects.bind_group_layout,
+                    screen_info_bind_group_layout,
+                ],
+                push_constant_ranges: &[],
+            });
 
         // Load the shaders from disk
-        let shader = device.create_shader_module(ShaderModuleDescriptor {
+        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Diffuse Texture Shader"),
-            source: ShaderSource::Wgsl(Cow::Borrowed(include_str!("./shaders/texture.wgsl"))),
+            source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("./shaders/texture.wgsl"))),
         });
 
-        let render_pipeline = device.create_render_pipeline(&RenderPipelineDescriptor {
+        let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("Component Render Pipeline"),
             layout: Some(&render_pipeline_layout),
-            vertex: VertexState {
+            vertex: wgpu::VertexState {
                 buffers: &[TexturedVertex::descriptor(), Instances::descriptor()],
                 module: &shader,
                 entry_point: "vs_main",
             },
-            fragment: Some(FragmentState {
+            fragment: Some(wgpu::FragmentState {
                 module: &shader,
                 entry_point: "fs_main",
-                targets: &[Some(ColorTargetState {
+                targets: &[Some(wgpu::ColorTargetState {
                     format: PREFERRED_TEXTURE_FORMAT,
-                    blend: Some(BlendState::ALPHA_BLENDING),
-                    write_mask: ColorWrites::ALL,
+                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                    write_mask: wgpu::ColorWrites::ALL,
                 })],
             }),
-            primitive: PrimitiveState {
-                topology: R::topology(),
+            primitive: wgpu::PrimitiveState {
+                topology: wgpu::PrimitiveTopology::TriangleList,
                 strip_index_format: None,
-                front_face: FrontFace::Ccw,
+                front_face: wgpu::FrontFace::Ccw,
                 // Irrelevant since we disable culling
                 cull_mode: None,
-                polygon_mode: PolygonMode::Fill,
+                polygon_mode: wgpu::PolygonMode::Fill,
                 unclipped_depth: false,
                 conservative: false,
             },
             depth_stencil: None,
-            multisample: MultisampleState {
+            multisample: wgpu::MultisampleState {
                 // How many samples the pipeline will use
                 count: 1,
                 // Use all masks
@@ -108,58 +92,56 @@ impl<R: Render> RenderState<R> {
         let instance_buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: Some("Instance Buffer"),
             contents: &[],
-            usage: BufferUsages::VERTEX | BufferUsages::COPY_DST | BufferUsages::STORAGE,
+            usage: wgpu::BufferUsages::VERTEX
+                | wgpu::BufferUsages::COPY_DST
+                | wgpu::BufferUsages::STORAGE,
         });
 
         // Create the vertex buffer
         let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: Some("Vertex Buffer"),
-            contents: &[],
-            usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
+            contents: bytemuck::cast_slice(&Sprite::vertices()),
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
         });
 
         // Create the index buffer
+        let indices = Sprite::indices();
         let index_buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: Some("Index Buffer"),
-            contents: &[],
-            usage: BufferUsages::INDEX | BufferUsages::COPY_DST,
+            contents: bytemuck::cast_slice(&indices),
+            usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
         });
+        let indices = indices.len() as u32;
 
         Self {
+            indices,
             render_pipeline,
             vertex_buffer,
             instance_buffer,
             index_buffer,
-            _phantom: PhantomData,
         }
     }
 
-    /// Render all instances from the type with the specified texture.
+    /// Render all instances from all types with the specified texture.
     #[allow(clippy::too_many_arguments)]
     pub(super) fn render(
         &mut self,
-        target: &mut R,
-        encoder: &mut CommandEncoder,
-        view: &TextureView,
-        queue: &Queue,
-        device: &Device,
-        screen_size_bind_group: &BindGroup,
+        instances: &Instances,
+        encoder: &mut wgpu::CommandEncoder,
+        view: &wgpu::TextureView,
+        queue: &wgpu::Queue,
+        device: &wgpu::Device,
+        screen_size_bind_group: &wgpu::BindGroup,
         texture_atlas: &Atlas,
-        background_color: Color,
+        background_color: wgpu::Color,
     ) {
-        // Target will be rendered
-        target.pre_render();
+        if instances.is_empty() {
+            // Nothing to render when there's no instances
+            return;
+        }
 
         // Get the instances
         let (instances_bytes, instances_len) = {
-            // We could simplify the scope here by implementing `Render::instances()` but that means implementing another method for each trait implementor
-
-            let instances = target.instances_mut();
-            if instances.is_empty() {
-                // Nothing to render when there's no instances
-                return;
-            }
-
             // Construct the bytes of the instances to upload
             (instances.bytes(), instances.len())
         };
@@ -180,50 +162,21 @@ impl<R: Render> RenderState<R> {
             self.instance_buffer = device.create_buffer_init(&BufferInitDescriptor {
                 label: Some("Instance Buffer"),
                 contents: instances_bytes,
-                usage: BufferUsages::VERTEX | BufferUsages::COPY_DST | BufferUsages::STORAGE,
+                usage: wgpu::BufferUsages::VERTEX
+                    | wgpu::BufferUsages::COPY_DST
+                    | wgpu::BufferUsages::STORAGE,
             });
         }
-
-        // Upload the buffers if dirty
-        if target.is_dirty() {
-            profiling::scope!("Re-uploading buffers for dirty texture");
-
-            log::debug!(
-                "Custom rendering component is dirty, re-uploading vertex and index buffers"
-            );
-
-            // Recreate the vertex buffer
-            self.vertex_buffer.destroy();
-            self.vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
-                label: Some("Vertex Buffer"),
-                contents: bytemuck::cast_slice(target.vertices()),
-                usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
-            });
-
-            // Re upload the indices
-            self.index_buffer.destroy();
-            self.index_buffer = device.create_buffer_init(&BufferInitDescriptor {
-                label: Some("Index Buffer"),
-                contents: bytemuck::cast_slice(target.indices()),
-                usage: BufferUsages::INDEX | BufferUsages::COPY_DST,
-            });
-
-            // Target is not dirty anymore
-            target.mark_clean();
-        }
-
-        // Allow components to clean up, doesn't matter even though it's technically not rendered yet
-        target.post_render();
 
         // Start the render pass
-        let mut render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
+        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("Component Render Pass"),
-            color_attachments: &[Some(RenderPassColorAttachment {
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                 view,
                 resolve_target: None,
-                ops: Operations {
-                    load: LoadOp::Clear(background_color),
-                    store: StoreOp::Store,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(background_color),
+                    store: wgpu::StoreOp::Store,
                 },
             })],
             depth_stencil_attachment: None,
@@ -247,9 +200,9 @@ impl<R: Render> RenderState<R> {
         // Set the instances
         render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
         // Set the target indices
-        render_pass.set_index_buffer(self.index_buffer.slice(..), IndexFormat::Uint16);
+        render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
 
         // Draw the instances
-        render_pass.draw_indexed(target.range(), 0, 0..instances_len as u32);
+        render_pass.draw_indexed(0..self.indices, 0, 0..instances_len as u32);
     }
 }

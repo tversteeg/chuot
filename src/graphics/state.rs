@@ -1,22 +1,18 @@
 //! Main rendering state.
 
-use std::sync::{Arc, Mutex};
-
 use glamour::{Contains, Rect, Size2, Vector2};
-use hashbrown::HashMap;
 use miette::{IntoDiagnostic, Result, WrapErr};
 use wgpu::{
-    BindGroupLayout, Color, CommandEncoder, CommandEncoderDescriptor, Device, DeviceDescriptor,
-    Features, Instance, Limits, PowerPreference, Queue, RequestAdapterOptionsBase, Surface,
-    SurfaceConfiguration, TextureFormat, TextureUsages, TextureView, TextureViewDescriptor,
-    WindowHandle,
+    Color, CommandEncoder, CommandEncoderDescriptor, Device, DeviceDescriptor, Features, Instance,
+    Limits, PowerPreference, Queue, RequestAdapterOptionsBase, Surface, SurfaceConfiguration,
+    TextureFormat, TextureUsages, TextureView, TextureViewDescriptor, WindowHandle,
 };
 
-use crate::{graphics::texture::PendingOrUploaded, sprite::Sprite, Context};
+use crate::Context;
 
 use super::{
-    atlas::Atlas, component::RenderState, data::ScreenInfo, post_processing::PostProcessingState,
-    texture::TextureRef, uniform::UniformState,
+    atlas::Atlas, component::SpriteRenderState, data::ScreenInfo,
+    post_processing::PostProcessingState, uniform::UniformState,
 };
 
 /// Texture format we prefer to use for everything.
@@ -37,7 +33,7 @@ pub(crate) struct MainRenderState<'window> {
     /// Uniform screen info (size and scale) to the shaders.
     screen_info: UniformState<ScreenInfo>,
     /// Sprite component specific render pipelines.
-    sprite_render_state: RenderState<Sprite>,
+    sprite_render_state: SpriteRenderState,
     /// Texture atlas.
     atlas: Atlas,
     /// Size of the final buffer to draw.
@@ -151,7 +147,8 @@ impl<'window> MainRenderState<'window> {
         let atlas = Atlas::new(&device);
 
         // Create a custom pipeline for each component
-        let sprite_render_state = RenderState::new(&device, &screen_info.bind_group_layout, &atlas);
+        let sprite_render_state =
+            SpriteRenderState::new(&device, &screen_info.bind_group_layout, &atlas);
 
         // The letterbox will be changed on resize, but the size cannot be zero because then the buffer will crash
         let letterbox = Rect::new(Vector2::ZERO, Size2::splat(1.0));
@@ -209,28 +206,20 @@ impl<'window> MainRenderState<'window> {
             .create_view(&TextureViewDescriptor::default());
 
         // First pass, render the contents to a custom buffer
-        ctx.write(|ctx| {
-            if ctx.sprites.is_empty() {
-                // Nothing to render, render the solid background color
-                todo!()
-            } else {
-                profiling::scope!("Render sprites");
+        ctx.read(|ctx| {
+            profiling::scope!("Render sprites");
 
-                // Render each sprite
-                ctx.sprites.iter_mut().for_each(|(_, sprite)| {
-                    // Render the sprite
-                    self.sprite_render_state.render(
-                        sprite,
-                        &mut encoder,
-                        &self.downscale.texture_view,
-                        &self.queue,
-                        &self.device,
-                        &self.screen_info.bind_group,
-                        &self.atlas,
-                        self.background_color,
-                    );
-                });
-            }
+            // Render the sprites
+            self.sprite_render_state.render(
+                &ctx.instances,
+                &mut encoder,
+                &self.downscale.texture_view,
+                &self.queue,
+                &self.device,
+                &self.screen_info.bind_group,
+                &self.atlas,
+                self.background_color,
+            );
         });
 
         // Second pass, render the custom buffer to the viewport
@@ -361,7 +350,7 @@ impl<'window> MainRenderState<'window> {
 
         // Upload the un-uploaded sprites
         ctx.write(|ctx| {
-            ctx.sprites.iter_mut().for_each(|(_, sprite)| {
+            ctx.sprites_iter_mut().for_each(|sprite| {
                 sprite.image.upload(&mut self.atlas, &self.queue);
             })
         });

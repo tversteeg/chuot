@@ -21,6 +21,7 @@ AGPL licensed and opinionated game engine for pixel-art games.
 - Dialogue scripting system.
 - Audio playback.
 - In game profiler GUI.
+- Simple bitmap font drawing.
 
 #### Usage
 

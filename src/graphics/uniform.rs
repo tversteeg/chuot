@@ -6,8 +6,8 @@ use bytemuck::NoUninit;
 use wgpu::{
     util::{BufferInitDescriptor, DeviceExt},
     BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
-    BindGroupLayoutEntry, BindingResource, BindingType, Buffer, BufferBindingType, BufferUsages,
-    Device, Queue, ShaderStages,
+    BindGroupLayoutEntry, BindingResource, BindingType, BufferBindingType, BufferUsages, Device,
+    Queue, ShaderStages,
 };
 
 /// State data collection for uniforms for a shader.
@@ -151,6 +151,8 @@ impl<T: NoUninit> UniformArrayState<T> {
     ///
     /// - The index of the pushed item.
     pub(crate) fn push(&mut self, value: &T, queue: &Queue) -> u64 {
+        assert!(self.len < self.max_bytes, "Uniform value out ouf range");
+
         // Convert value to bytes
         let data = bytemuck::bytes_of(value);
 

@@ -63,15 +63,18 @@ fn vs_main(
         vec3<f32>(instance.mat_2, 1.0),
     );
 
+    // Get the texture rectangle from the atlas
+    let subrect = tex_info[instance.tex_index];
+
+    // Resize the quad to the size of the texture
+    let model_position = model.position.xy * subrect.size;
+
     // Translate, rotate and skew with the instance matrix
-    let projected_position = instance_matrix * vec3<f32>(model.position.xy, 1.0);
+    let projected_position = instance_matrix * vec3<f32>(model_position, 1.0);
 
     // Move from 0..width to -1..1
     let screen_size_half = screen_info.size / 2.0;
     let offset = 1.0 - projected_position.xy / screen_size_half;
-
-    // Get the texture rectangle from the atlas
-    let subrect = tex_info[instance.tex_index];
     // Move the 0..1 texture coordinates to relative coordinates within the 4096x4096 atlas texture for the specified texture
     let tex_coords = (subrect.offset + subrect.size * model.tex_coords) / ATLAS_TEXTURE_SIZE;
 

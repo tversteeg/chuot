@@ -9,6 +9,7 @@
 //! - Dialogue scripting system.
 //! - Audio playback.
 //! - In game profiler GUI.
+//! - Simple bitmap font drawing.
 //!
 //! # Usage
 //!
@@ -84,6 +85,7 @@ pub mod audio;
 mod context;
 #[cfg(feature = "dialogue")]
 pub mod dialogue;
+mod font;
 pub mod graphics;
 mod sprite;
 mod window;

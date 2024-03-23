@@ -218,6 +218,9 @@ where
                     // Embed the input
                     // TODO: remove clone
                     ctx.input = input.clone();
+
+                    // Reset the sprite instances
+                    ctx.instances.clear();
                 });
 
                 // Call the tick function with the context

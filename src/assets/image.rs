@@ -12,9 +12,66 @@ use png::{BitDepth, ColorType, Decoder, Reader, Transformations};
 use crate::graphics::texture::Texture;
 
 /// Core of a sprite loaded from disk.
-pub(crate) struct Image {
-    /// PNG image reader.
-    reader: Reader<Cursor<Vec<u8>>>,
+pub(crate) enum Image {
+    /// Image is raw PNG bytes inside a reader.
+    Png {
+        /// PNG image reader.
+        reader: Box<Reader<Cursor<Vec<u8>>>>,
+    },
+    /// Image is a raw ARGB byte buffer.
+    Raw {
+        /// Size of the image in pixels.
+        size: Size2<u32>,
+        /// Raw pixels.
+        data: Vec<u8>,
+    },
+}
+
+impl Image {
+    /// Read the image and split into equal horizontal parts.
+    pub(crate) fn into_horizontal_parts(mut self, part_width: u32) -> Vec<Image> {
+        let size = self.size();
+
+        // Ensure that the image can be split into equal parts
+        assert!(
+            size.width % part_width == 0,
+            "Cannot split image into equal horizontal parts of {part_width} pixels"
+        );
+
+        // Get the raw pixels, by either reading the PNG or collecting the already raw data
+        let raw_bytes = self.to_rgba_image();
+
+        // Loop over each section, recreating the data
+        let (width, height) = (size.width as usize, size.height as usize);
+        let sub_images = size.width / part_width;
+        (0..sub_images)
+            .map(|index| {
+                // Setup the buffer
+                let pixels = (part_width * size.height) as usize * std::mem::size_of::<u32>();
+                let mut data = vec![0; pixels];
+
+                // Copy the image slices
+                for y in 0..height {
+                    let bytes_to_copy = part_width as usize * std::mem::size_of::<u32>();
+
+                    let src_start =
+                        (y * width + (index * part_width) as usize) * std::mem::size_of::<u32>();
+                    let src_end = src_start + bytes_to_copy;
+
+                    let dst_start = y * (part_width as usize) * std::mem::size_of::<u32>();
+                    let dst_end = dst_start + bytes_to_copy;
+
+                    data[dst_start..dst_end].copy_from_slice(&raw_bytes[src_start..src_end]);
+                }
+
+                // Create the new image
+                Image::Raw {
+                    size: Size2::new(part_width, size.height),
+                    data,
+                }
+            })
+            .collect()
+    }
 }
 
 impl Asset for Image {
@@ -26,22 +83,30 @@ impl Asset for Image {
 
 impl Texture for Image {
     fn size(&self) -> Size2<u32> {
-        let info = self.reader.info();
+        match self {
+            Image::Png { reader } => {
+                let info = reader.info();
 
-        Size2::new(info.width, info.height)
+                Size2::new(info.width, info.height)
+            }
+            Image::Raw { size, .. } => *size,
+        }
     }
 
     fn to_rgba_image(&mut self) -> Vec<u8> {
-        log::debug!("Reading PNG frame");
+        match self {
+            Image::Png { reader } => {
+                // Allocate the output buffer
+                let mut buf = vec![0; reader.output_buffer_size()];
 
-        // Allocate the output buffer
-        let mut buf = vec![0; self.reader.output_buffer_size()];
-
-        // Read the bytes into the buffer
-        self.reader
-            .next_frame(&mut buf)
-            .expect("Error reading PNG frame");
-        buf
+                // Read the bytes into the buffer
+                reader
+                    .next_frame(&mut buf)
+                    .expect("Error reading PNG frame");
+                buf
+            }
+            Image::Raw { data, .. } => data.clone(),
+        }
     }
 }
 
@@ -68,10 +133,12 @@ impl Loader<Image> for ImageLoader {
             .set_transformations(Transformations::normalize_to_color8() | Transformations::ALPHA);
 
         // Start parsing the PNG
-        let reader = decoder
-            .read_info()
-            .into_diagnostic()
-            .wrap_err("Error reading PNG")?;
+        let reader = Box::new(
+            decoder
+                .read_info()
+                .into_diagnostic()
+                .wrap_err("Error reading PNG")?,
+        );
 
         // Ensure we can use the PNG colors
         let (color_type, bits) = reader.output_color_type();
@@ -83,6 +150,6 @@ impl Loader<Image> for ImageLoader {
             ))?;
         }
 
-        Ok(Image { reader })
+        Ok(Image::Png { reader })
     }
 }

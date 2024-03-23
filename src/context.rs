@@ -3,13 +3,12 @@
 use std::sync::{Arc, RwLock};
 
 use assets_manager::SharedString;
-use glam::Affine2;
-use glamour::Vector2;
+use glamour::{Angle, Vector2};
 use hashbrown::HashMap;
 use winit::{event::MouseButton, keyboard::KeyCode};
 use winit_input_helper::WinitInputHelper;
 
-use crate::{graphics::Render, sprite::Sprite};
+use crate::{font::Font, graphics::Instances, sprite::Sprite};
 
 /// Context containing most functionality for interfacing with the game engine.
 ///
@@ -37,7 +36,7 @@ impl Context {
     ///
     /// - When asset failed loading.
     #[inline]
-    pub fn draw_sprite(&mut self, path: &str, position: Vector2) {
+    pub fn draw_sprite(&mut self, path: &str, position: impl Into<Vector2>) {
         self.draw_sprite_rotated(path, position, 0.0);
     }
 
@@ -55,7 +54,12 @@ impl Context {
     ///
     /// - When asset failed loading.
     #[inline]
-    pub fn draw_sprite_rotated(&self, path: &str, position: Vector2, rotation: f32) {
+    pub fn draw_sprite_rotated(
+        &self,
+        path: &str,
+        position: impl Into<Vector2>,
+        rotation: impl Into<Angle>,
+    ) {
         // Add an instance of the sprite
         self.write(|ctx| {
             ctx.load_sprite_if_not_loaded(path);
@@ -66,12 +70,31 @@ impl Context {
                 .expect("Error accessing sprite in context");
 
             // Push the instance if the texture is already uploaded
-            if let Some(texture_ref) = sprite.texture_ref() {
-                sprite.push_instance(
-                    Affine2::from_angle_translation(rotation, position.into()),
-                    texture_ref,
-                );
-            }
+            sprite.draw(position.into(), rotation.into(), &mut ctx.instances);
+        });
+    }
+
+    /// Draw some text on the screen at the set position with a rotation of `0`.
+    ///
+    /// This will load the font asset from disk and upload it to the GPU the first time this font is referenced.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Asset path of the font, see [`crate::assets`] for more information about asset loading and storing.
+    /// * `position` - Absolute position of the target top-left text on the buffer in pixels.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
+    #[inline]
+    pub fn draw_text(&self, path: &str, position: impl Into<Vector2>, text: impl AsRef<str>) {
+        self.write(|ctx| {
+            ctx.load_font_if_not_loaded(path);
+
+            ctx.fonts
+                .get_mut(path)
+                .expect("Error accessing font in context")
+                .draw(position.into(), text.as_ref(), &mut ctx.instances)
         });
     }
 
@@ -224,11 +247,24 @@ pub(crate) struct ContextInner {
     ///
     /// Exoses methods for detecting mouse and keyboard events.
     pub(crate) input: WinitInputHelper,
-    /// All sprite instances to render.
-    pub(crate) sprites: HashMap<SharedString, Sprite>,
+    /// Instances of all sprites drawn this tick, also includes sprites from the fonts.
+    pub(crate) instances: Instances,
+    /// All sprite textures to render.
+    sprites: HashMap<SharedString, Sprite>,
+    /// All font textures to render.
+    fonts: HashMap<SharedString, Font>,
 }
 
 impl ContextInner {
+    /// Get all sprites from any container with sprites.
+    pub(crate) fn sprites_iter_mut(&mut self) -> impl Iterator<Item = &mut Sprite> {
+        self.sprites.values_mut().chain(
+            self.fonts
+                .values_mut()
+                .flat_map(|font| font.sprites.iter_mut()),
+        )
+    }
+
     /// Load the sprite asset if it doesn't exist yet.
     fn load_sprite_if_not_loaded(&mut self, path: &str) {
         if !self.sprites.contains_key(path) {
@@ -237,6 +273,17 @@ impl ContextInner {
 
             // Keep track of it, to see if it needs to be updated or not
             self.sprites.insert(path.into(), sprite);
+        }
+    }
+
+    /// Load the font asset if it doesn't exist yet.
+    fn load_font_if_not_loaded(&mut self, path: &str) {
+        if !self.fonts.contains_key(path) {
+            // Load the font from disk
+            let font = crate::asset_owned(path);
+
+            // Keep track of it, to see if it needs to be updated or not
+            self.fonts.insert(path.into(), font);
         }
     }
 }

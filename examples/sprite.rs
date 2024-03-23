@@ -12,6 +12,7 @@ struct Sprite {
 }
 
 /// Define a game state for our example.
+#[derive(Default)]
 struct GameState {
     /// Sprites to draw.
     sprites: Vec<Sprite>,
@@ -49,6 +50,10 @@ impl PixelGame for GameState {
         for sprite in &self.sprites {
             ctx.draw_sprite_rotated("threeforms", sprite.position, sprite.rotation);
         }
+
+        // Draw a basic FPS counter
+        let fps = ctx.delta_time().recip();
+        ctx.draw_text("Beachball", Vector2::ZERO, format!("{fps:.1}"));
     }
 }
 
@@ -61,13 +66,8 @@ fn main() {
         ..Default::default()
     };
 
-    let sprites = vec![Sprite {
-        position: Vector2::ZERO,
-        rotation: 0.0,
-    }];
-
     // Spawn the window and run the 'game'
-    GameState { sprites }
+    GameState::default()
         .run(window_config)
         .expect("Error running game");
 }

@@ -1,11 +1,5 @@
 //! Allow types to expose a texture to the GPU.
 
-use std::{
-    borrow::Cow,
-    sync::{Arc, Mutex, OnceLock},
-};
-
-use bytemuck::{Pod, Zeroable};
 use glamour::Size2;
 
 use super::atlas::Atlas;
@@ -49,8 +43,6 @@ impl<T: Texture> PendingOrUploaded<T> {
         if let Self::Uploaded(..) = self {
             return;
         }
-
-        log::debug!("New texture detected, adding to atlas");
 
         // First take the value, replacing it with a default ref we will overwrite
         let Self::Pending(texture) = std::mem::take(self) else {
