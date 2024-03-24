@@ -79,14 +79,14 @@
 //!
 //! Other profiling methods in your game can also be implemented, the [profiling](https://docs.rs/profiling/latest/profiling/) crate is enabled even when this feature flag is disabled.
 
-pub mod assets;
+mod assets;
 #[cfg(feature = "audio")]
 pub mod audio;
 mod context;
 #[cfg(feature = "dialogue")]
 pub mod dialogue;
 mod font;
-pub mod graphics;
+mod graphics;
 mod sprite;
 mod window;
 
@@ -107,7 +107,7 @@ use miette::Result;
 
 /// Setup a game with a shared state and run it.
 ///
-/// This is only a helper for constructing a global game state around the [`window`] function, which can also be easily used standalone.
+/// This is the main interface with the game engine.
 pub trait PixelGame: Sized
 where
     Self: 'static,

@@ -21,6 +21,9 @@ pub struct Context {
     inner: Rc<RefCell<ContextInner>>,
 }
 
+/// Render methods.
+///
+/// All methods use a `path` as the first argument, which is then used to retrieve the assets when they haven't been loaded before with [`crate::asset`].
 impl Context {
     /// Draw a sprite on the screen at the set position with a rotation of `0`.
     ///
@@ -28,7 +31,7 @@ impl Context {
     ///
     /// # Arguments
     ///
-    /// * `path` - Asset path of the sprite, see [`crate::assets`] for more information about asset loading and storing.
+    /// * `path` - Asset path of the sprite, see [`crate::asset`] for more information about asset loading and storing.
     /// * `position` - Absolute position of the target sprite on the buffer in pixels, will be offset by the sprite offset metadata.
     ///
     /// # Panics
@@ -56,7 +59,7 @@ impl Context {
     ///
     /// # Arguments
     ///
-    /// * `path` - Asset path of the sprite, see [`crate::assets`] for more information about asset loading and storing.
+    /// * `path` - Asset path of the sprite, see [`crate::asset`] for more information about asset loading and storing.
     /// * `position` - Absolute position of the target sprite on the buffer in pixels, will be offset by the sprite offset metadata.
     /// * `rotation` - Rotation of the target sprite in radians, will be applied using the RotSprite algorithm.
     ///
@@ -90,7 +93,7 @@ impl Context {
     ///
     /// # Arguments
     ///
-    /// * `path` - Asset path of the font, see [`crate::assets`] for more information about asset loading and storing.
+    /// * `path` - Asset path of the font, see [`crate::asset`] for more information about asset loading and storing.
     /// * `position` - Absolute position of the target top-left text on the buffer in pixels.
     ///
     /// # Panics
@@ -107,7 +110,10 @@ impl Context {
                 .draw(position.into(), text.as_ref(), &mut ctx.instances)
         });
     }
+}
 
+/// State methods.
+impl Context {
     /// Tell the game to exit, this will close the window and return from the [`crate::PixelGame::run`] function.
     ///
     /// The rest of the tick function will still be executed.
@@ -127,7 +133,6 @@ impl Context {
     ///   }
     /// }
     /// # }
-
     #[inline]
     pub fn exit(&self) {
         self.write(|ctx| ctx.exit = true)
@@ -136,11 +141,29 @@ impl Context {
     /// Get the delta time in seconds, how long since the last tick call.
     ///
     /// Useful for calculating frame-independent physics.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use pixel_game_lib::{Context, KeyCode};
+    ///
+    /// # struct Empty; impl pixel_game_lib::PixelGame for Empty {
+    /// // In `PixelGame::tick` trait implementation
+    /// // ..
+    /// fn tick(&mut self, ctx: Context) {
+    ///   // Draw a simple FPS counter on the top-left of the screen
+    ///   let fps = ctx.delta_time().recip();
+    ///   ctx.draw_text("Beachball", Vector2::ZERO, format!("{fps:.1}"));
+    /// }
+    /// # }
     #[inline]
     pub fn delta_time(&self) -> f32 {
         self.read(|ctx| ctx.input.delta_time().unwrap_or_default().as_secs_f32())
     }
+}
 
+/// Input methods.
+impl Context {
     /// Get the position if the mouse is inside the viewport frame.
     ///
     /// This is `Some(..`) if the mouse is inside the viewport frame, not the entire window.
@@ -222,7 +245,10 @@ impl Context {
             inner: Rc::new(RefCell::new(ContextInner::default())),
         }
     }
+}
 
+/// Internally used methods.
+impl Context {
     /// Get a read-only reference to the inner struct.
     ///
     /// # Panics

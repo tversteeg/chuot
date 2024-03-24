@@ -10,7 +10,6 @@ pub(crate) mod texture;
 pub(crate) mod uniform;
 
 use self::state::PREFERRED_TEXTURE_FORMAT;
-pub use self::{data::TexturedVertex, texture::TextureRef};
 
 use wgpu::Color;
 

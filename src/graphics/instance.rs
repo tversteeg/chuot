@@ -4,7 +4,7 @@ use bytemuck::{Pod, Zeroable};
 use glam::Affine2;
 use glamour::{Matrix2, Vector2};
 
-use super::TextureRef;
+use super::texture::TextureRef;
 
 /// WGPU attributes.
 const ATTRIBUTES: &[wgpu::VertexAttribute] = &[

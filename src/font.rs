@@ -1,7 +1,7 @@
 //! Split a horizontal sprite of equal size text segments into a font.
 
 use assets_manager::{loader::TomlLoader, AnyCache, Asset, BoxedError, Compound, SharedString};
-use glamour::{Angle, Size2, Vector2};
+use glamour::{Size2, Vector2};
 use serde::Deserialize;
 
 use crate::{

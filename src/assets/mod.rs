@@ -2,58 +2,9 @@
 
 pub(crate) mod image;
 
-use std::{ops::Deref, sync::OnceLock};
+use std::sync::OnceLock;
 
-use assets_manager::{AssetCache, AssetReadGuard, Compound};
-
-/// Either an instantiated asset or a reference to it.
-#[derive(Debug)]
-pub enum AssetOrPath<T: Compound> {
-    /// Asset path.
-    Path(String),
-    /// Instantiated asset.
-    Owned(T),
-}
-
-impl<'a, T: Compound> From<&'a AssetOrPath<T>> for LoadedAsset<'a, T> {
-    fn from(value: &'a AssetOrPath<T>) -> Self {
-        match value {
-            AssetOrPath::Path(path) => LoadedAsset::Guard(crate::asset::<T>(path)),
-            AssetOrPath::Owned(asset) => LoadedAsset::Ref(asset),
-        }
-    }
-}
-
-impl<T: Compound> From<String> for AssetOrPath<T> {
-    fn from(val: String) -> Self {
-        AssetOrPath::Path(val)
-    }
-}
-
-impl<T: Compound> From<&str> for AssetOrPath<T> {
-    fn from(val: &str) -> Self {
-        AssetOrPath::Path(val.to_string())
-    }
-}
-
-/// Loaded asset.
-pub enum LoadedAsset<'a, T: Compound> {
-    /// Loaded from path with guard.
-    Guard(AssetReadGuard<'a, T>),
-    /// Reference.
-    Ref(&'a T),
-}
-
-impl<T: Compound> Deref for LoadedAsset<'_, T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        match &self {
-            LoadedAsset::Guard(guard) => guard.deref(),
-            LoadedAsset::Ref(reference) => reference,
-        }
-    }
-}
+use assets_manager::AssetCache;
 
 /// How the assets are loaded.
 #[cfg(not(any(target_arch = "wasm32", feature = "embedded-assets")))]

@@ -167,21 +167,4 @@ impl<T: NoUninit> UniformArrayState<T> {
 
         index
     }
-
-    /// Overwrite a single value to the array of the uniform.
-    pub(crate) fn set(&mut self, value: &T, index: u64, queue: &Queue) {
-        // Position of the index
-        let array_offset = index * std::mem::size_of::<T>() as u64;
-
-        assert!(
-            array_offset < self.max_bytes,
-            "Uniform array value is out of range at index {index}"
-        );
-
-        // Convert value to bytes
-        let data = bytemuck::bytes_of(value);
-
-        // PUpdate the buffer and push to queue
-        queue.write_buffer(&self.buffer, array_offset, data);
-    }
 }

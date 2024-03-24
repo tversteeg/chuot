@@ -6,7 +6,9 @@ use glamour::{Rect, Size2, Vector2};
 use packr2::{Packer, PackerConfig, Rectf, SkylinePacker};
 
 use super::{
-    state::PREFERRED_TEXTURE_FORMAT, texture::Texture, uniform::UniformArrayState, TextureRef,
+    state::PREFERRED_TEXTURE_FORMAT,
+    texture::{Texture, TextureRef},
+    uniform::UniformArrayState,
 };
 
 /// Virtual packed texture size in pixels for both width and height.
