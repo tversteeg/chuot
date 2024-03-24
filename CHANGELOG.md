@@ -6,6 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0-alpha.2](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.9.0-alpha.1...pixel-game-lib-v0.9.0-alpha.2) - 2024-03-24
+
+### Added
+- *(font)* [**breaking**] add `Context::draw_text` which loads a bitmap font
+
+### Fixed
+- *(deps)* update rust crate glam to 0.27.0
+- *(graphics)* repair RotSprite shader
+- *(graphics)* properly embed texture atlas info in shader
+
+### Other
+- *(context)* improve performance by switching from `Arc<Mutex<..>>` to `Rc<RefCell<..>>`
+- *(graphics)* pack all sprites into a single texture atlas
+
 ## [0.9.0-alpha.1](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.9.0-alpha...pixel-game-lib-v0.9.0-alpha.1) - 2024-03-21
 
 ### Fixed
