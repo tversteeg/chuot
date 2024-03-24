@@ -6,7 +6,7 @@ use serde::Deserialize;
 
 use crate::{
     assets::image::Image,
-    graphics::Instances,
+    graphics::instance::Instances,
     sprite::{Sprite, SpriteMetadata},
 };
 
@@ -53,7 +53,7 @@ impl Font {
             let char_offset = char_index - self.first_char;
 
             // Draw the character
-            self.sprites[char_offset].draw(position, Angle::from_radians(0.0), instances);
+            self.sprites[char_offset].draw(position, instances);
         });
     }
 }

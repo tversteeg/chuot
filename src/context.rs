@@ -1,6 +1,6 @@
 //! User-facing context used in [`crate::PixelGame::tick`].
 
-use std::sync::{Arc, RwLock};
+use std::{cell::RefCell, rc::Rc};
 
 use assets_manager::SharedString;
 use glamour::{Angle, Vector2};
@@ -8,18 +8,17 @@ use hashbrown::HashMap;
 use winit::{event::MouseButton, keyboard::KeyCode};
 use winit_input_helper::WinitInputHelper;
 
-use crate::{font::Font, graphics::Instances, sprite::Sprite};
+use crate::{font::Font, graphics::instance::Instances, sprite::Sprite};
 
 /// Context containing most functionality for interfacing with the game engine.
 ///
 /// Exposed in [`crate::PixelGame::tick`].
 ///
-/// [`Context`] is safe and cheap to clone due to being a `Arc<RwLock<..>>` under the hood.
-/// Inspired by [`egui::Context`].
+/// [`Context`] is safe and cheap to clone due to being a `Rc<RefCell<..>>` under the hood.
 #[derive(Clone)]
 pub struct Context {
     /// Implementation of all non-primitive parts.
-    inner: Arc<RwLock<ContextInner>>,
+    inner: Rc<RefCell<ContextInner>>,
 }
 
 impl Context {
@@ -37,7 +36,18 @@ impl Context {
     /// - When asset failed loading.
     #[inline]
     pub fn draw_sprite(&mut self, path: &str, position: impl Into<Vector2>) {
-        self.draw_sprite_rotated(path, position, 0.0);
+        // Add an instance of the sprite
+        self.write(|ctx| {
+            ctx.load_sprite_if_not_loaded(path);
+
+            let sprite = ctx
+                .sprites
+                .get_mut(path)
+                .expect("Error accessing sprite in context");
+
+            // Push the instance if the texture is already uploaded
+            sprite.draw(position.into(), &mut ctx.instances);
+        });
     }
 
     /// Draw a sprite on the screen at the set position with the set rotation.
@@ -70,7 +80,7 @@ impl Context {
                 .expect("Error accessing sprite in context");
 
             // Push the instance if the texture is already uploaded
-            sprite.draw(position.into(), rotation.into(), &mut ctx.instances);
+            sprite.draw_rotated(position.into(), rotation.into(), &mut ctx.instances);
         });
     }
 
@@ -209,7 +219,7 @@ impl Context {
     /// Create a new empty context.
     pub(crate) fn new() -> Self {
         Self {
-            inner: Arc::new(RwLock::new(ContextInner::default())),
+            inner: Rc::new(RefCell::new(ContextInner::default())),
         }
     }
 
@@ -218,10 +228,9 @@ impl Context {
     /// # Panics
     ///
     /// - When internal [`RwLock`] is poisoned.
+    #[inline]
     pub(crate) fn read<R>(&self, reader: impl FnOnce(&ContextInner) -> R) -> R {
-        profiling::scope!("Context read");
-
-        reader(&self.inner.read().expect("RwLock is poisoned"))
+        reader(&self.inner.borrow())
     }
 
     /// Get a mutable reference to the inner struct.
@@ -229,10 +238,9 @@ impl Context {
     /// # Panics
     ///
     /// - When internal [`RwLock`] is poisoned.
+    #[inline]
     pub(crate) fn write<R>(&self, writer: impl FnOnce(&mut ContextInner) -> R) -> R {
-        profiling::scope!("Context write");
-
-        writer(&mut self.inner.write().expect("RwLock is poisoned"))
+        writer(&mut self.inner.borrow_mut())
     }
 }
 
@@ -268,6 +276,8 @@ impl ContextInner {
     /// Load the sprite asset if it doesn't exist yet.
     fn load_sprite_if_not_loaded(&mut self, path: &str) {
         if !self.sprites.contains_key(path) {
+            profiling::scope!("Load sprite");
+
             // Load the sprite from disk
             let sprite = crate::asset_owned(path);
 
@@ -279,6 +289,8 @@ impl ContextInner {
     /// Load the font asset if it doesn't exist yet.
     fn load_font_if_not_loaded(&mut self, path: &str) {
         if !self.fonts.contains_key(path) {
+            profiling::scope!("Load font");
+
             // Load the font from disk
             let font = crate::asset_owned(path);
 

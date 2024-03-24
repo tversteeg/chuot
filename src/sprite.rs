@@ -43,8 +43,36 @@ impl Sprite {
         }
     }
 
+    /// Draw the sprite without rotation if the texture is already uploaded.
+    #[inline]
+    pub(crate) fn draw(&mut self, position: Vector2, instances: &mut Instances) {
+        let Some(texture_ref) = self.image.try_as_ref() else {
+            return;
+        };
+
+        // Apply the offset
+        let translation = self.metadata.offset.offset(self.size) + position;
+
+        instances.push(Affine2::from_translation(translation.into()), texture_ref);
+    }
+
     /// Draw the sprite if the texture is already uploaded.
-    pub(crate) fn draw(&mut self, position: Vector2, rotation: Angle, instances: &mut Instances) {
+    #[inline]
+    pub(crate) fn draw_rotated(
+        &mut self,
+        position: Vector2,
+        rotation: Angle,
+        instances: &mut Instances,
+    ) {
+        // Draw with a more optimized version if no rotation needs to be applied
+        if rotation.radians == 0.0 {
+            return self.draw(position, instances);
+        }
+
+        let Some(texture_ref) = self.image.try_as_ref() else {
+            return;
+        };
+
         // First translate negatively from the center point
         let transform = Transform2::from_translation(self.metadata.offset.offset(self.size))
             // Then apply the rotation so it rotates around the offset
@@ -52,9 +80,7 @@ impl Sprite {
             // Finally move it to the correct position
             .then_translate(position);
 
-        if let Some(texture_ref) = self.image.try_as_ref() {
-            instances.push(Affine2::from_mat3(transform.matrix.into()), texture_ref);
-        }
+        instances.push(Affine2::from_mat3(transform.matrix.into()), texture_ref);
     }
 
     /// Vertices for the instanced sprite quad.

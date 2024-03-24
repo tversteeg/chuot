@@ -50,7 +50,7 @@ struct Instance {
 /// Shouldn't be used directly outside of the internal rendering code.
 #[repr(C)]
 #[derive(Debug, Default, Clone)]
-pub struct Instances(Vec<Instance>);
+pub(crate) struct Instances(Vec<Instance>);
 
 impl Instances {
     /// Push an instance to draw this frame.
