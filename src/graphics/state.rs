@@ -54,6 +54,7 @@ impl<'window> MainRenderState<'window> {
     /// Create a GPU surface on the window.
     pub(crate) async fn new<W>(
         buffer_size: Size2,
+        requested_scale: f32,
         window: W,
         background_color: u32,
         viewport_color: u32,
@@ -150,8 +151,8 @@ impl<'window> MainRenderState<'window> {
         let sprite_render_state =
             SpriteRenderState::new(&device, &screen_info.bind_group_layout, &atlas);
 
-        // The letterbox will be changed on resize, but the size cannot be zero because then the buffer will crash
-        let letterbox = Rect::new(Vector2::ZERO, Size2::splat(1.0));
+        // The letterbox will be changed on resize on the desktop
+        let letterbox = Rect::new(Vector2::ZERO, buffer_size * requested_scale);
 
         // Convert the u32 colors to WGPU colors
         let background_color = super::u32_to_wgpu_color(background_color);
@@ -165,6 +166,7 @@ impl<'window> MainRenderState<'window> {
             queue,
             screen_info,
             buffer_size,
+
             letterbox,
             downscale,
             background_color,
@@ -263,7 +265,10 @@ impl<'window> MainRenderState<'window> {
         }
     }
 
-    // Resize the surface.
+    /// Resize the surface.
+    ///
+    /// Only resize the surface on the desktop, on the web we keep the canvas the same size.
+    #[cfg(not(target_arch = "wasm32"))]
     pub(crate) fn resize(&mut self, new_size: Size2<u32>) {
         log::debug!(
             "Resizing the surface to ({}x{})",
@@ -316,11 +321,13 @@ impl<'window> MainRenderState<'window> {
     /// # Panics
     ///
     /// - When resulting letterbox size is zero.
+    #[cfg(not(target_arch = "wasm32"))]
     fn recalculate_letterbox(&mut self) {
-        // Calculate the integer scaling ratio first
-        let buffer_width_u32 = self.buffer_size.width as u32;
-        let buffer_height_u32 = self.buffer_size.height as u32;
-        let scale =
+        let scale = {
+            // Calculate the integer scaling ratio first
+            let buffer_width_u32 = self.buffer_size.width as u32;
+            let buffer_height_u32 = self.buffer_size.height as u32;
+
             if self.config.height * buffer_width_u32 < self.config.width * buffer_height_u32 {
                 // Height fits
                 self.config.height / buffer_height_u32
@@ -329,7 +336,8 @@ impl<'window> MainRenderState<'window> {
                 self.config.width / buffer_width_u32
             }
             // We don't want a scale smaller than one
-            .max(1);
+            .max(1)
+        };
 
         let scaled_buffer_size = self.buffer_size * scale as f32;
 

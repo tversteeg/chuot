@@ -118,7 +118,7 @@ where
     #[cfg(target_arch = "wasm32")]
     {
         // Show logs
-        console_log::init_with_level(log::Level::Debug).expect("Error setting up logger");
+        console_log::init_with_level(log::Level::Warn).expect("Error setting up logger");
 
         // Show panics in the browser console log
         std::panic::set_hook(Box::new(console_error_panic_hook::hook));
@@ -142,9 +142,9 @@ async fn winit_start<G, T>(
     mut tick: T,
     WindowConfig {
         buffer_size,
-        updates_per_second,
         background_color,
         viewport_color,
+        scaling,
         ..
     }: WindowConfig,
 ) -> Result<()>
@@ -161,6 +161,7 @@ where
     // Create a surface on the window and setup the render state to it
     let mut render_state = MainRenderState::new(
         buffer_size,
+        scaling,
         window.clone(),
         background_color,
         viewport_color,
@@ -198,10 +199,10 @@ where
                     return;
                 }
 
-                // Resize render surface if window is resized
+                // Resize render surface if window is resized on the desktop, on the web the size is always the same
+                #[cfg(not(target_arch = "wasm32"))]
                 if let Some(new_size) = input.window_resized() {
                     // Resize GPU surface
-
                     render_state.resize(Size2::new(new_size.width, new_size.height));
 
                     // On MacOS the window needs to be redrawn manually after resizing

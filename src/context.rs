@@ -145,7 +145,7 @@ impl Context {
     /// # Example
     ///
     /// ```
-    /// use pixel_game_lib::{Context, KeyCode};
+    /// use pixel_game_lib::{Context, KeyCode, glamour::Vector2};
     ///
     /// # struct Empty; impl pixel_game_lib::PixelGame for Empty {
     /// // In `PixelGame::tick` trait implementation
