@@ -205,15 +205,25 @@ impl<'window> MainRenderState<'window> {
             .texture
             .create_view(&TextureViewDescriptor::default());
 
+        // Determine whether we need a downscale pass, we know this if the letterbox is at position zero it fits exactly
+        let needs_downscale_pass = self.letterbox.origin.x != 0.0 || self.letterbox.origin.y != 0.0;
+
         // First pass, render the contents to a custom buffer
         ctx.read(|ctx| {
             profiling::scope!("Render sprites");
+
+            // If we need a downscale pass use that as the texture target, otherwise use the framebuffer directly
+            let target_texture_view = if needs_downscale_pass {
+                &self.downscale.texture_view
+            } else {
+                &surface_view
+            };
 
             // Render the sprites
             self.sprite_render_state.render(
                 &ctx.instances,
                 &mut encoder,
-                &self.downscale.texture_view,
+                target_texture_view,
                 &self.queue,
                 &self.device,
                 &self.screen_info.bind_group,
@@ -223,7 +233,7 @@ impl<'window> MainRenderState<'window> {
         });
 
         // Second pass, render the custom buffer to the viewport
-        {
+        if needs_downscale_pass {
             profiling::scope!("Render downscale pass");
 
             self.downscale.render(
