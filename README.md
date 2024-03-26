@@ -90,6 +90,28 @@ Other profiling methods in your game can also be implemented, the [profiling](ht
 
 <!-- cargo-rdme end -->
 
+#### Rotation Algorithms
+
+In the library it's possible to choose between multiple upscale implementations for the single-pass RotSprite algorithm, see the Rust documentation for more information:
+
+##### Nearest Neighbor
+
+This doesn't apply any extra rotation effects.
+
+![Nearest Neighbor](./img/nearestneighbor.png)
+
+##### Scale3x
+
+![Scale3x](./img/scale3x.png)
+
+##### Diag2x
+
+![Diag2x](./img/diag2x.png)
+
+##### Scale2x
+
+![Scale2x](./img/scale2x.png)
+
 #### Credits
 
 - [gtoknu](https://www.shadertoy.com/view/4l2SRz) for the branchless scale2x shader.
