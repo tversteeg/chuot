@@ -4,7 +4,7 @@ use std::borrow::Cow;
 
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
 
-use crate::{graphics::state::PREFERRED_TEXTURE_FORMAT, sprite::Sprite};
+use crate::{config::RotationAlgorithm, graphics::state::PREFERRED_TEXTURE_FORMAT, sprite::Sprite};
 
 use super::{atlas::Atlas, data::TexturedVertex, instance::Instances};
 
@@ -28,6 +28,7 @@ impl SpriteRenderState {
         device: &wgpu::Device,
         screen_info_bind_group_layout: &wgpu::BindGroupLayout,
         texture_atlas: &Atlas,
+        rotation_algorithm: RotationAlgorithm,
     ) -> Self {
         log::debug!("Creating custom rendering component");
 
@@ -59,7 +60,12 @@ impl SpriteRenderState {
             },
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
-                entry_point: "fs_main",
+                entry_point: match rotation_algorithm {
+                    RotationAlgorithm::Scale3x => "fs_main_scale3x",
+                    RotationAlgorithm::Scale2x => "fs_main_scale2x",
+                    RotationAlgorithm::Diag2x => "fs_main_diag2x",
+                    RotationAlgorithm::NearestNeighbor => "fs_main_nearest_neighbor",
+                },
                 targets: &[Some(wgpu::ColorTargetState {
                     format: PREFERRED_TEXTURE_FORMAT,
                     blend: Some(wgpu::BlendState::ALPHA_BLENDING),

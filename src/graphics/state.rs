@@ -8,7 +8,7 @@ use wgpu::{
     TextureFormat, TextureUsages, TextureView, TextureViewDescriptor, WindowHandle,
 };
 
-use crate::Context;
+use crate::{Context, GameConfig};
 
 use super::{
     atlas::Atlas, component::SpriteRenderState, data::ScreenInfo,
@@ -52,13 +52,7 @@ pub(crate) struct MainRenderState<'window> {
 
 impl<'window> MainRenderState<'window> {
     /// Create a GPU surface on the window.
-    pub(crate) async fn new<W>(
-        buffer_size: Size2,
-        requested_scale: f32,
-        window: W,
-        background_color: u32,
-        viewport_color: u32,
-    ) -> Result<Self>
+    pub(crate) async fn new<W>(game_config: &GameConfig, window: W) -> Result<Self>
     where
         W: WindowHandle + 'window,
     {
@@ -118,8 +112,8 @@ impl<'window> MainRenderState<'window> {
             usage: TextureUsages::RENDER_ATTACHMENT,
             format: PREFERRED_TEXTURE_FORMAT,
             // Will be set by scaling
-            width: buffer_size.width as u32,
-            height: buffer_size.height as u32,
+            width: game_config.buffer_size.width as u32,
+            height: game_config.buffer_size.height as u32,
             present_mode: swapchain_capabilities.present_modes[0],
             desired_maximum_frame_latency: 2,
             alpha_mode: swapchain_capabilities.alpha_modes[0],
@@ -131,14 +125,14 @@ impl<'window> MainRenderState<'window> {
         let screen_info = UniformState::new(
             &device,
             &ScreenInfo {
-                buffer_size: buffer_size.cast::<f32>(),
+                buffer_size: game_config.buffer_size.cast::<f32>(),
                 ..Default::default()
             },
         );
 
         // Create the postprocessing effects
         let downscale = PostProcessingState::new(
-            buffer_size,
+            game_config.buffer_size,
             &device,
             &screen_info,
             include_str!("./shaders/downscale.wgsl"),
@@ -148,15 +142,21 @@ impl<'window> MainRenderState<'window> {
         let atlas = Atlas::new(&device);
 
         // Create a custom pipeline for each component
-        let sprite_render_state =
-            SpriteRenderState::new(&device, &screen_info.bind_group_layout, &atlas);
+        let sprite_render_state = SpriteRenderState::new(
+            &device,
+            &screen_info.bind_group_layout,
+            &atlas,
+            game_config.rotation_algorithm,
+        );
 
         // The letterbox will be changed on resize on the desktop
-        let letterbox = Rect::new(Vector2::ZERO, buffer_size * requested_scale);
+        let letterbox = Rect::new(Vector2::ZERO, game_config.buffer_size * game_config.scaling);
 
         // Convert the u32 colors to WGPU colors
-        let background_color = super::u32_to_wgpu_color(background_color);
-        let viewport_color = super::u32_to_wgpu_color(viewport_color);
+        let background_color = super::u32_to_wgpu_color(game_config.background_color);
+        let viewport_color = super::u32_to_wgpu_color(game_config.viewport_color);
+
+        let buffer_size = game_config.buffer_size;
 
         Ok(Self {
             surface,
@@ -166,7 +166,6 @@ impl<'window> MainRenderState<'window> {
             queue,
             screen_info,
             buffer_size,
-
             letterbox,
             downscale,
             background_color,

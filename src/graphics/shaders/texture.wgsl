@@ -126,9 +126,9 @@ fn or(a: f32, b: f32) -> f32 {
 
 // Apply the Scale2x algorithm.
 fn scale2x(
-    c: vec4<f32>,
     n: vec4<f32>,
     e: vec4<f32>,
+    c: vec4<f32>,
     s: vec4<f32>,
     w: vec4<f32>,
     subpixel: vec2<f32>
@@ -242,8 +242,9 @@ fn scale3x(
     return mix(row_s, mix(row_c, row_n, sub_step_2.y), sub_step_1.y);
 }
 
+// Scale3x
 @fragment
-fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+fn fs_main_scale3x(in: VertexOutput) -> @location(0) vec4<f32> {
     // Take the sample of the exact pixel
     let c = textureSample(t_diffuse, s_diffuse, in.tex_coords);
 
@@ -267,4 +268,63 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
     // Apply a Scale3x block
     return scale3x(nw, n, ne, w, c, e, sw, s, se, subpixel);
+}
+
+// Diag2x
+@fragment
+fn fs_main_diag2x(in: VertexOutput) -> @location(0) vec4<f32> {
+    // Take the sample of the exact pixel
+    let c = textureSample(t_diffuse, s_diffuse, in.tex_coords);
+
+    // Don't apply the algorithm when no rotations or skewing occurs
+    if in.only_translated_or_reflected == 1.0 {
+        return c;
+    }
+
+    // Offset of the UV within the pixel
+    let subpixel = fract(in.tex_coords * ATLAS_TEXTURE_SIZE);
+    
+    // Sample the pixels around the center with (n)orth, (e)ast, (s)outh, (w)est
+    let nw = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(-PIXEL_OFFSET, PIXEL_OFFSET));
+    let n = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(0.0, PIXEL_OFFSET));
+    let ne = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(PIXEL_OFFSET));
+    let w = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(-PIXEL_OFFSET, 0.0));
+    let e = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(PIXEL_OFFSET, 0.0));
+    let sw = textureSample(t_diffuse, s_diffuse, in.tex_coords - vec2<f32>(PIXEL_OFFSET));
+    let s = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(0.0, -PIXEL_OFFSET));
+    let se = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(PIXEL_OFFSET, -PIXEL_OFFSET));
+
+    // Apply a Diag2x block
+    return diag2x(nw, n, ne, w, c, e, sw, s, se, subpixel);
+}
+
+// Scale2x
+@fragment
+fn fs_main_scale2x(in: VertexOutput) -> @location(0) vec4<f32> {
+    // Take the sample of the exact pixel
+    let c = textureSample(t_diffuse, s_diffuse, in.tex_coords);
+
+    // Don't apply the algorithm when no rotations or skewing occurs
+    if in.only_translated_or_reflected == 1.0 {
+        return c;
+    }
+
+    // Offset of the UV within the pixel
+    let subpixel = fract(in.tex_coords * ATLAS_TEXTURE_SIZE);
+    
+    // Sample the pixels around the center with (n)orth, (e)ast, (s)outh, (w)est
+    let n = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(0.0, PIXEL_OFFSET));
+    let w = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(-PIXEL_OFFSET, 0.0));
+    let e = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(PIXEL_OFFSET, 0.0));
+    let s = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(0.0, -PIXEL_OFFSET));
+
+    // Apply a Scale2x block
+    return scale2x(n, w, c, e, s, subpixel);
+}
+
+// Nearest neighbor
+@fragment
+fn fs_main_nearest_neighbor(in: VertexOutput) -> @location(0) vec4<f32> {
+    // Return the exact pixel
+    return textureSample(t_diffuse, s_diffuse, in.tex_coords);
 }
