@@ -2,7 +2,7 @@
 //!
 //! To play it press the left mouse button.
 
-use pixel_game_lib::{audio::Audio, Context, KeyCode, MouseButton, PixelGame, WindowConfig};
+use pixel_game_lib::{audio::Audio, Context, GameConfig, KeyCode, MouseButton, PixelGame};
 
 /// Define empty game state.
 struct GameState;
@@ -25,6 +25,6 @@ impl PixelGame for GameState {
 fn main() {
     // Start the game with defaults for the window
     GameState
-        .run(WindowConfig::default())
+        .run(GameConfig::default())
         .expect("Error running game");
 }

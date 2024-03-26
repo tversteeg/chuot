@@ -3,13 +3,13 @@
 use miette::{Context, IntoDiagnostic, Result};
 use winit::{event_loop::EventLoop, window::WindowBuilder};
 
-use super::{TickFn, WindowConfig};
+use super::{GameConfig, TickFn};
 
 /// Desktop implementation of opening a window.
 pub(crate) async fn window<G, T>(
     window_builder: WindowBuilder,
     game_state: G,
-    window_config: WindowConfig,
+    window_config: GameConfig,
     tick: T,
 ) -> Result<()>
 where

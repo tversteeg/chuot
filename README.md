@@ -28,7 +28,7 @@ AGPL licensed and opinionated game engine for pixel-art games.
 Using this crate is quite simple, there is a single trait [`PixelGame`] with a single required function, [`PixelGame::tick`] that needs to be implemented for a state.
 
 ```rust
-use pixel_game_lib::{PixelGame, Context, WindowConfig};
+use pixel_game_lib::{PixelGame, Context, GameConfig};
 
 struct MyGame;
 
@@ -41,7 +41,7 @@ impl PixelGame for MyGame {
 // In main
 let game = MyGame;
 
-game.run(WindowConfig::default())?;
+game.run(GameConfig::default())?;
 ```
 
 #### Feature Flags

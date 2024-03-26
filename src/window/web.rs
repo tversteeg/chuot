@@ -5,13 +5,13 @@ use wasm_bindgen::JsCast;
 use web_sys::HtmlCanvasElement;
 use winit::{event_loop::EventLoop, platform::web::WindowBuilderExtWebSys, window::WindowBuilder};
 
-use super::{TickFn, WindowConfig};
+use super::{GameConfig, TickFn};
 
 /// Desktop implementation of opening a window.
 pub(crate) async fn window<G, T>(
     window_builder: WindowBuilder,
     game_state: G,
-    window_config: WindowConfig,
+    window_config: GameConfig,
     tick: T,
 ) -> Result<()>
 where

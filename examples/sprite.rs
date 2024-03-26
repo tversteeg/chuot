@@ -1,7 +1,7 @@
 //! Show how a sprite can be loaded from disk and rendered multiple times..
 
 use glamour::{Size2, Vector2};
-use pixel_game_lib::{Context, KeyCode, MouseButton, PixelGame, WindowConfig};
+use pixel_game_lib::{Context, GameConfig, KeyCode, MouseButton, PixelGame};
 
 /// A single sprite instance to draw.
 struct Sprite {
@@ -64,15 +64,17 @@ impl PixelGame for GameState {
 
 /// Open an empty window.
 fn main() {
-    // Window configuration with huge pixels
-    let window_config = WindowConfig {
+    // Game configuration
+    let config = GameConfig {
         buffer_size: Size2::new(320.0, 240.0),
+        // Apply a minimum of 3 times scaling for the buffer
+        // Will result in a minimum, and on web exact, window size of 960x720
         scaling: 3.0,
         ..Default::default()
     };
 
     // Spawn the window and run the 'game'
     GameState::default()
-        .run(window_config)
+        .run(config)
         .expect("Error running game");
 }

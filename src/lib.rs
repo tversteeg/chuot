@@ -16,7 +16,7 @@
 //! Using this crate is quite simple, there is a single trait [`PixelGame`] with a single required function, [`PixelGame::tick`] that needs to be implemented for a state.
 //!
 //! ```no_run
-//! use pixel_game_lib::{PixelGame, Context, WindowConfig};
+//! use pixel_game_lib::{PixelGame, Context, GameConfig};
 //!
 //! struct MyGame;
 //!
@@ -30,7 +30,7 @@
 //! // In main
 //! let game = MyGame;
 //!
-//! game.run(WindowConfig::default())?;
+//! game.run(GameConfig::default())?;
 //! # Ok(()) }
 //! # try_main().unwrap();
 //! ```
@@ -82,6 +82,7 @@
 mod assets;
 #[cfg(feature = "audio")]
 pub mod audio;
+pub mod config;
 mod context;
 #[cfg(feature = "dialogue")]
 pub mod dialogue;
@@ -100,8 +101,8 @@ pub use winit::{
     keyboard::{Key, KeyCode},
 };
 
+pub use config::GameConfig;
 pub use context::Context;
-pub use window::WindowConfig;
 
 use miette::Result;
 
@@ -123,7 +124,7 @@ where
     /// # Example
     ///
     /// ```
-    /// use pixel_game_lib::{PixelGame, Context, WindowConfig, KeyCode};
+    /// use pixel_game_lib::{PixelGame, Context, GameConfig, KeyCode};
     ///
     /// struct MyGame;
     ///
@@ -146,7 +147,7 @@ where
     /// # Example
     ///
     /// ```no_run
-    /// use pixel_game_lib::{PixelGame, Context, WindowConfig};
+    /// use pixel_game_lib::{PixelGame, Context, GameConfig};
     ///
     /// struct MyGame;
     ///
@@ -160,11 +161,11 @@ where
     /// // In main
     /// let game = MyGame;
     ///
-    /// game.run(WindowConfig::default())?;
+    /// game.run(GameConfig::default())?;
     /// # Ok(()) }
     /// # try_main().unwrap();
     /// ```
-    fn run(self, window_config: WindowConfig) -> Result<()> {
+    fn run(self, window_config: GameConfig) -> Result<()> {
         // Setup the audio
         #[cfg(feature = "audio")]
         crate::audio::init_audio()?;

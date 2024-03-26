@@ -1,7 +1,7 @@
 //! Show how an window is spawned using the window configuration.
 
 use glamour::Vector2;
-use pixel_game_lib::{Context, KeyCode, PixelGame, WindowConfig};
+use pixel_game_lib::{Context, GameConfig, KeyCode, PixelGame};
 
 /// Define an empty game state, because we don't need any state for our window.
 struct GameState {}
@@ -24,6 +24,6 @@ impl PixelGame for GameState {
 fn main() {
     // Spawn the window with the default configuration
     GameState {}
-        .run(WindowConfig::default())
+        .run(GameConfig::default())
         .expect("Error running game");
 }

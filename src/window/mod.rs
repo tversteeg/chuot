@@ -18,58 +18,12 @@ use winit::{
 };
 use winit_input_helper::WinitInputHelper;
 
-use crate::{graphics::state::MainRenderState, Context};
+use crate::{graphics::state::MainRenderState, Context, GameConfig};
 
 /// Tick function signature.
 pub(crate) trait TickFn<G>: FnMut(&mut G, Context) {}
 
 impl<G, T: FnMut(&mut G, Context)> TickFn<G> for T {}
-
-/// Window configuration.
-#[derive(Debug, Clone)]
-pub struct WindowConfig {
-    /// Amount of pixels for the canvas.
-    ///
-    /// Defaults to `(320, 280)`.
-    pub buffer_size: Size2,
-    /// Factor applied to the buffer size for the requested window size.
-    ///
-    /// Defaults to `1`.
-    pub scaling: f32,
-    /// Name in the title bar.
-    ///
-    /// On WASM this will display as a header underneath the rendered content.
-    ///
-    /// Defaults to `"Pixel Game"`.
-    pub title: String,
-    /// Updates per second for the update loop.
-    ///
-    /// Defaults to `60`.
-    pub updates_per_second: u32,
-    /// Color of the viewport.
-    ///
-    /// The viewport is the area outside of the buffer when inside a bigger window.
-    ///
-    /// Defaults to `0xFF76428A` (purple).
-    pub viewport_color: u32,
-    /// Color of the background of the buffer.
-    ///
-    /// Defaults to `0xFF9BADB7` (gray).
-    pub background_color: u32,
-}
-
-impl Default for WindowConfig {
-    fn default() -> Self {
-        Self {
-            buffer_size: Size2::new(320.0, 280.0),
-            scaling: 1.0,
-            title: "Pixel Game".to_string(),
-            updates_per_second: 60,
-            viewport_color: 0xFF76428A,
-            background_color: 0xFF9BADB7,
-        }
-    }
-}
 
 /// Manually create a new window with an event loop and run the game.
 ///
@@ -87,7 +41,7 @@ impl Default for WindowConfig {
 /// # Errors
 ///
 /// - When the audio manager could not find a device to play audio on.
-pub(crate) fn window<G, T>(game_state: G, window_config: WindowConfig, tick: T) -> Result<()>
+pub(crate) fn window<G, T>(game_state: G, window_config: GameConfig, tick: T) -> Result<()>
 where
     G: 'static,
     T: TickFn<G> + 'static,
@@ -140,13 +94,7 @@ async fn winit_start<G, T>(
     window: Window,
     mut game_state: G,
     mut tick: T,
-    WindowConfig {
-        buffer_size,
-        background_color,
-        viewport_color,
-        scaling,
-        ..
-    }: WindowConfig,
+    game_config: GameConfig,
 ) -> Result<()>
 where
     G: 'static,
@@ -159,15 +107,9 @@ where
     let mut input = WinitInputHelper::new();
 
     // Create a surface on the window and setup the render state to it
-    let mut render_state = MainRenderState::new(
-        buffer_size,
-        scaling,
-        window.clone(),
-        background_color,
-        viewport_color,
-    )
-    .await
-    .wrap_err("Error setting up the rendering pipeline")?;
+    let mut render_state = MainRenderState::new(&game_config, window.clone())
+        .await
+        .wrap_err("Error setting up the rendering pipeline")?;
 
     // Setup the context passed to the tick function implemented by the user
     let mut ctx = Context::new();
