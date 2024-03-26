@@ -1,6 +1,6 @@
 //! State for uniform bindings.
 
-use std::marker::PhantomData;
+use std::{marker::PhantomData, ops::Index};
 
 use bytemuck::NoUninit;
 use wgpu::{
@@ -81,17 +81,17 @@ pub(crate) struct UniformArrayState<T: NoUninit> {
     pub(crate) bind_group: wgpu::BindGroup,
     /// Buffer on GPU.
     buffer: wgpu::Buffer,
-    /// Current amount of stored bytes.
-    len: u64,
-    /// Maximum amount of bytes.
-    max_bytes: u64,
+    /// Buffer on CPU.
+    local_buffer: Vec<T>,
+    /// Maximum amount of items.
+    max_items: usize,
     /// Store the type information.
     _phantom: PhantomData<T>,
 }
 
 impl<T: NoUninit> UniformArrayState<T> {
     /// Upload a new uniform.
-    pub(crate) fn new(device: &wgpu::Device, max_items: u64) -> Self {
+    pub(crate) fn new(device: &wgpu::Device, max_items: usize) -> Self {
         // Ensure that the data has an alignment of 16 bytes, which is needed by WASM
         assert!(
             std::mem::size_of::<T>() % 16 == 0,
@@ -100,8 +100,7 @@ impl<T: NoUninit> UniformArrayState<T> {
         );
 
         // Create the empty buffer
-        let len = 0;
-        let max_bytes = max_items * std::mem::size_of::<T>() as u64;
+        let max_bytes = (max_items * std::mem::size_of::<T>()) as u64;
         let buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Uniform Array Buffer"),
             // Allow us to update this buffer
@@ -135,12 +134,15 @@ impl<T: NoUninit> UniformArrayState<T> {
             }],
         });
 
+        // Create the local buffer
+        let local_buffer = Vec::new();
+
         Self {
             bind_group,
             buffer,
             bind_group_layout,
-            len,
-            max_bytes,
+            max_items,
+            local_buffer,
             _phantom: PhantomData,
         }
     }
@@ -151,20 +153,37 @@ impl<T: NoUninit> UniformArrayState<T> {
     ///
     /// - The index of the pushed item.
     pub(crate) fn push(&mut self, value: &T, queue: &Queue) -> u64 {
-        assert!(self.len < self.max_bytes, "Uniform value out ouf range");
+        assert!(
+            self.local_buffer.len() < self.max_items,
+            "Uniform value out ouf range"
+        );
 
         // Convert value to bytes
         let data = bytemuck::bytes_of(value);
 
-        // Update the buffer and push to queue
-        queue.write_buffer(&self.buffer, self.len, data);
-
         // Calculate the index of the item that got pushed
-        let index = self.len / std::mem::size_of::<T>() as u64;
+        let index = self.local_buffer.len();
 
-        // Move the pointer
-        self.len += data.len() as u64;
+        // Update the buffer and push to queue
+        queue.write_buffer(
+            &self.buffer,
+            (index * std::mem::size_of::<T>()) as u64,
+            data,
+        );
 
-        index
+        // Update the local buffer
+        self.local_buffer.push(*value);
+
+        index as u64
+    }
+}
+
+impl<T: NoUninit> Index<usize> for UniformArrayState<T> {
+    type Output = T;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        self.local_buffer
+            .get(index)
+            .expect("Uniform array value not set")
     }
 }

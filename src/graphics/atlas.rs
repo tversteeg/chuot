@@ -180,4 +180,49 @@ impl Atlas {
 
         uniform_index as TextureRef
     }
+
+    /// Update a region of pixels of the texture in the atlas.
+    pub(crate) fn update(
+        &self,
+        texture_ref: u16,
+        sub_rectangle: Rect,
+        pixels: &[u32],
+        queue: &wgpu::Queue,
+    ) {
+        // Get the region in the atlas for the already pushed sprite
+        let sprite_region = self.rects[texture_ref as usize];
+
+        // Offset the sub rectangle to atlas space
+        let Rect { mut origin, size } = sub_rectangle;
+        origin += sprite_region.origin.to_vector();
+
+        // Write the new texture section to the GPU
+        queue.write_texture(
+            // Where to copy the pixel data
+            wgpu::ImageCopyTexture {
+                texture: &self.texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d {
+                    x: origin.x as u32,
+                    y: origin.y as u32,
+                    z: 0,
+                },
+                aspect: wgpu::TextureAspect::All,
+            },
+            // Actual pixel data
+            bytemuck::cast_slice(pixels),
+            // Layout of the texture
+            wgpu::ImageDataLayout {
+                offset: 0,
+                bytes_per_row: Some(4 * size.width as u32),
+                rows_per_image: Some(size.height as u32),
+            },
+            // Texture size
+            wgpu::Extent3d {
+                width: size.width as u32,
+                height: size.height as u32,
+                depth_or_array_layers: 1,
+            },
+        );
+    }
 }

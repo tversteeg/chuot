@@ -363,13 +363,23 @@ impl<'window> MainRenderState<'window> {
 
     /// Upload all pending textures.
     fn upload_textures(&mut self, ctx: &mut Context) {
-        profiling::scope!("Upload pending textures");
-
-        // Upload the un-uploaded sprites
         ctx.write(|ctx| {
+            profiling::scope!("Upload pending textures");
+
+            // Upload the un-uploaded sprites
             ctx.sprites_iter_mut().for_each(|sprite| {
                 sprite.image.upload(&mut self.atlas, &self.queue);
-            })
+            });
+
+            profiling::scope!("Apply texture updates");
+
+            // Apply texture updates
+            ctx.take_texture_updates()
+                .for_each(|(sprite, sub_rect, pixels)| {
+                    sprite
+                        .image
+                        .update_pixels(sub_rect, &pixels, &mut self.atlas, &self.queue);
+                });
         });
     }
 }

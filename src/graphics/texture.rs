@@ -1,6 +1,6 @@
 //! Allow types to expose a texture to the GPU.
 
-use glamour::Size2;
+use glamour::{prelude::Rect, Size2};
 
 use super::atlas::Atlas;
 
@@ -31,7 +31,7 @@ impl<T: Texture> PendingOrUploaded<T> {
     }
 
     /// Get the reference as an option, if not uploaded yet.
-    pub fn try_as_ref(&self) -> Option<TextureRef> {
+    pub(crate) fn try_as_ref(&self) -> Option<TextureRef> {
         match self {
             PendingOrUploaded::Pending(..) => None,
             PendingOrUploaded::Uploaded(texture_ref) => Some(*texture_ref),
@@ -39,7 +39,7 @@ impl<T: Texture> PendingOrUploaded<T> {
     }
 
     /// Upload to an atlas if it's not uploaded yet.
-    pub fn upload(&mut self, atlas: &mut Atlas, queue: &wgpu::Queue) {
+    pub(crate) fn upload(&mut self, atlas: &mut Atlas, queue: &wgpu::Queue) {
         if let Self::Uploaded(..) = self {
             return;
         }
@@ -53,6 +53,21 @@ impl<T: Texture> PendingOrUploaded<T> {
         let texture_ref = atlas.add(*texture, queue);
 
         *self = PendingOrUploaded::Uploaded(texture_ref);
+    }
+
+    /// Update a region of the pixels.
+    pub(crate) fn update_pixels(
+        &self,
+        sub_rectangle: Rect,
+        pixels: &[u32],
+        atlas: &mut Atlas,
+        queue: &wgpu::Queue,
+    ) {
+        let Self::Uploaded(texture_ref) = self else {
+            panic!("Texture has not been uploaded yet");
+        };
+
+        atlas.update(*texture_ref, sub_rectangle, pixels, queue);
     }
 }
 

@@ -3,7 +3,7 @@
 use std::{cell::RefCell, rc::Rc};
 
 use assets_manager::SharedString;
-use glamour::{Angle, Vector2};
+use glamour::{Angle, Rect, Vector2};
 use hashbrown::HashMap;
 use winit::{event::MouseButton, keyboard::KeyCode};
 use winit_input_helper::WinitInputHelper;
@@ -108,6 +108,35 @@ impl Context {
                 .get_mut(path)
                 .expect("Error accessing font in context")
                 .draw(position.into(), text.as_ref(), &mut ctx.instances)
+        });
+    }
+
+    /// Update the pixels of a portion of the sprite.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Asset path of the sprite, see [`crate::asset`] for more information about asset loading and storing.
+    /// * `sub_rectangle` - Sub rectangle within the sprite to update. Width * height must be equal to the amount of pixels, and fall within the sprite's rectangle.
+    /// * `pixels` - Array of ARGB pixels, amount must match size of the sub rectangle.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
+    /// - When the sub rectangle does not fit inside the sprite's rectangle.
+    /// - When the size of the sub rectangle does not match the amount of pixels
+    #[inline]
+    pub fn update_sprite_pixels(
+        &self,
+        path: &str,
+        sub_rectangle: impl Into<Rect>,
+        pixels: impl Into<Vec<u32>>,
+    ) {
+        self.write(|ctx| {
+            ctx.load_sprite_if_not_loaded(path);
+
+            // Put the update the pixels of the sprite on a queue
+            ctx.texture_update_queue
+                .push((path.to_string(), sub_rectangle.into(), pixels.into()));
         });
     }
 }
@@ -287,6 +316,8 @@ pub(crate) struct ContextInner {
     sprites: HashMap<SharedString, Sprite>,
     /// All font textures to render.
     fonts: HashMap<SharedString, Font>,
+    /// Portions of textures that need to be re-written.
+    texture_update_queue: Vec<(String, Rect, Vec<u32>)>,
 }
 
 impl ContextInner {
@@ -297,6 +328,23 @@ impl ContextInner {
                 .values_mut()
                 .flat_map(|font| font.sprites.iter_mut()),
         )
+    }
+
+    /// Take all updates to textures that need to be done.
+    pub(crate) fn take_texture_updates(
+        &mut self,
+    ) -> impl Iterator<Item = (&'_ Sprite, Rect, Vec<u32>)> + '_ {
+        self.texture_update_queue
+            .drain(..)
+            .map(|(path, rect, pixels)| {
+                (
+                    self.sprites
+                        .get(path.as_str())
+                        .expect("Sprite update did't yield proper sprite path in 'sprites'"),
+                    rect,
+                    pixels,
+                )
+            })
     }
 
     /// Load the sprite asset if it doesn't exist yet.

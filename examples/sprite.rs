@@ -1,6 +1,6 @@
 //! Show how a sprite can be loaded from disk and rendered multiple times..
 
-use glamour::{Size2, Vector2};
+use glamour::{Rect, Size2, Vector2};
 use pixel_game_lib::{Context, GameConfig, KeyCode, MouseButton, PixelGame};
 
 /// A single sprite instance to draw.
@@ -37,6 +37,15 @@ impl PixelGame for GameState {
                     rotation: 0.0,
                 });
             }
+
+            // If the middle mouse button is held draw a pixel on the sprite
+            if ctx.mouse_held(MouseButton::Middle) {
+                ctx.update_sprite_pixels(
+                    "threeforms",
+                    Rect::new(mouse, Size2::splat(1.0)),
+                    [0xFF00FF00],
+                );
+            }
         }
 
         // If the right mouse button is held rotate every sprite a tiny bit
@@ -56,8 +65,8 @@ impl PixelGame for GameState {
         ctx.draw_text("Beachball", Vector2::ZERO, format!("{fps:.1}"));
         ctx.draw_text(
             "Beachball",
-            Vector2::new(0.0, 240.0 - 20.0),
-            "Left mouse: new sprite\nRight mouse: rotate",
+            Vector2::new(0.0, 240.0 - 30.0),
+            "Left mouse: new sprite\nRight mouse: rotate\nMiddle mouse: update pixel",
         );
     }
 }
