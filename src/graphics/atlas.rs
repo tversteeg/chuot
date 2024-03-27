@@ -128,7 +128,7 @@ impl Atlas {
     /// # Returns
     ///
     /// - An unique identification number for the texture to be passed along with the vertices.
-    pub(crate) fn add<T>(&mut self, mut texture: T, queue: &wgpu::Queue) -> TextureRef
+    pub(crate) fn add<T>(&mut self, texture: T, queue: &wgpu::Queue) -> TextureRef
     where
         T: Texture,
     {
@@ -154,7 +154,7 @@ impl Atlas {
                 aspect: wgpu::TextureAspect::All,
             },
             // Actual pixel data
-            &texture.to_rgba_image(),
+            bytemuck::cast_slice(&texture.into_rgba_image()),
             // Layout of the texture
             wgpu::ImageDataLayout {
                 offset: 0,

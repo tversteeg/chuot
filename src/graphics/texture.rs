@@ -13,7 +13,7 @@ pub trait Texture {
     fn size(&self) -> Size2<u32>;
 
     /// Image representation we can upload to the GPU.
-    fn to_rgba_image(&mut self) -> Vec<u8>;
+    fn into_rgba_image(self) -> Vec<u32>;
 }
 
 /// Texture holder that can be in a non-uploaded state.
@@ -81,10 +81,10 @@ impl<T: Texture> Texture for PendingOrUploaded<T> {
     }
 
     /// Throw an error when the inner type is already uploaded.
-    fn to_rgba_image(&mut self) -> Vec<u8> {
+    fn into_rgba_image(self) -> Vec<u32> {
         match self {
-            PendingOrUploaded::Pending(pending) => pending.to_rgba_image(),
-            PendingOrUploaded::Uploaded(..) => panic!("Texture is already uploaded"),
+            PendingOrUploaded::Pending(pending) => pending.into_rgba_image(),
+            PendingOrUploaded::Uploaded(..) => panic!("Image is already uploaded, bytes are lost"),
         }
     }
 }

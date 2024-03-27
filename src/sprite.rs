@@ -88,6 +88,13 @@ impl Sprite {
         self.size
     }
 
+    /// Get the raw pixels of the sprite.
+    ///
+    /// Only works when the image hasn't been uploaded to the GPU yet.
+    pub(crate) fn into_raw_pixels(self) -> Vec<u32> {
+        self.image.into_rgba_image()
+    }
+
     /// Vertices for the instanced sprite quad.
     pub(crate) fn vertices() -> [TexturedVertex; 4] {
         [

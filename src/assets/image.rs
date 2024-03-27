@@ -23,13 +23,13 @@ pub(crate) enum Image {
         /// Size of the image in pixels.
         size: Size2<u32>,
         /// Raw pixels.
-        data: Vec<u8>,
+        data: Vec<u32>,
     },
 }
 
 impl Image {
     /// Read the image and split into equal horizontal parts.
-    pub(crate) fn into_horizontal_parts(mut self, part_width: u32) -> Vec<Image> {
+    pub(crate) fn into_horizontal_parts(self, part_width: u32) -> Vec<Image> {
         let size = self.size();
 
         // Ensure that the image can be split into equal parts
@@ -39,7 +39,7 @@ impl Image {
         );
 
         // Get the raw pixels, by either reading the PNG or collecting the already raw data
-        let raw_bytes = self.to_rgba_image();
+        let raw_bytes = self.into_rgba_image();
 
         // Loop over each section, recreating the data
         let (width, height) = (size.width as usize, size.height as usize);
@@ -47,18 +47,17 @@ impl Image {
         (0..sub_images)
             .map(|index| {
                 // Setup the buffer
-                let pixels = (part_width * size.height) as usize * std::mem::size_of::<u32>();
-                let mut data = vec![0; pixels];
+                let pixels = (part_width * size.height) as usize;
+                let mut data = vec![0u32; pixels];
 
                 // Copy the image slices
                 for y in 0..height {
-                    let bytes_to_copy = part_width as usize * std::mem::size_of::<u32>();
+                    let bytes_to_copy = part_width as usize;
 
-                    let src_start =
-                        (y * width + (index * part_width) as usize) * std::mem::size_of::<u32>();
+                    let src_start = y * width + (index * part_width) as usize;
                     let src_end = src_start + bytes_to_copy;
 
-                    let dst_start = y * (part_width as usize) * std::mem::size_of::<u32>();
+                    let dst_start = y * (part_width as usize);
                     let dst_end = dst_start + bytes_to_copy;
 
                     data[dst_start..dst_end].copy_from_slice(&raw_bytes[src_start..src_end]);
@@ -93,9 +92,9 @@ impl Texture for Image {
         }
     }
 
-    fn to_rgba_image(&mut self) -> Vec<u8> {
+    fn into_rgba_image(self) -> Vec<u32> {
         match self {
-            Image::Png { reader } => {
+            Image::Png { mut reader } => {
                 // Allocate the output buffer
                 let mut buf = vec![0; reader.output_buffer_size()];
 
@@ -103,9 +102,11 @@ impl Texture for Image {
                 reader
                     .next_frame(&mut buf)
                     .expect("Error reading PNG frame");
-                buf
+
+                // Convert bytes to ARGB array
+                bytemuck::cast_slice(&buf).to_vec()
             }
-            Image::Raw { data, .. } => data.clone(),
+            Image::Raw { data, .. } => data,
         }
     }
 }

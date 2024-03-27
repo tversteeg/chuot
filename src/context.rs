@@ -166,6 +166,27 @@ impl Context {
                 .size()
         })
     }
+
+    /// Get the raw pixels of a sprite.
+    ///
+    /// This will always load and the sprite as a whole asset again, so the performance of this call is quite bad.
+    /// The reason for this is that other sprites are immediately uploaded to the GPU and cleared from memory.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Asset path of the sprite, see [`crate::asset`] for more information about asset loading and storing.
+    ///
+    /// # Returns
+    ///
+    /// - Array of pixels in the ARGB format.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
+    #[inline]
+    pub fn sprite_raw_pixels(&self, path: &str) -> Vec<u32> {
+        crate::asset_owned::<Sprite>(path).into_raw_pixels()
+    }
 }
 
 /// State methods.
