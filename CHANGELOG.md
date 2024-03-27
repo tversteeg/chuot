@@ -6,6 +6,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0-alpha.3](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.9.0-alpha.2...pixel-game-lib-v0.9.0-alpha.3) - 2024-03-27
+
+### Added
+- *(graphics)* add `Context::update_sprite_pixels` for updating regions of pixels on an already uploaded sprites
+- *(graphics)* allow configuring `RotationAlgorithm` in config
+
+### Fixed
+- *(deps)* update rust crates glam and glamour
+- *(deps)* update rust crate egui to 0.27.0
+- *(deps)* downgrade 'glam' so 'glamour' can upgrade
+
+### Other
+- *(readme)* show different RotSprite upscale options in README.md
+- *(project)* [**breaking**] rename `WindowConfig` to `GameConfig`
+- *(web)* [**breaking**] improve performance on Web builds by using canvas scaling
+- *(graphics)* [**breaking**] skip downscale render pass when buffer fits inside window
+- *(project)* [**breaking**] make some internal public items private, improve documentation
+
 ## [0.9.0-alpha.2](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.9.0-alpha.1...pixel-game-lib-v0.9.0-alpha.2) - 2024-03-24
 
 ### Added
