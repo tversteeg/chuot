@@ -3,7 +3,7 @@
 use std::{cell::RefCell, rc::Rc};
 
 use assets_manager::SharedString;
-use glamour::{Angle, Rect, Vector2};
+use glamour::{Angle, Rect, Size2, Vector2};
 use hashbrown::HashMap;
 use winit::{event::MouseButton, keyboard::KeyCode};
 use winit_input_helper::WinitInputHelper;
@@ -38,7 +38,7 @@ impl Context {
     ///
     /// - When asset failed loading.
     #[inline]
-    pub fn draw_sprite(&mut self, path: &str, position: impl Into<Vector2>) {
+    pub fn draw_sprite(&self, path: &str, position: impl Into<Vector2>) {
         // Add an instance of the sprite
         self.write(|ctx| {
             ctx.load_sprite_if_not_loaded(path);
@@ -139,6 +139,33 @@ impl Context {
                 .push((path.to_string(), sub_rectangle.into(), pixels.into()));
         });
     }
+
+    /// Get the size of a sprite in pixels.
+    ///
+    /// This will load the sprite asset from disk and upload it to the GPU the first time this sprite is referenced.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Asset path of the sprite, see [`crate::asset`] for more information about asset loading and storing.
+    ///
+    /// # Returns
+    ///
+    /// - Size of the sprite in pixels.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
+    #[inline]
+    pub fn sprite_size(&self, path: &str) -> Size2 {
+        self.write(|ctx| {
+            ctx.load_sprite_if_not_loaded(path);
+
+            ctx.sprites
+                .get(path)
+                .expect("Error accessing sprite in context")
+                .size()
+        })
+    }
 }
 
 /// State methods.
@@ -171,6 +198,10 @@ impl Context {
     ///
     /// Useful for calculating frame-independent physics.
     ///
+    /// # Returns
+    ///
+    /// - Time since last tick in seconds.
+    ///
     /// # Example
     ///
     /// ```
@@ -197,6 +228,11 @@ impl Context {
     ///
     /// This is `Some(..`) if the mouse is inside the viewport frame, not the entire window.
     /// The value of the coordinates corresponds to the pixel, when the frame is scaled this also encodes the subpixel in the fractional part.
+    ///
+    /// # Returns
+    ///
+    /// - `None` when the mouse is not on the buffer of pixels.
+    /// - `Some(..)` with the coordinates of the pixel if the mouse is on the buffer of pixels.
     #[inline]
     pub fn mouse(&self) -> Option<Vector2> {
         self.read(|ctx| ctx.mouse)
@@ -207,6 +243,10 @@ impl Context {
     /// # Arguments
     ///
     /// * `mouse_button` - Mouse button to check the state of.
+    ///
+    /// # Returns
+    ///
+    /// - `true` when the mouse is pressed.
     #[inline]
     pub fn mouse_pressed(&self, mouse_button: MouseButton) -> bool {
         self.read(|ctx| ctx.input.mouse_pressed(mouse_button))
@@ -217,6 +257,10 @@ impl Context {
     /// # Arguments
     ///
     /// * `mouse_button` - Mouse button to check the state of.
+    ///
+    /// # Returns
+    ///
+    /// - `true` when the mouse is released.
     #[inline]
     pub fn mouse_released(&self, mouse_button: MouseButton) -> bool {
         self.read(|ctx| ctx.input.mouse_released(mouse_button))
@@ -227,6 +271,10 @@ impl Context {
     /// # Arguments
     ///
     /// * `mouse_button` - Mouse button to check the state of.
+    ///
+    /// # Returns
+    ///
+    /// - `true` when the mouse is being held down.
     #[inline]
     pub fn mouse_held(&self, mouse_button: MouseButton) -> bool {
         self.read(|ctx| ctx.input.mouse_held(mouse_button))
@@ -239,6 +287,10 @@ impl Context {
     /// # Arguments
     ///
     /// * `keycode` - Key to check the state of.
+    ///
+    /// # Returns
+    ///
+    /// - `true` when the specified key is pressed.
     #[inline]
     pub fn key_pressed(&self, keycode: KeyCode) -> bool {
         self.read(|ctx| ctx.input.key_pressed(keycode))
@@ -251,6 +303,10 @@ impl Context {
     /// # Arguments
     ///
     /// * `keycode` - Key to check the state of.
+    ///
+    /// # Returns
+    ///
+    /// - `true` when the specified key is released.
     #[inline]
     pub fn key_released(&self, keycode: KeyCode) -> bool {
         self.read(|ctx| ctx.input.key_released(keycode))
@@ -263,6 +319,10 @@ impl Context {
     /// # Arguments
     ///
     /// * `keycode` - Key to check the state of.
+    ///
+    /// # Returns
+    ///
+    /// - `true` when the specified key is being held.
     #[inline]
     pub fn key_held(&self, keycode: KeyCode) -> bool {
         self.read(|ctx| ctx.input.key_held(keycode))

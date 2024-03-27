@@ -83,6 +83,11 @@ impl Sprite {
         instances.push(Affine2::from_mat3(transform.matrix.into()), texture_ref);
     }
 
+    /// Get the size of the sprite in pixels.
+    pub(crate) fn size(&self) -> Size2 {
+        self.size
+    }
+
     /// Vertices for the instanced sprite quad.
     pub(crate) fn vertices() -> [TexturedVertex; 4] {
         [
