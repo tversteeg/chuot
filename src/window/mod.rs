@@ -3,9 +3,15 @@
 #[cfg(not(target_arch = "wasm32"))]
 mod desktop;
 #[cfg(feature = "in-game-profiler")]
-mod in_game_profiler;
+pub(crate) mod in_game_profiler;
 #[cfg(target_arch = "wasm32")]
 mod web;
+
+// Allow passing the profiler without having to change function signatures
+#[cfg(feature = "in-game-profiler")]
+pub(crate) use in_game_profiler::InGameProfiler;
+#[cfg(not(feature = "in-game-profiler"))]
+pub(crate) type InGameProfiler = ();
 
 use std::sync::Arc;
 
@@ -178,22 +184,9 @@ where
 
                     // Render everything
                     #[cfg(feature = "in-game-profiler")]
-                    {
-                        let screen_size = render_state.screen_size();
-
-                        render_state.render(&mut ctx, |device, queue, encoder, view| {
-                            in_game_profiler.render(
-                                device,
-                                queue,
-                                encoder,
-                                view,
-                                screen_size,
-                                &window,
-                            )
-                        });
-                    }
+                    render_state.render(&mut ctx, &mut in_game_profiler, &window);
                     #[cfg(not(feature = "in-game-profiler"))]
-                    render_state.render(&mut ctx, |_device, _queue, _encoder, _view| ());
+                    render_state.render(&mut ctx, &mut (), &window);
                 }
 
                 // Tell the profiler we've executed a tick

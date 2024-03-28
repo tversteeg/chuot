@@ -139,7 +139,7 @@ impl Atlas {
             .insert(size.width, size.height)
             .expect("New texture could not be packed, not enough space");
 
-        log::debug!("Added texture to atlas at ({x}x{y}:{w}x{h})");
+        log::debug!("Added texture to atlas at ({x},{y}) with size {w}x{h}");
 
         assert_eq!(size.width, w);
         assert_eq!(size.height, h);

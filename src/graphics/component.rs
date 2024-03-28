@@ -6,7 +6,7 @@ use wgpu::util::{BufferInitDescriptor, DeviceExt};
 
 use crate::{config::RotationAlgorithm, graphics::state::PREFERRED_TEXTURE_FORMAT, sprite::Sprite};
 
-use super::{atlas::Atlas, data::TexturedVertex, instance::Instances};
+use super::{atlas::Atlas, data::TexturedVertex, gpu::Frame, instance::Instances};
 
 /// Simple render state holding buffers and instances required for rendering somethging.
 pub(crate) struct SpriteRenderState {
@@ -129,14 +129,14 @@ impl SpriteRenderState {
     }
 
     /// Render all instances from all types with the specified texture.
+    ///
+    /// Takes the surface texture from the frame as the texture view if `view` is `None`.
     #[allow(clippy::too_many_arguments)]
     pub(super) fn render(
         &mut self,
         instances: &Instances,
-        encoder: &mut wgpu::CommandEncoder,
-        view: &wgpu::TextureView,
-        queue: &wgpu::Queue,
-        device: &wgpu::Device,
+        frame: &mut Frame,
+        view: Option<&wgpu::TextureView>,
         screen_size_bind_group: &wgpu::BindGroup,
         texture_atlas: &Atlas,
         background_color: wgpu::Color,
@@ -155,7 +155,9 @@ impl SpriteRenderState {
         // Upload the instance buffer
         if instances_bytes.len() as u64 <= self.instance_buffer.size() {
             // We still fit in the buffer, we don't have to resize it
-            queue.write_buffer(&self.instance_buffer, 0, instances_bytes);
+            frame
+                .queue
+                .write_buffer(&self.instance_buffer, 0, instances_bytes);
         } else {
             // We have more instances than the buffer size, recreate the buffer
 
@@ -165,7 +167,7 @@ impl SpriteRenderState {
             );
 
             self.instance_buffer.destroy();
-            self.instance_buffer = device.create_buffer_init(&BufferInitDescriptor {
+            self.instance_buffer = frame.device.create_buffer_init(&BufferInitDescriptor {
                 label: Some("Instance Buffer"),
                 contents: instances_bytes,
                 usage: wgpu::BufferUsages::VERTEX
@@ -175,20 +177,22 @@ impl SpriteRenderState {
         }
 
         // Start the render pass
-        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("Component Render Pass"),
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(background_color),
-                    store: wgpu::StoreOp::Store,
-                },
-            })],
-            depth_stencil_attachment: None,
-            timestamp_writes: None,
-            occlusion_query_set: None,
-        });
+        let mut render_pass = frame
+            .encoder
+            .begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("Component Render Pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: view.unwrap_or(&frame.surface_view),
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(background_color),
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+            });
 
         // Set our pipeline
         render_pass.set_pipeline(&self.render_pipeline);

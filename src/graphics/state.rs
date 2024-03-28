@@ -1,35 +1,26 @@
 //! Main rendering state.
 
 use glamour::{Contains, Rect, Size2, Vector2};
-use miette::{IntoDiagnostic, Result, WrapErr};
-use wgpu::{
-    Color, CommandEncoder, CommandEncoderDescriptor, Device, DeviceDescriptor, Features, Instance,
-    Limits, PowerPreference, Queue, RequestAdapterOptionsBase, Surface, SurfaceConfiguration,
-    TextureFormat, TextureUsages, TextureView, TextureViewDescriptor, WindowHandle,
-};
+use miette::Result;
+use winit::window::Window;
 
-use crate::{Context, GameConfig};
+use crate::{window::InGameProfiler, Context, GameConfig};
 
 use super::{
-    atlas::Atlas, component::SpriteRenderState, data::ScreenInfo,
+    atlas::Atlas, component::SpriteRenderState, data::ScreenInfo, gpu::Gpu,
     post_processing::PostProcessingState, uniform::UniformState,
 };
 
 /// Texture format we prefer to use for everything.
 ///
 /// We choose sRGB since most source images are created with this format and otherwise everything will be quite dark.
-pub(crate) const PREFERRED_TEXTURE_FORMAT: TextureFormat = TextureFormat::Rgba8UnormSrgb;
+pub(crate) const PREFERRED_TEXTURE_FORMAT: wgpu::TextureFormat =
+    wgpu::TextureFormat::Rgba8UnormSrgb;
 
 /// Main render state holding the GPU information.
 pub(crate) struct MainRenderState<'window> {
-    /// GPU surface.
-    surface: Surface<'window>,
-    /// GPU device.
-    device: Device,
-    /// GPU surface configuration.
-    config: SurfaceConfiguration,
-    /// GPU queue.
-    queue: Queue,
+    /// GPU state.
+    gpu: Gpu<'window>,
     /// Uniform screen info (size and scale) to the shaders.
     screen_info: UniformState<ScreenInfo>,
     /// Sprite component specific render pipelines.
@@ -45,85 +36,23 @@ pub(crate) struct MainRenderState<'window> {
     /// Letterbox output for the final render pass viewport.
     letterbox: Rect,
     /// Background color.
-    background_color: Color,
+    background_color: wgpu::Color,
     /// Viewport color
-    viewport_color: Color,
+    viewport_color: wgpu::Color,
 }
 
 impl<'window> MainRenderState<'window> {
     /// Create a GPU surface on the window.
     pub(crate) async fn new<W>(game_config: &GameConfig, window: W) -> Result<Self>
     where
-        W: WindowHandle + 'window,
+        W: wgpu::WindowHandle + 'window,
     {
-        // Get a handle to our GPU
-        let instance = Instance::default();
-
-        log::debug!("Creating GPU surface on the window");
-
-        // Create a GPU surface on the window
-        let surface = instance
-            .create_surface(window)
-            .into_diagnostic()
-            .wrap_err("Error creating surface on window")?;
-
-        log::debug!("Requesting adapter");
-
-        // Request an adapter
-        let adapter = instance
-            .request_adapter(&RequestAdapterOptionsBase {
-                // Ensure the strongest GPU is used
-                power_preference: PowerPreference::HighPerformance,
-                force_fallback_adapter: false,
-                // Request an adaptar which can render to our surface
-                compatible_surface: Some(&surface),
-            })
-            .await
-            .ok_or_else(|| miette::miette!("Error getting GPU adapter for window"))?;
-
-        // Get the surface capabilities
-        let swapchain_capabilities = surface.get_capabilities(&adapter);
-
-        // Create the logical device and command queue
-        let adapter_result = adapter
-            .request_device(
-                &DeviceDescriptor {
-                    label: None,
-                    required_features: Features::empty(),
-                    // WebGL doesn't support all features, so use the lowest limits
-                    // On desktop we can use a cfg! flag to set it to defaults, but this will allow us to create an application that might not work on the web
-                    required_limits: Limits::downlevel_webgl2_defaults()
-                        .using_resolution(adapter.limits()),
-                },
-                None,
-            )
-            .await;
-
-        // For some reason `into_diagnostic` doesn't work for this call on WASM
-        #[cfg(target_arch = "wasm32")]
-        let (device, queue) = adapter_result.expect("Error getting logical GPU device for surface");
-        #[cfg(not(target_arch = "wasm32"))]
-        let (device, queue) = adapter_result
-            .into_diagnostic()
-            .wrap_err("Error getting logical GPU device for surface")?;
-
-        // Configure the render surface
-        let config = SurfaceConfiguration {
-            usage: TextureUsages::RENDER_ATTACHMENT,
-            format: PREFERRED_TEXTURE_FORMAT,
-            // Will be set by scaling
-            width: game_config.buffer_size.width as u32,
-            height: game_config.buffer_size.height as u32,
-            present_mode: swapchain_capabilities.present_modes[0],
-            desired_maximum_frame_latency: 2,
-            alpha_mode: swapchain_capabilities.alpha_modes[0],
-            view_formats: vec![PREFERRED_TEXTURE_FORMAT],
-        };
-        surface.configure(&device, &config);
+        // Setup the GPU and attach it to the window surface
+        let gpu = Gpu::new(game_config, window).await?;
 
         // Create the uniforms
         let screen_info = UniformState::new(
-            &device,
+            &gpu.device,
             &ScreenInfo {
                 buffer_size: game_config.buffer_size.cast::<f32>(),
                 ..Default::default()
@@ -133,17 +62,17 @@ impl<'window> MainRenderState<'window> {
         // Create the postprocessing effects
         let downscale = PostProcessingState::new(
             game_config.buffer_size,
-            &device,
+            &gpu.device,
             &screen_info,
             include_str!("./shaders/downscale.wgsl"),
         );
 
         // Create a new texture atlas
-        let atlas = Atlas::new(&device);
+        let atlas = Atlas::new(&gpu.device);
 
         // Create a custom pipeline for each component
         let sprite_render_state = SpriteRenderState::new(
-            &device,
+            &gpu.device,
             &screen_info.bind_group_layout,
             &atlas,
             game_config.rotation_algorithm,
@@ -159,11 +88,8 @@ impl<'window> MainRenderState<'window> {
         let buffer_size = game_config.buffer_size;
 
         Ok(Self {
-            surface,
-            device,
-            config,
+            gpu,
             sprite_render_state,
-            queue,
             screen_info,
             buffer_size,
             letterbox,
@@ -175,36 +101,21 @@ impl<'window> MainRenderState<'window> {
     }
 
     /// Render the frame and call the user `render` function.
+    #[inline]
     pub(crate) fn render(
         &mut self,
         ctx: &mut Context,
-        mut custom_pass_cb: impl FnMut(&Device, &Queue, &mut CommandEncoder, &TextureView),
+        in_game_profiler: &mut InGameProfiler,
+        window: &Window,
     ) {
         // Upload the pending textures
         self.upload_textures(ctx);
 
-        let mut encoder = {
-            profiling::scope!("Create command encoder");
+        // Get the screen size early because we can't access it later due to borrowing
+        let screen_size = self.screen_size();
 
-            self.device
-                .create_command_encoder(&CommandEncoderDescriptor {
-                    label: Some("Pixel Game Command Encoder"),
-                })
-        };
-
-        // Get the main render texture
-        let surface_texture = {
-            profiling::scope!("Retrieve surface texture");
-
-            self.surface
-                .get_current_texture()
-                .expect("Error acquiring next swap chain texture")
-        };
-
-        // Create a texture view from the main render texture
-        let surface_view = surface_texture
-            .texture
-            .create_view(&TextureViewDescriptor::default());
+        // Render on the GPU
+        let mut frame = self.gpu.start(in_game_profiler);
 
         // Determine whether we need a downscale pass, we know this if the letterbox is at position zero it fits exactly
         let needs_downscale_pass = self.letterbox.origin.x != 0.0 || self.letterbox.origin.y != 0.0;
@@ -215,18 +126,16 @@ impl<'window> MainRenderState<'window> {
 
             // If we need a downscale pass use that as the texture target, otherwise use the framebuffer directly
             let target_texture_view = if needs_downscale_pass {
-                &self.downscale.texture_view
+                Some(&self.downscale.texture_view)
             } else {
-                &surface_view
+                None
             };
 
             // Render the sprites
             self.sprite_render_state.render(
                 &ctx.instances,
-                &mut encoder,
+                &mut frame,
                 target_texture_view,
-                &self.queue,
-                &self.device,
                 &self.screen_info.bind_group,
                 &self.atlas,
                 self.background_color,
@@ -238,8 +147,8 @@ impl<'window> MainRenderState<'window> {
             profiling::scope!("Render downscale pass");
 
             self.downscale.render(
-                &mut encoder,
-                &surface_view,
+                &mut frame,
+                None,
                 &self.screen_info,
                 Some(self.letterbox),
                 self.viewport_color,
@@ -247,21 +156,18 @@ impl<'window> MainRenderState<'window> {
         }
 
         // Call the callback that allows other parts of the program to add a render pass
-        custom_pass_cb(&self.device, &self.queue, &mut encoder, &surface_view);
+        #[cfg(feature = "in-game-profiler")]
+        in_game_profiler.render(
+            &mut frame.encoder,
+            &frame.surface_view,
+            window,
+            frame.device,
+            frame.queue,
+            screen_size,
+        );
 
-        // Draw to the texture
-        {
-            profiling::scope!("Submit queue");
-
-            self.queue.submit(Some(encoder.finish()));
-        }
-
-        // Show the texture in the window
-        {
-            profiling::scope!("Present surface texture");
-
-            surface_texture.present();
-        }
+        // Render the frame
+        frame.present();
     }
 
     /// Resize the surface.
@@ -269,16 +175,8 @@ impl<'window> MainRenderState<'window> {
     /// Only resize the surface on the desktop, on the web we keep the canvas the same size.
     #[cfg(not(target_arch = "wasm32"))]
     pub(crate) fn resize(&mut self, new_size: Size2<u32>) {
-        log::debug!(
-            "Resizing the surface to ({}x{})",
-            new_size.width,
-            new_size.height
-        );
-
-        // Ensure that the render surface is at least 1 pixel big, otherwise an error would occur
-        self.config.width = new_size.width.max(1);
-        self.config.height = new_size.height.max(1);
-        self.surface.configure(&self.device, &self.config);
+        // Resize the surface
+        self.gpu.resize(new_size);
 
         // Recalculate the letterbox with the new size
         self.recalculate_letterbox();
@@ -288,16 +186,16 @@ impl<'window> MainRenderState<'window> {
     ///
     /// Is allowed to be unused because the `in-game-profiler` feature flag uses it.
     #[allow(unused)]
-    pub(crate) fn device(&self) -> &Device {
-        &self.device
+    pub(crate) fn device(&self) -> &wgpu::Device {
+        &self.gpu.device
     }
 
     /// Size of the screen in pixels.
     ///
     /// Is allowed to be unused because the `in-game-profiler` feature flag uses it.
     #[allow(unused)]
-    pub(crate) fn screen_size(&self) -> Size2<f32> {
-        Size2::new(self.config.width as f32, self.config.height as f32)
+    pub(crate) fn screen_size(&self) -> Size2<u32> {
+        self.gpu.screen_size()
     }
 
     /// Map a coordinate to relative coordinates of the buffer in the letterbox.
@@ -322,30 +220,38 @@ impl<'window> MainRenderState<'window> {
     /// - When resulting letterbox size is zero.
     #[cfg(not(target_arch = "wasm32"))]
     fn recalculate_letterbox(&mut self) {
-        let scale = {
-            // Calculate the integer scaling ratio first
-            let buffer_width_u32 = self.buffer_size.width as u32;
-            let buffer_height_u32 = self.buffer_size.height as u32;
+        // Calculate the integer scaling ratio first
+        let buffer_width_u32 = self.buffer_size.width as u32;
+        let buffer_height_u32 = self.buffer_size.height as u32;
 
-            if self.config.height * buffer_width_u32 < self.config.width * buffer_height_u32 {
+        let screen_size = self.gpu.screen_size();
+        let screen_width_u32 = screen_size.width;
+        let screen_height_u32 = screen_size.height;
+
+        let scale = {
+            if screen_height_u32 * buffer_width_u32 < screen_width_u32 * buffer_height_u32 {
                 // Height fits
-                self.config.height / buffer_height_u32
+                screen_height_u32 / buffer_height_u32
             } else {
                 // Width fits
-                self.config.width / buffer_width_u32
+                screen_width_u32 / buffer_width_u32
             }
             // We don't want a scale smaller than one
             .max(1)
         };
 
-        let scaled_buffer_size = self.buffer_size * scale as f32;
+        let scaled_buffer_size = Size2::new(buffer_width_u32, buffer_height_u32) * scale;
 
         // Calculate the offset to center the scaled rectangle inside the other rectangle
-        let offset = ((self.screen_size() - scaled_buffer_size) / 2.0)
-            .to_vector()
-            .round();
+        let offset = (self.screen_size() - scaled_buffer_size).to_vector() / 2;
 
-        self.letterbox = Rect::new(offset, scaled_buffer_size).cast();
+        self.letterbox = Rect::new(
+            Vector2::new(offset.x as f32, offset.y as f32),
+            Size2::new(
+                scaled_buffer_size.width as f32,
+                scaled_buffer_size.height as f32,
+            ),
+        );
 
         log::debug!(
             "Setting new letterbox to ({}:{} x {}:{}) with {scale} scaling",
@@ -368,7 +274,7 @@ impl<'window> MainRenderState<'window> {
 
             // Upload the un-uploaded sprites
             ctx.sprites_iter_mut().for_each(|sprite| {
-                sprite.image.upload(&mut self.atlas, &self.queue);
+                sprite.image.upload(&mut self.atlas, &self.gpu.queue);
             });
 
             profiling::scope!("Apply texture updates");
@@ -378,7 +284,7 @@ impl<'window> MainRenderState<'window> {
                 .for_each(|(sprite, sub_rect, pixels)| {
                     sprite
                         .image
-                        .update_pixels(sub_rect, &pixels, &mut self.atlas, &self.queue);
+                        .update_pixels(sub_rect, &pixels, &mut self.atlas, &self.gpu.queue);
                 });
         });
     }
