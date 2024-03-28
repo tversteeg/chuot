@@ -3,6 +3,25 @@
 use glamour::Size2;
 
 /// Initial game configuration passed to [`crate::PixelGame::run`].
+///
+/// There's two ways to initialize the config:
+///
+/// # Example
+///
+/// ```rust
+/// # use pixel_game_lib::GameConfig;
+/// GameConfig {
+///   title: "My Game".to_owned(),
+///   ..Default::default()
+/// };
+/// ```
+///
+/// # Example
+///
+/// ```rust
+/// # use pixel_game_lib::GameConfig;
+/// GameConfig::default().with_title("My Game");
+/// ```
 #[derive(Debug, Clone)]
 pub struct GameConfig {
     /// Amount of pixels for the canvas.
@@ -39,6 +58,59 @@ pub struct GameConfig {
     pub rotation_algorithm: RotationAlgorithm,
 }
 
+impl GameConfig {
+    /// Set the amount of pixels for the canvas.
+    pub fn with_buffer_size(mut self, buffer_size: impl Into<Size2>) -> Self {
+        self.buffer_size = buffer_size.into();
+
+        self
+    }
+
+    /// Set the factor applied to the buffer size for the requested window size.
+    pub fn with_scaling(mut self, scaling: f32) -> Self {
+        self.scaling = scaling;
+
+        self
+    }
+
+    /// Set the name in the title bar.
+    ///
+    /// On WASM this will display as a header underneath the rendered content.
+    pub fn with_title(mut self, title: impl Into<String>) -> Self {
+        self.title = title.into();
+
+        self
+    }
+
+    /// Set the color of the viewport.
+    ///
+    /// The viewport is the area outside of the buffer when inside a bigger window.
+    /// Set the factor applied to the buffer size for the requested window size.
+    pub fn with_viewport_color(mut self, viewport_color: u32) -> Self {
+        self.viewport_color = viewport_color;
+
+        self
+    }
+
+    /// Set the color of the background of the buffer.
+    pub fn with_background_color(mut self, background_color: u32) -> Self {
+        self.background_color = background_color;
+
+        self
+    }
+
+    /// Set the shader algorithm to use when rotating sprites.
+    ///
+    /// Different algorithms have different performance and aesthetic trade offs.
+    ///
+    /// See [`RotationAlgorithm`] for more information.
+    pub fn with_rotation_algorithm(mut self, rotation_algorithm: RotationAlgorithm) -> Self {
+        self.rotation_algorithm = rotation_algorithm;
+
+        self
+    }
+}
+
 impl Default for GameConfig {
     fn default() -> Self {
         Self {
@@ -65,6 +137,7 @@ impl Default for GameConfig {
 /// | [`RotationAlgorithm::NearestNeighbor`] | ~160fps | Terrible | 1 |
 /// | [`RotationAlgorithm::Scale2x`] | ~80fps | Bad | 5 |
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum RotationAlgorithm {
     /// 'Upscale' with the [Scale3x](http://www.scale2x.it/) algorithm.
     ///
