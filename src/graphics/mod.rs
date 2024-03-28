@@ -3,6 +3,7 @@
 pub(crate) mod atlas;
 pub(crate) mod component;
 pub(crate) mod data;
+pub(crate) mod gpu;
 pub(crate) mod instance;
 pub(crate) mod post_processing;
 pub(crate) mod state;

@@ -13,7 +13,7 @@ use wgpu::{
     TextureDimension, TextureUsages, TextureView, TextureViewDescriptor, VertexState,
 };
 
-use super::{data::ScreenInfo, state::PREFERRED_TEXTURE_FORMAT, uniform::UniformState};
+use super::{data::ScreenInfo, gpu::Frame, state::PREFERRED_TEXTURE_FORMAT, uniform::UniformState};
 
 /// State data collection for post processing stages.
 pub(crate) struct PostProcessingState {
@@ -146,19 +146,21 @@ impl PostProcessingState {
     }
 
     /// Render the post processing shader.
+    ///
+    /// Takes the surface texture from the frame as the texture view if `view` is `None`.
     pub(crate) fn render(
         &self,
-        encoder: &mut CommandEncoder,
-        view: &TextureView,
+        frame: &mut Frame,
+        view: Option<&wgpu::TextureView>,
         screen_info: &UniformState<ScreenInfo>,
         letterbox: Option<Rect>,
         background_color: Color,
     ) {
         // Start the render pass
-        let mut upscaled_render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
+        let mut upscaled_render_pass = frame.encoder.begin_render_pass(&RenderPassDescriptor {
             label: Some("Post Processing Render Pass"),
             color_attachments: &[Some(RenderPassColorAttachment {
-                view,
+                view: view.unwrap_or(&frame.surface_view),
                 resolve_target: None,
                 ops: Operations {
                     load: LoadOp::Clear(background_color),
