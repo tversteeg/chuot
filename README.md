@@ -88,6 +88,55 @@ A profiler window overlay, implemented with [puffin_egui](https://docs.rs/puffin
 
 Other profiling methods in your game can also be implemented, the [profiling](https://docs.rs/profiling/latest/profiling/) crate is enabled even when this feature flag is disabled.
 
+#### Example
+
+This example will show a window with a counter that's incremented when pressing the left mouse button[^left-mouse].
+The counter is rendered as text[^draw-text] loaded from a font in the top-left corner.
+When the 'Escape' key is pressed[^escape-key] the game will exit and the window will close.
+
+```rust
+use pixel_game_lib::{PixelGame, Context, GameConfig, MouseButton, KeyCode, glamour::Vector2};
+
+/// Object holding all game state.
+struct MyGame {
+  /// A simple counter we increment by clicking on the screen.
+  counter: u32,
+}
+
+impl PixelGame for MyGame {
+  fn tick(&mut self, ctx: Context) {
+    // ^1
+    // Increment the counter when we press the left mouse button
+    if ctx.mouse_pressed(MouseButton::Left) {
+      self.counter += 1;
+    }
+
+    // ^2
+    // Display the counter with a font called 'font' automatically loaded from the `assets/` directory
+    // It will be shown in the top-left corner
+    ctx.draw_text("font", Vector2::ZERO, format!("Counter: {}", self.counter));
+
+    // ^3
+    // Exit the game if 'Escape' is pressed
+    if ctx.key_pressed(KeyCode::Escape) {
+      self.exit();
+    }
+  }
+}
+
+// In main
+
+// Initialize the game state
+let game = MyGame { counter: 0 };
+
+// Run the game until exit is requested
+game.run(GameConfig::default().with_title("My Game"))?;
+```
+
+[^left-mouse]: [`Context::mouse_pressed`]
+[^draw-text]: [`Context::draw_text`]
+[^escape-key]: [`Context::key_pressed`]
+
 <!-- cargo-rdme end -->
 
 #### Rotation Algorithms
