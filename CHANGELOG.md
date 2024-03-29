@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0-alpha.4](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.9.0-alpha.3...pixel-game-lib-v0.9.0-alpha.4) - 2024-03-29
+
+### Added
+- *(config)* allow setting vsync in `GameConfig`
+- *(config)* add builder methods for `GameConfig` fields
+- *(context)* add `Context::sprite_raw_pixels`
+- *(context)* add `Context::sprite_size`
+
+### Other
+- *(graphics)* refactor structure of communicating with the GPU for future addition of GPU profiler
+
 ## [0.9.0-alpha.3](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.9.0-alpha.2...pixel-game-lib-v0.9.0-alpha.3) - 2024-03-27
 
 ### Added
