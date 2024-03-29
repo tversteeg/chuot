@@ -2,7 +2,7 @@
 //!
 //! Window is based on Egui.
 
-use egui::{Align::Min, Layout, Ui, Window as EguiWindow};
+use egui::Window as EguiWindow;
 use egui_wgpu::{Renderer, ScreenDescriptor};
 use egui_winit::{
     egui::{FullOutput, ViewportId},
@@ -10,7 +10,6 @@ use egui_winit::{
 };
 use glamour::Size2;
 use puffin_egui::egui::Context;
-use wgpu_profiler::{GpuProfiler, GpuProfilerSettings, GpuTimerQueryResult};
 use winit::{event::WindowEvent, window::Window};
 
 use crate::graphics::state::PREFERRED_TEXTURE_FORMAT;
@@ -21,8 +20,6 @@ pub(crate) struct InGameProfiler {
     renderer: Renderer,
     /// Egui winit state.
     state: State,
-    /// GPU profiler.
-    pub(crate) gpu_profiler: GpuProfiler,
 }
 
 impl InGameProfiler {
@@ -43,15 +40,7 @@ impl InGameProfiler {
         // Enable the profiler
         puffin::set_scopes_on(true);
 
-        // Setup the GPU profiler
-        let gpu_profiler = GpuProfiler::new(GpuProfilerSettings::default())
-            .expect("Error setting up GPU profiler");
-
-        Self {
-            renderer,
-            state,
-            gpu_profiler,
-        }
+        Self { renderer, state }
     }
 
     /// Render the window.
@@ -66,11 +55,6 @@ impl InGameProfiler {
     ) {
         profiling::scope!("Render profiling window");
 
-        // End the frame for the GPU profiler
-        self.gpu_profiler
-            .end_frame()
-            .expect("Error ending GPU profiler frame");
-
         // Get egui input
         let input = self.state.take_egui_input(window);
 
@@ -82,18 +66,10 @@ impl InGameProfiler {
             ..
         } = self.state.egui_ctx().run(input, |ctx| {
             // Show a GUI window for the CPU & GPU profilers
-            if let Some(query_results) = self
-                .gpu_profiler
-                .process_finished_frame(queue.get_timestamp_period())
-            {
-                EguiWindow::new("GPU & CPU Profilers").show(ctx, |ui| {
-                    // GPU profiler
-                    gpu_profiler_window(ui, &query_results);
-
-                    // CPU profiler
-                    puffin_egui::profiler_ui(ui);
-                });
-            }
+            EguiWindow::new("Profiler").show(ctx, |ui| {
+                // CPU profiler
+                puffin_egui::profiler_ui(ui);
+            });
         });
 
         for id in textures_delta.free {
@@ -134,32 +110,10 @@ impl InGameProfiler {
         // Render the egui window
         self.renderer
             .render(&mut render_pass, &paint_jobs, &screen_descriptor);
-
-        // Ignore the egui rendering by pretending another frame got drawn
-        self.gpu_profiler
-            .end_frame()
-            .expect("Error ending GPU profiler frame");
     }
 
     /// Handle a winit event.
     pub(super) fn handle_window_event(&mut self, window: &Window, event: &WindowEvent) {
         let _ = self.state.on_window_event(window, event);
-    }
-}
-
-/// Draw the GPU profiler window.
-fn gpu_profiler_window(ui: &mut Ui, query_results: &[GpuTimerQueryResult]) {
-    for query_result in query_results {
-        ui.vertical(|ui| {
-            // Draw the timing results in a column
-            ui.columns(2, |columns| {
-                columns[0].label(&query_result.label);
-                columns[1].with_layout(Layout::right_to_left(Min), |ui| {
-                    let time = (query_result.time.end - query_result.time.start) * 1000.0 * 1000.0;
-
-                    ui.monospace(format!("{time:.3} µs"));
-                });
-            });
-        });
     }
 }

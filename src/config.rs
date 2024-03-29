@@ -32,6 +32,12 @@ pub struct GameConfig {
     ///
     /// Defaults to `1.0`.
     pub scaling: f32,
+    /// Enable vsync on the GPU.
+    ///
+    /// This will try to lock the framerate with the refreshrate.
+    ///
+    /// Defaults to `true`.
+    pub vsync: bool,
     /// Name in the title bar.
     ///
     /// On WASM this will display as a header underneath the rendered content.
@@ -69,6 +75,15 @@ impl GameConfig {
     /// Set the factor applied to the buffer size for the requested window size.
     pub fn with_scaling(mut self, scaling: f32) -> Self {
         self.scaling = scaling;
+
+        self
+    }
+
+    /// Set vsync on the GPU.
+    ///
+    /// This will try to lock the framerate with the refreshrate.
+    pub fn with_vsync(mut self, vsync: bool) -> Self {
+        self.vsync = vsync;
 
         self
     }
@@ -116,6 +131,7 @@ impl Default for GameConfig {
         Self {
             buffer_size: Size2::new(320.0, 280.0),
             scaling: 1.0,
+            vsync: true,
             title: "Pixel Game".to_string(),
             viewport_color: 0xFF76428A,
             background_color: 0xFF9BADB7,

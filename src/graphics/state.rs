@@ -115,7 +115,7 @@ impl<'window> MainRenderState<'window> {
         let screen_size = self.screen_size();
 
         // Render on the GPU
-        let mut frame = self.gpu.start(in_game_profiler);
+        let mut frame = self.gpu.start();
 
         // Determine whether we need a downscale pass, we know this if the letterbox is at position zero it fits exactly
         let needs_downscale_pass = self.letterbox.origin.x != 0.0 || self.letterbox.origin.y != 0.0;
