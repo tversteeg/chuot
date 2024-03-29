@@ -45,7 +45,6 @@ in-game-profiler = [
 	"dep:egui-winit",
 	"dep:puffin_egui",
 	"dep:puffin",
-	"dep:wgpu-profiler",
 ]
 
 [dependencies]
@@ -77,7 +76,6 @@ egui = { version = "0.26.2", features = ["default_fonts"], optional = true }
 egui-wgpu = { version = "0.26.2", optional = true }
 egui-winit = { version = "0.26.2", default-features = false, features = ["wayland"], optional = true }
 puffin_egui = { version = "0.26.0", optional = true }
-wgpu-profiler = { version = "0.16.2", optional = true }
 
 # Dependencies specifically for desktop
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

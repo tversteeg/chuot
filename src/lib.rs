@@ -110,7 +110,7 @@
 //!     // ^3
 //!     // Exit the game if 'Escape' is pressed
 //!     if ctx.key_pressed(KeyCode::Escape) {
-//!       self.exit();
+//!       ctx.exit();
 //!     }
 //!   }
 //! }

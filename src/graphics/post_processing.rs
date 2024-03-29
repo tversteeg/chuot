@@ -4,49 +4,41 @@ use std::borrow::Cow;
 
 use bytemuck::NoUninit;
 use glamour::{Rect, Size2};
-use wgpu::{
-    AddressMode, BindGroup, BindGroupDescriptor, BindGroupEntry, BindingResource, BlendComponent,
-    BlendState, Color, ColorTargetState, ColorWrites, CommandEncoder, Device, Extent3d, FilterMode,
-    FragmentState, LoadOp, MultisampleState, Operations, PipelineLayoutDescriptor, PrimitiveState,
-    RenderPassColorAttachment, RenderPassDescriptor, RenderPipeline, RenderPipelineDescriptor,
-    SamplerDescriptor, ShaderModuleDescriptor, ShaderSource, StoreOp, TextureDescriptor,
-    TextureDimension, TextureUsages, TextureView, TextureViewDescriptor, VertexState,
-};
 
 use super::{data::ScreenInfo, gpu::Frame, state::PREFERRED_TEXTURE_FORMAT, uniform::UniformState};
 
 /// State data collection for post processing stages.
 pub(crate) struct PostProcessingState {
     /// Resulting texture that the post processing pass will be drawn to.
-    pub(crate) texture_view: TextureView,
-    bind_group: BindGroup,
-    render_pipeline: RenderPipeline,
+    pub(crate) texture_view: wgpu::TextureView,
+    bind_group: wgpu::BindGroup,
+    render_pipeline: wgpu::RenderPipeline,
 }
 
 impl PostProcessingState {
     /// Upload a new post processing state effect.
     pub(crate) fn new<T: NoUninit>(
         buffer_size: Size2,
-        device: &Device,
+        device: &wgpu::Device,
         uniform: &UniformState<T>,
         shader: &'static str,
     ) -> Self {
         // Create the internal texture for rendering the first pass to
-        let texture = device.create_texture(&TextureDescriptor {
+        let texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("Post Processing Texture"),
-            size: Extent3d {
+            size: wgpu::Extent3d {
                 width: buffer_size.width as u32,
                 height: buffer_size.height as u32,
                 depth_or_array_layers: 1,
             },
             mip_level_count: 1,
             sample_count: 1,
-            dimension: TextureDimension::D2,
+            dimension: wgpu::TextureDimension::D2,
             format: PREFERRED_TEXTURE_FORMAT,
-            usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::TEXTURE_BINDING,
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
             view_formats: &[],
         });
-        let texture_view = texture.create_view(&TextureViewDescriptor::default());
+        let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
         // Create the bind group layout for the screen after it has been upscaled
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -72,69 +64,70 @@ impl PostProcessingState {
         });
 
         // Create the sampler we use to sample from the input texture view
-        let input_sampler = device.create_sampler(&SamplerDescriptor {
+        let input_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("Post Processing Input Sampler"),
-            address_mode_u: AddressMode::ClampToEdge,
-            address_mode_v: AddressMode::ClampToEdge,
-            address_mode_w: AddressMode::ClampToEdge,
-            mag_filter: FilterMode::Nearest,
-            min_filter: FilterMode::Nearest,
-            mipmap_filter: FilterMode::Nearest,
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
+            mag_filter: wgpu::FilterMode::Nearest,
+            min_filter: wgpu::FilterMode::Nearest,
+            mipmap_filter: wgpu::FilterMode::Nearest,
             ..Default::default()
         });
 
         // Create the bind group binding the layout with the texture view
-        let bind_group = device.create_bind_group(&BindGroupDescriptor {
+        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Post Processing Bind Group"),
             layout: &bind_group_layout,
             entries: &[
-                BindGroupEntry {
+                wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: BindingResource::TextureView(&texture_view),
+                    resource: wgpu::BindingResource::TextureView(&texture_view),
                 },
-                BindGroupEntry {
+                wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: BindingResource::Sampler(&input_sampler),
+                    resource: wgpu::BindingResource::Sampler(&input_sampler),
                 },
             ],
         });
 
         // Create a new render pipeline first
-        let render_pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
-            label: Some("Post Processing Render Pipeline Layout"),
-            bind_group_layouts: &[&bind_group_layout, &uniform.bind_group_layout],
-            push_constant_ranges: &[],
-        });
+        let render_pipeline_layout =
+            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("Post Processing Render Pipeline Layout"),
+                bind_group_layouts: &[&bind_group_layout, &uniform.bind_group_layout],
+                push_constant_ranges: &[],
+            });
 
         // Load the shaders
-        let shader = device.create_shader_module(ShaderModuleDescriptor {
+        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Post Processing Texture Shader"),
-            source: ShaderSource::Wgsl(Cow::Borrowed(shader)),
+            source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(shader)),
         });
 
-        let render_pipeline = device.create_render_pipeline(&RenderPipelineDescriptor {
+        let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("Post Processing Render Pipeline"),
             layout: Some(&render_pipeline_layout),
-            vertex: VertexState {
+            vertex: wgpu::VertexState {
                 buffers: &[],
                 module: &shader,
                 entry_point: "vs_main",
             },
-            fragment: Some(FragmentState {
+            fragment: Some(wgpu::FragmentState {
                 module: &shader,
                 entry_point: "fs_main",
-                targets: &[Some(ColorTargetState {
+                targets: &[Some(wgpu::ColorTargetState {
                     format: PREFERRED_TEXTURE_FORMAT,
-                    blend: Some(BlendState {
-                        color: BlendComponent::REPLACE,
-                        alpha: BlendComponent::REPLACE,
+                    blend: Some(wgpu::BlendState {
+                        color: wgpu::BlendComponent::REPLACE,
+                        alpha: wgpu::BlendComponent::REPLACE,
                     }),
-                    write_mask: ColorWrites::ALL,
+                    write_mask: wgpu::ColorWrites::ALL,
                 })],
             }),
-            primitive: PrimitiveState::default(),
+            primitive: wgpu::PrimitiveState::default(),
             depth_stencil: None,
-            multisample: MultisampleState::default(),
+            multisample: wgpu::MultisampleState::default(),
             multiview: None,
         });
 
@@ -154,23 +147,26 @@ impl PostProcessingState {
         view: Option<&wgpu::TextureView>,
         screen_info: &UniformState<ScreenInfo>,
         letterbox: Option<Rect>,
-        background_color: Color,
+        background_color: wgpu::Color,
     ) {
         // Start the render pass
-        let mut upscaled_render_pass = frame.encoder.begin_render_pass(&RenderPassDescriptor {
-            label: Some("Post Processing Render Pass"),
-            color_attachments: &[Some(RenderPassColorAttachment {
-                view: view.unwrap_or(&frame.surface_view),
-                resolve_target: None,
-                ops: Operations {
-                    load: LoadOp::Clear(background_color),
-                    store: StoreOp::Store,
-                },
-            })],
-            depth_stencil_attachment: None,
-            timestamp_writes: None,
-            occlusion_query_set: None,
-        });
+        let mut upscaled_render_pass =
+            frame
+                .encoder
+                .begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("Post Processing Render Pass"),
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view: view.unwrap_or(&frame.surface_view),
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Clear(background_color),
+                            store: wgpu::StoreOp::Store,
+                        },
+                    })],
+                    depth_stencil_attachment: None,
+                    timestamp_writes: None,
+                    occlusion_query_set: None,
+                });
 
         upscaled_render_pass.set_pipeline(&self.render_pipeline);
 
