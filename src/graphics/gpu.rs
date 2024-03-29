@@ -3,7 +3,7 @@
 use glamour::Size2;
 use miette::{Context, IntoDiagnostic, Result};
 
-use crate::{graphics::state::PREFERRED_TEXTURE_FORMAT, window::InGameProfiler, GameConfig};
+use crate::{graphics::state::PREFERRED_TEXTURE_FORMAT, GameConfig};
 
 /// GPU state abstracted so GPU calls can be profiled if the feature flags are enabled.
 pub(crate) struct Gpu<'window> {
@@ -15,9 +15,6 @@ pub(crate) struct Gpu<'window> {
     pub(crate) queue: wgpu::Queue,
     /// GPU surface configuration.
     config: wgpu::SurfaceConfiguration,
-    /// GPU profiler.
-    #[cfg(feature = "in-game-profiler")]
-    profiler: wgpu_profiler::GpuProfiler,
 }
 
 impl<'window> Gpu<'window> {
@@ -56,18 +53,12 @@ impl<'window> Gpu<'window> {
         // Get the surface capabilities
         let swapchain_capabilities = surface.get_capabilities(&adapter);
 
-        // Use the timing features when profiling the GPU
-        #[cfg(feature = "in-game-profiler")]
-        let required_features = wgpu_profiler::GpuProfiler::ALL_WGPU_TIMER_FEATURES;
-        #[cfg(not(feature = "in-game-profiler"))]
-        let required_features = wgpu::Features::empty();
-
         // Create the logical device and command queue
         let adapter_result = adapter
             .request_device(
                 &wgpu::DeviceDescriptor {
                     label: None,
-                    required_features,
+                    required_features: wgpu::Features::empty(),
                     // WebGL doesn't support all features, so use the lowest limits
                     // On desktop we can use a cfg! flag to set it to defaults, but this will allow us to create an application that might not work on the web
                     required_limits: wgpu::Limits::downlevel_webgl2_defaults()
@@ -92,33 +83,28 @@ impl<'window> Gpu<'window> {
             // Will be set by scaling
             width: game_config.buffer_size.width as u32,
             height: game_config.buffer_size.height as u32,
-            present_mode: swapchain_capabilities.present_modes[0],
+            present_mode: if game_config.vsync {
+                wgpu::PresentMode::AutoVsync
+            } else {
+                wgpu::PresentMode::AutoNoVsync
+            },
             desired_maximum_frame_latency: 2,
             alpha_mode: swapchain_capabilities.alpha_modes[0],
             view_formats: vec![PREFERRED_TEXTURE_FORMAT],
         };
         surface.configure(&device, &config);
 
-        // Setup the GPU profiler
-        #[cfg(feature = "in-game-profiler")]
-        let profiler =
-            wgpu_profiler::GpuProfiler::new(wgpu_profiler::GpuProfilerSettings::default())
-                .into_diagnostic()
-                .wrap_err("Error setting up GPU profiler")?;
-
         Ok(Self {
             surface,
             device,
             config,
             queue,
-            #[cfg(feature = "in-game-profiler")]
-            profiler,
         })
     }
 
     /// Start a new rendering event.
     #[inline]
-    pub(crate) fn start(&mut self, in_game_profiler: &mut InGameProfiler) -> Frame {
+    pub(crate) fn start(&mut self) -> Frame {
         profiling::scope!("Create command encoder");
 
         // Create the encoder
@@ -148,8 +134,6 @@ impl<'window> Gpu<'window> {
             surface_texture,
             device: &self.device,
             queue: &self.queue,
-            #[cfg(feature = "in-game-profiler")]
-            profiler: &self.profiler,
         }
     }
 
@@ -190,22 +174,9 @@ pub(crate) struct Frame<'gpu> {
     pub(crate) device: &'gpu wgpu::Device,
     /// GPU queue.
     pub(crate) queue: &'gpu wgpu::Queue,
-    /// GPU profiler.
-    #[cfg(feature = "in-game-profiler")]
-    profiler: &'gpu wgpu_profiler::GpuProfiler,
 }
 
 impl<'gpu> Frame<'gpu> {
-    /// Begin a new rendering pass.
-    #[cfg(feature = "in-game-profiler")]
-    pub(crate) fn begin_render_pass(
-        &mut self,
-        label: impl Into<String>,
-        render_pass: wgpu::RenderPass<'gpu>,
-    ) -> wgpu_profiler::OwningScope<'_, wgpu::RenderPass<'gpu>> {
-        self.profiler.owning_scope(label, render_pass, self.device)
-    }
-
     /// Finish rendering event.
     #[inline]
     pub(crate) fn present(self) {
