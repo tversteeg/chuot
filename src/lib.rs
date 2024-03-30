@@ -131,7 +131,7 @@
 //! [^draw-text]: [`Context::draw_text`]
 //! [^escape-key]: [`Context::key_pressed`]
 
-mod assets;
+pub mod assets;
 #[cfg(feature = "audio")]
 pub mod audio;
 pub mod config;
@@ -143,7 +143,6 @@ mod graphics;
 mod sprite;
 mod window;
 
-use assets_manager::{AssetReadGuard, Compound};
 /// Re-exported vector math type.
 pub use glamour;
 /// Re-exported winit type used in [`Context`].
@@ -225,48 +224,4 @@ where
         // Spawn the window with the game loop
         window::window(self, window_config, |state, ctx| state.tick(ctx))
     }
-}
-
-/// Load a reference to any non-renderable asset.
-///
-/// Sets up the asset manager once, which can be accessed with the global function in this module.
-///
-/// # Arguments
-///
-/// * `path` - Directory structure of the asset file in `assets/` where every `/` is a `.`.
-///
-/// # Panics
-///
-/// - When asset with path does not exist.
-/// - When asset could not be loaded to to an invalid format.
-pub fn asset<T>(path: impl AsRef<str>) -> AssetReadGuard<'static, T>
-where
-    T: Compound,
-{
-    profiling::scope!("Load asset");
-
-    assets::asset_cache().load_expect(path.as_ref()).read()
-}
-
-/// Load a clone of any non-renderable asset.
-///
-/// Sets up the asset manager once, which can be accessed with the global function in this module.
-///
-/// # Arguments
-///
-/// * `path` - Directory structure of the asset file in `assets/` where every `/` is a `.`.
-///
-/// # Panics
-///
-/// - When asset with path does not exist.
-/// - When asset could not be loaded to to an invalid format.
-pub fn asset_owned<T>(path: impl AsRef<str>) -> T
-where
-    T: Compound,
-{
-    profiling::scope!("Load owned asset");
-
-    assets::asset_cache()
-        .load_owned(path.as_ref())
-        .expect("Could not load owned asset")
 }

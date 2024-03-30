@@ -5,7 +5,7 @@ use glamour::{prelude::Rect, Size2};
 use super::atlas::Atlas;
 
 /// Value needed to be passed along vertices to identify the texture in the atlas.
-pub type TextureRef = u16;
+pub(crate) type TextureRef = u16;
 
 /// Allow something to upload a texture to the GPU.
 pub trait Texture {
@@ -17,7 +17,7 @@ pub trait Texture {
 }
 
 /// Texture holder that can be in a non-uploaded state.
-pub enum PendingOrUploaded<T: Texture> {
+pub(crate) enum PendingOrUploaded<T: Texture> {
     /// Texture still needs to be uploaded.
     Pending(Box<T>),
     /// Texture is already uploaded and we've got a reference.

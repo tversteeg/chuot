@@ -2,13 +2,18 @@
 
 use std::{cell::RefCell, rc::Rc};
 
-use assets_manager::SharedString;
+use assets_manager::{Compound, SharedString};
 use glamour::{Angle, Rect, Size2, Vector2};
 use hashbrown::HashMap;
 use winit::{event::MouseButton, keyboard::KeyCode};
 use winit_input_helper::WinitInputHelper;
 
-use crate::{font::Font, graphics::instance::Instances, sprite::Sprite};
+use crate::{
+    assets::{AssetRef, Assets},
+    font::Font,
+    graphics::instance::Instances,
+    sprite::Sprite,
+};
 
 /// Context containing most functionality for interfacing with the game engine.
 ///
@@ -23,7 +28,7 @@ pub struct Context {
 
 /// Render methods.
 ///
-/// All methods use a `path` as the first argument, which is then used to retrieve the assets when they haven't been loaded before with [`crate::asset`].
+/// All methods use a `path` as the first argument, which is then used to retrieve the assets when they haven't been loaded before with [`crate::assets`].
 impl Context {
     /// Draw a sprite on the screen at the set position with a rotation of `0`.
     ///
@@ -31,7 +36,7 @@ impl Context {
     ///
     /// # Arguments
     ///
-    /// * `path` - Asset path of the sprite, see [`crate::asset`] for more information about asset loading and storing.
+    /// * `path` - Asset path of the sprite, see [`crate::assets`] for more information about asset loading and storing.
     /// * `position` - Absolute position of the target sprite on the buffer in pixels, will be offset by the sprite offset metadata.
     ///
     /// # Panics
@@ -59,7 +64,7 @@ impl Context {
     ///
     /// # Arguments
     ///
-    /// * `path` - Asset path of the sprite, see [`crate::asset`] for more information about asset loading and storing.
+    /// * `path` - Asset path of the sprite, see [`crate::assets`] for more information about asset loading and storing.
     /// * `position` - Absolute position of the target sprite on the buffer in pixels, will be offset by the sprite offset metadata.
     /// * `rotation` - Rotation of the target sprite in radians, will be applied using the RotSprite algorithm.
     ///
@@ -93,7 +98,7 @@ impl Context {
     ///
     /// # Arguments
     ///
-    /// * `path` - Asset path of the font, see [`crate::asset`] for more information about asset loading and storing.
+    /// * `path` - Asset path of the font, see [`crate::assets`] for more information about asset loading and storing.
     /// * `position` - Absolute position of the target top-left text on the buffer in pixels.
     ///
     /// # Panics
@@ -115,7 +120,7 @@ impl Context {
     ///
     /// # Arguments
     ///
-    /// * `path` - Asset path of the sprite, see [`crate::asset`] for more information about asset loading and storing.
+    /// * `path` - Asset path of the sprite, see [`crate::assets`] for more information about asset loading and storing.
     /// * `sub_rectangle` - Sub rectangle within the sprite to update. Width * height must be equal to the amount of pixels, and fall within the sprite's rectangle.
     /// * `pixels` - Array of ARGB pixels, amount must match size of the sub rectangle.
     ///
@@ -146,7 +151,7 @@ impl Context {
     ///
     /// # Arguments
     ///
-    /// * `path` - Asset path of the sprite, see [`crate::asset`] for more information about asset loading and storing.
+    /// * `path` - Asset path of the sprite, see [`crate::assets`] for more information about asset loading and storing.
     ///
     /// # Returns
     ///
@@ -165,27 +170,6 @@ impl Context {
                 .expect("Error accessing sprite in context")
                 .size()
         })
-    }
-
-    /// Get the raw pixels of a sprite.
-    ///
-    /// This will always load and the sprite as a whole asset again, so the performance of this call is quite bad.
-    /// The reason for this is that other sprites are immediately uploaded to the GPU and cleared from memory.
-    ///
-    /// # Arguments
-    ///
-    /// * `path` - Asset path of the sprite, see [`crate::asset`] for more information about asset loading and storing.
-    ///
-    /// # Returns
-    ///
-    /// - Array of pixels in the ARGB format.
-    ///
-    /// # Panics
-    ///
-    /// - When asset failed loading.
-    #[inline]
-    pub fn sprite_raw_pixels(&self, path: &str) -> Vec<u32> {
-        crate::asset_owned::<Sprite>(path).into_raw_pixels()
     }
 }
 
@@ -348,17 +332,59 @@ impl Context {
     pub fn key_held(&self, keycode: KeyCode) -> bool {
         self.read(|ctx| ctx.input.key_held(keycode))
     }
+}
 
-    /// Create a new empty context.
-    pub(crate) fn new() -> Self {
-        Self {
-            inner: Rc::new(RefCell::new(ContextInner::default())),
-        }
+/// Generic asset loading.
+impl Context {
+    /// Load a reference to any non-renderable asset.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Directory structure of the asset file in `assets/` where every `/` is a `.`.
+    ///
+    /// # Panics
+    ///
+    /// - When asset with path does not exist.
+    /// - When asset could not be loaded due to an invalid format.
+    #[inline]
+    pub fn asset<'a, T>(&self, path: impl AsRef<str>) -> AssetRef<T>
+    where
+        T: Compound,
+    {
+        self.read(|ctx| ctx.asset(path.as_ref()))
+    }
+
+    /// Load a clone of any non-renderable asset.
+    ///
+    /// Sets up the asset manager once, which can be accessed with the global function in this module.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Directory structure of the asset file in `assets/` where every `/` is a `.`.
+    ///
+    /// # Panics
+    ///
+    /// - When asset with path does not exist.
+    /// - When asset could not be loaded due to an invalid format.
+    #[inline]
+    pub fn asset_owned<T>(&self, path: impl AsRef<str>) -> T
+    where
+        T: Compound,
+    {
+        self.read(|ctx| ctx.asset_owned(path.as_ref()))
     }
 }
 
 /// Internally used methods.
 impl Context {
+    /// Create a new empty context.
+    #[inline]
+    pub(crate) fn new() -> Self {
+        Self {
+            inner: Rc::new(RefCell::new(ContextInner::new())),
+        }
+    }
+
     /// Get a read-only reference to the inner struct.
     ///
     /// # Panics
@@ -381,7 +407,6 @@ impl Context {
 }
 
 /// Internal wrapped implementation for [`Context`].
-#[derive(Default)]
 pub(crate) struct ContextInner {
     /// Whether to exit after the update loop.
     pub(crate) exit: bool,
@@ -393,6 +418,8 @@ pub(crate) struct ContextInner {
     pub(crate) input: WinitInputHelper,
     /// Instances of all sprites drawn this tick, also includes sprites from the fonts.
     pub(crate) instances: Instances,
+    /// Asset cache.
+    pub(crate) assets: Assets,
     /// All sprite textures to render.
     sprites: HashMap<SharedString, Sprite>,
     /// All font textures to render.
@@ -402,6 +429,29 @@ pub(crate) struct ContextInner {
 }
 
 impl ContextInner {
+    /// Initialize the inner context.
+    pub(crate) fn new() -> Self {
+        let exit = false;
+        let mouse = None;
+        let input = WinitInputHelper::default();
+        let instances = Instances::default();
+        let assets = Assets::new();
+        let sprites = HashMap::new();
+        let fonts = HashMap::new();
+        let texture_update_queue = Vec::new();
+
+        Self {
+            exit,
+            mouse,
+            input,
+            instances,
+            assets,
+            sprites,
+            fonts,
+            texture_update_queue,
+        }
+    }
+
     /// Get all sprites from any container with sprites.
     pub(crate) fn sprites_iter_mut(&mut self) -> impl Iterator<Item = &mut Sprite> {
         self.sprites.values_mut().chain(
@@ -434,7 +484,7 @@ impl ContextInner {
             profiling::scope!("Load sprite");
 
             // Load the sprite from disk
-            let sprite = crate::asset_owned(path);
+            let sprite = self.asset_owned(path);
 
             // Keep track of it, to see if it needs to be updated or not
             self.sprites.insert(path.into(), sprite);
@@ -447,10 +497,30 @@ impl ContextInner {
             profiling::scope!("Load font");
 
             // Load the font from disk
-            let font = crate::asset_owned(path);
+            let font = self.asset_owned(path);
 
             // Keep track of it, to see if it needs to be updated or not
             self.fonts.insert(path.into(), font);
         }
+    }
+
+    /// Load an asset.
+    pub(crate) fn asset<T>(&self, path: &str) -> AssetRef<T>
+    where
+        T: Compound,
+    {
+        profiling::scope!("Load asset");
+
+        self.assets.asset(path)
+    }
+
+    /// Load a clone of an asset.
+    pub fn asset_owned<T>(&self, path: &str) -> T
+    where
+        T: Compound,
+    {
+        profiling::scope!("Load owned asset");
+
+        self.assets.asset_owned(path)
     }
 }

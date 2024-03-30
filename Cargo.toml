@@ -121,6 +121,9 @@ name = "window"
 name = "sprite"
 
 [[example]]
+name = "custom_asset"
+
+[[example]]
 name = "audio"
 required-features = ["audio"]
 

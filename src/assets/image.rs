@@ -12,7 +12,7 @@ use png::{BitDepth, ColorType, Decoder, Reader, Transformations};
 use crate::graphics::texture::Texture;
 
 /// Core of a sprite loaded from disk.
-pub(crate) enum Image {
+pub enum Image {
     /// Image is raw PNG bytes inside a reader.
     Png {
         /// PNG image reader.
@@ -112,7 +112,7 @@ impl Texture for Image {
 }
 
 /// Image asset loader.
-pub(crate) struct ImageLoader;
+pub struct ImageLoader;
 
 impl Loader<Image> for ImageLoader {
     fn load(content: Cow<[u8]>, _ext: &str) -> Result<Image, BoxedError> {

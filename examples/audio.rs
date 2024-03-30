@@ -11,7 +11,10 @@ impl PixelGame for GameState {
     fn tick(&mut self, ctx: Context) {
         // Play a sound when the mouse is pressed
         if ctx.mouse_released(MouseButton::Left) {
-            pixel_game_lib::asset::<Audio>("switch31").play();
+            // Load the asset if not loaded yet
+            ctx.asset::<Audio>("switch31")
+                // Play the loaded sound
+                .play();
         }
 
         // Exit when escape is pressed
