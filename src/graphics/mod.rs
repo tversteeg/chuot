@@ -10,8 +10,9 @@ pub(crate) mod state;
 pub(crate) mod texture;
 pub(crate) mod uniform;
 
-use self::state::PREFERRED_TEXTURE_FORMAT;
+pub use texture::Texture;
 
+use state::PREFERRED_TEXTURE_FORMAT;
 use wgpu::Color;
 
 /// Convert an `u32` color to a WGPU [`wgpu::Color`] taking in account sRGB.

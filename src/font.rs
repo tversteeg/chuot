@@ -5,7 +5,7 @@ use glamour::{Size2, Vector2};
 use serde::Deserialize;
 
 use crate::{
-    assets::image::Image,
+    assets::Image,
     graphics::instance::Instances,
     sprite::{Sprite, SpriteMetadata},
 };

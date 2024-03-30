@@ -9,7 +9,7 @@ use miette::Result;
 use serde::Deserialize;
 
 use crate::{
-    assets::image::Image,
+    assets::Image,
     graphics::{
         data::TexturedVertex,
         instance::Instances,

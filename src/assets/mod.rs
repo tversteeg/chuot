@@ -4,10 +4,11 @@
 //!
 //! Asset loading is done through the [`crate::Context::asset`] and [`crate::Context::asset_owned`] calls.
 
-pub(crate) mod image;
+mod image;
 
 use assets_manager::AssetReadGuard;
 pub use assets_manager::{asset::*, Asset, BoxedError};
+pub use image::{Image, ImageLoader};
 
 /// Reference to a single asset.
 pub type AssetRef<T> = AssetReadGuard<'static, T>;
