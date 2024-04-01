@@ -15,6 +15,7 @@ categories = [
 	"game-engines",
 ]
 rust-version = "1.77.0"
+include = ["/src"]
 
 [features]
 default = ["hot-reloading-assets", "dialogue", "audio", "in-game-profiler"]
