@@ -25,12 +25,7 @@ mod hot_reloaded {
 
     /// Get or initialize the asset cache.
     pub(crate) fn asset_cache() -> &'static AssetCache<FileSystem> {
-        let cache =
-            ASSETS.get_or_init(|| AssetCache::with_source(FileSystem::new("assets").unwrap()));
-
-        cache.enhance_hot_reloading();
-
-        cache
+        ASSETS.get_or_init(|| AssetCache::with_source(FileSystem::new("assets").unwrap()))
     }
 }
 #[cfg(not(any(target_arch = "wasm32", feature = "embedded-assets")))]

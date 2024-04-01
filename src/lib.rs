@@ -140,7 +140,7 @@ mod context;
 pub mod dialogue;
 mod font;
 pub mod graphics;
-mod sprite;
+pub mod sprite;
 mod window;
 
 /// Re-exported vector math type.

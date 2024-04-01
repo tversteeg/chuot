@@ -3,7 +3,7 @@
 use std::{cell::RefCell, rc::Rc};
 
 use assets_manager::{Compound, SharedString};
-use glamour::{Angle, Rect, Size2, Vector2};
+use glamour::{Rect, Size2, Vector2};
 use hashbrown::HashMap;
 use winit::{event::MouseButton, keyboard::KeyCode};
 use winit_input_helper::WinitInputHelper;
@@ -12,7 +12,7 @@ use crate::{
     assets::{AssetRef, Assets},
     font::Font,
     graphics::instance::Instances,
-    sprite::Sprite,
+    sprite::{draw::DrawSpriteContext, Sprite},
 };
 
 /// Context containing most functionality for interfacing with the game engine.
@@ -30,66 +30,28 @@ pub struct Context {
 ///
 /// All methods use a `path` as the first argument, which is then used to retrieve the assets when they haven't been loaded before with [`crate::assets`].
 impl Context {
-    /// Draw a sprite on the screen at the set position with a rotation of `0`.
+    /// Handle sprite assets, mostly used for drawing.
     ///
     /// This will load the sprite asset from disk and upload it to the GPU the first time this sprite is referenced.
     ///
     /// # Arguments
     ///
     /// * `path` - Asset path of the sprite, see [`crate::assets`] for more information about asset loading and storing.
-    /// * `position` - Absolute position of the target sprite on the buffer in pixels, will be offset by the sprite offset metadata.
+    ///
+    /// # Returns
+    ///
+    /// - A helper struct allowing you to specify the transformations of the sprite.
     ///
     /// # Panics
     ///
     /// - When asset failed loading.
-    #[inline]
-    pub fn draw_sprite(&self, path: &str, position: impl Into<Vector2>) {
-        // Add an instance of the sprite
-        self.write(|ctx| {
-            ctx.load_sprite_if_not_loaded(path);
-
-            let sprite = ctx
-                .sprites
-                .get_mut(path)
-                .expect("Error accessing sprite in context");
-
-            // Push the instance if the texture is already uploaded
-            sprite.draw(position.into(), &mut ctx.instances);
-        });
-    }
-
-    /// Draw a sprite on the screen at the set position with the set rotation.
-    ///
-    /// This will load the sprite asset from disk and upload it to the GPU the first time this sprite is referenced.
-    ///
-    /// # Arguments
-    ///
-    /// * `path` - Asset path of the sprite, see [`crate::assets`] for more information about asset loading and storing.
-    /// * `position` - Absolute position of the target sprite on the buffer in pixels, will be offset by the sprite offset metadata.
-    /// * `rotation` - Rotation of the target sprite in radians, will be applied using the RotSprite algorithm.
-    ///
-    /// # Panics
-    ///
-    /// - When asset failed loading.
-    #[inline]
-    pub fn draw_sprite_rotated(
-        &self,
-        path: &str,
-        position: impl Into<Vector2>,
-        rotation: impl Into<Angle>,
-    ) {
-        // Add an instance of the sprite
-        self.write(|ctx| {
-            ctx.load_sprite_if_not_loaded(path);
-
-            let sprite = ctx
-                .sprites
-                .get_mut(path)
-                .expect("Error accessing sprite in context");
-
-            // Push the instance if the texture is already uploaded
-            sprite.draw_rotated(position.into(), rotation.into(), &mut ctx.instances);
-        });
+    #[inline(always)]
+    pub fn sprite<'path>(&self, path: &'path str) -> DrawSpriteContext<'path, '_> {
+        DrawSpriteContext {
+            path,
+            ctx: self,
+            position: Vector2::ZERO,
+        }
     }
 
     /// Draw some text on the screen at the set position with a rotation of `0`.
@@ -347,7 +309,7 @@ impl Context {
     /// - When asset with path does not exist.
     /// - When asset could not be loaded due to an invalid format.
     #[inline]
-    pub fn asset<'a, T>(&self, path: impl AsRef<str>) -> AssetRef<T>
+    pub fn asset<T>(&self, path: impl AsRef<str>) -> AssetRef<T>
     where
         T: Compound,
     {
@@ -421,11 +383,11 @@ pub(crate) struct ContextInner {
     /// Asset cache.
     pub(crate) assets: Assets,
     /// All sprite textures to render.
-    sprites: HashMap<SharedString, Sprite>,
+    pub(crate) sprites: HashMap<SharedString, Sprite>,
     /// All font textures to render.
-    fonts: HashMap<SharedString, Font>,
+    pub(crate) fonts: HashMap<SharedString, Font>,
     /// Portions of textures that need to be re-written.
-    texture_update_queue: Vec<(String, Rect, Vec<u32>)>,
+    pub(crate) texture_update_queue: Vec<(String, Rect, Vec<u32>)>,
 }
 
 impl ContextInner {
@@ -479,7 +441,7 @@ impl ContextInner {
     }
 
     /// Load the sprite asset if it doesn't exist yet.
-    fn load_sprite_if_not_loaded(&mut self, path: &str) {
+    pub(crate) fn load_sprite_if_not_loaded(&mut self, path: &str) {
         if !self.sprites.contains_key(path) {
             profiling::scope!("Load sprite");
 
@@ -492,7 +454,7 @@ impl ContextInner {
     }
 
     /// Load the font asset if it doesn't exist yet.
-    fn load_font_if_not_loaded(&mut self, path: &str) {
+    pub(crate) fn load_font_if_not_loaded(&mut self, path: &str) {
         if !self.fonts.contains_key(path) {
             profiling::scope!("Load font");
 
@@ -515,7 +477,7 @@ impl ContextInner {
     }
 
     /// Load a clone of an asset.
-    pub fn asset_owned<T>(&self, path: &str) -> T
+    pub(crate) fn asset_owned<T>(&self, path: &str) -> T
     where
         T: Compound,
     {

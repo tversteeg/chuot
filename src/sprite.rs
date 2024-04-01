@@ -2,6 +2,8 @@
 //!
 //! Can be loaded as an asset when the `asset` feature flag is set.
 
+pub mod draw;
+
 use assets_manager::{AnyCache, Asset, BoxedError, Compound, SharedString};
 use glam::Affine2;
 use glamour::{Angle, Size2, Transform2, Vector2};

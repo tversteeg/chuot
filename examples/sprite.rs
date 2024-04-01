@@ -57,7 +57,10 @@ impl PixelGame for GameState {
 
         // Draw sprite, will be loaded from disk if the `hot-reloading` feature is enabled, otherwise it will be embedded in the binary
         for sprite in &self.sprites {
-            ctx.draw_sprite_rotated("threeforms", sprite.position, sprite.rotation);
+            ctx.sprite("threeforms")
+                .translate(sprite.position)
+                .rotate(sprite.rotation)
+                .draw();
         }
 
         // Draw a basic FPS counter
