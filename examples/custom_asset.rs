@@ -9,7 +9,6 @@ use std::str::FromStr;
 use glamour::Size2;
 use pixel_game_lib::{
     assets::{Asset, BoxedError},
-    glamour::Vector2,
     Context, GameConfig, KeyCode, PixelGame,
 };
 use serde::Deserialize;
@@ -37,7 +36,7 @@ impl PixelGame for GameState {
         let example_txt = ctx.asset::<TxtString>("example");
 
         // Draw the asset text
-        ctx.draw_text("Beachball", Vector2::ZERO, &example_txt.0);
+        ctx.text("Beachball", &example_txt.0).draw();
 
         // Exit when escape is pressed
         if ctx.key_pressed(KeyCode::Escape) {

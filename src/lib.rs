@@ -135,12 +135,12 @@ pub mod assets;
 #[cfg(feature = "audio")]
 pub mod audio;
 pub mod config;
-mod context;
+pub mod context;
 #[cfg(feature = "dialogue")]
 pub mod dialogue;
 mod font;
 pub mod graphics;
-pub mod sprite;
+mod sprite;
 mod window;
 
 /// Re-exported vector math type.

@@ -65,12 +65,13 @@ impl PixelGame for GameState {
 
         // Draw a basic FPS counter
         let fps = ctx.delta_time().recip();
-        ctx.draw_text("Beachball", Vector2::ZERO, format!("{fps:.1}"));
-        ctx.draw_text(
+        ctx.text("Beachball", &format!("{fps:.1}")).draw();
+        ctx.text(
             "Beachball",
-            Vector2::new(0.0, 240.0 - 30.0),
             "Left mouse: new sprite\nRight mouse: rotate\nMiddle mouse: update pixel",
-        );
+        )
+        .translate(Vector2::new(0.0, 240.0 - 30.0))
+        .draw();
     }
 }
 

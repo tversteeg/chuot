@@ -1,5 +1,8 @@
 //! User-facing context used in [`crate::PixelGame::tick`].
 
+pub mod sprite;
+pub mod text;
+
 use std::{cell::RefCell, rc::Rc};
 
 use assets_manager::{Compound, SharedString};
@@ -12,8 +15,10 @@ use crate::{
     assets::{AssetRef, Assets},
     font::Font,
     graphics::instance::Instances,
-    sprite::{draw::DrawSpriteContext, Sprite},
+    sprite::Sprite,
 };
+
+use self::{sprite::DrawSpriteContext, text::DrawTextContext};
 
 /// Context containing most functionality for interfacing with the game engine.
 ///
@@ -33,6 +38,7 @@ impl Context {
     /// Handle sprite assets, mostly used for drawing.
     ///
     /// This will load the sprite asset from disk and upload it to the GPU the first time this sprite is referenced.
+    /// Check the [`crate::context::DrawSpriteContext`] documentation for drawing options available.
     ///
     /// # Arguments
     ///
@@ -57,25 +63,28 @@ impl Context {
     /// Draw some text on the screen at the set position with a rotation of `0`.
     ///
     /// This will load the font asset from disk and upload it to the GPU the first time this font is referenced.
+    /// Check the [`crate::context::DrawTextContext`] documentation for drawing options available.
     ///
     /// # Arguments
     ///
     /// * `path` - Asset path of the font, see [`crate::assets`] for more information about asset loading and storing.
-    /// * `position` - Absolute position of the target top-left text on the buffer in pixels.
+    /// * `text` - ASCII text that will be drawn character by character.
     ///
     /// # Panics
     ///
     /// - When asset failed loading.
     #[inline]
-    pub fn draw_text(&self, path: &str, position: impl Into<Vector2>, text: impl AsRef<str>) {
-        self.write(|ctx| {
-            ctx.load_font_if_not_loaded(path);
-
-            ctx.fonts
-                .get_mut(path)
-                .expect("Error accessing font in context")
-                .draw(position.into(), text.as_ref(), &mut ctx.instances)
-        });
+    pub fn text<'path, 'text>(
+        &self,
+        path: &'path str,
+        text: &'text str,
+    ) -> DrawTextContext<'path, 'text, '_> {
+        DrawTextContext {
+            path,
+            text,
+            ctx: self,
+            position: Vector2::ZERO,
+        }
     }
 
     /// Update the pixels of a portion of the sprite.

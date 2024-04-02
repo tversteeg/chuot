@@ -52,8 +52,6 @@ impl<'path, 'ctx> DrawSpriteContext<'path, 'ctx> {
 
     /// Draw the sprite.
     ///
-    /// It's not necessary to call this function since [`std::ops::Drop`] is also implemented for this type.
-    ///
     /// # Panics
     ///
     /// - When asset failed loading.
@@ -119,8 +117,6 @@ impl<'path, 'ctx> DrawSpriteContextRotated<'path, 'ctx> {
     }
 
     /// Draw the sprite.
-    ///
-    /// It's not necessary to call this function since [`std::ops::Drop`] is also implemented for this type.
     ///
     /// # Panics
     ///
