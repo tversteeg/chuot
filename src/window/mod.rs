@@ -176,7 +176,14 @@ where
                 {
                     profiling::scope!("Tick");
 
+                    // Profile the allocations
+                    #[cfg(feature = "in-game-profiler")]
+                    let profile_region = InGameProfiler::start_profile_heap();
+
                     tick(&mut game_state, ctx.clone());
+
+                    #[cfg(feature = "in-game-profiler")]
+                    in_game_profiler.finish_profile_heap("Tick", profile_region);
                 }
 
                 {

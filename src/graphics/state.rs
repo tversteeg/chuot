@@ -108,8 +108,17 @@ impl<'window> MainRenderState<'window> {
         in_game_profiler: &mut InGameProfiler,
         window: &Window,
     ) {
+        // Profile the allocations
+        #[cfg(feature = "in-game-profiler")]
+        let profile_region = InGameProfiler::start_profile_heap();
+
         // Upload the pending textures
         self.upload_textures(ctx);
+
+        #[cfg(feature = "in-game-profiler")]
+        in_game_profiler.finish_profile_heap("Texture upload", profile_region);
+        #[cfg(feature = "in-game-profiler")]
+        let profile_region = InGameProfiler::start_profile_heap();
 
         // Get the screen size early because we can't access it later due to borrowing
         let screen_size = self.screen_size();
@@ -120,16 +129,16 @@ impl<'window> MainRenderState<'window> {
         // Determine whether we need a downscale pass, we know this if the letterbox is at position zero it fits exactly
         let needs_downscale_pass = self.letterbox.origin.x != 0.0 || self.letterbox.origin.y != 0.0;
 
+        // If we need a downscale pass use that as the texture target, otherwise use the framebuffer directly
+        let target_texture_view = if needs_downscale_pass {
+            Some(&self.downscale.texture_view)
+        } else {
+            None
+        };
+
         // First pass, render the contents to a custom buffer
         ctx.read(|ctx| {
             profiling::scope!("Render sprites");
-
-            // If we need a downscale pass use that as the texture target, otherwise use the framebuffer directly
-            let target_texture_view = if needs_downscale_pass {
-                Some(&self.downscale.texture_view)
-            } else {
-                None
-            };
 
             // Render the sprites
             self.sprite_render_state.render(
@@ -155,6 +164,9 @@ impl<'window> MainRenderState<'window> {
             );
         }
 
+        #[cfg(feature = "in-game-profiler")]
+        in_game_profiler.finish_profile_heap("Render", profile_region);
+
         // Call the callback that allows other parts of the program to add a render pass
         #[cfg(feature = "in-game-profiler")]
         in_game_profiler.render(
@@ -166,8 +178,14 @@ impl<'window> MainRenderState<'window> {
             screen_size,
         );
 
+        #[cfg(feature = "in-game-profiler")]
+        let profile_region = InGameProfiler::start_profile_heap();
+
         // Render the frame
         frame.present();
+
+        #[cfg(feature = "in-game-profiler")]
+        in_game_profiler.finish_profile_heap("Present frame", profile_region);
     }
 
     /// Resize the surface.

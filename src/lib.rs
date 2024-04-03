@@ -105,7 +105,7 @@
 //!     // ^2
 //!     // Display the counter with a font called 'font' automatically loaded from the `assets/` directory
 //!     // It will be shown in the top-left corner
-//!     ctx.draw_text("font", Vector2::ZERO, format!("Counter: {}", self.counter));
+//!     ctx.text("font", &format!("Counter: {}", self.counter)).draw();
 //!
 //!     // ^3
 //!     // Exit the game if 'Escape' is pressed
