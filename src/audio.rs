@@ -5,7 +5,7 @@
 use std::{
     borrow::Cow,
     io::Cursor,
-    sync::{Arc, Mutex, OnceLock},
+    sync::{Arc, OnceLock},
 };
 
 use assets_manager::{loader::Loader, Asset, BoxedError};
@@ -14,6 +14,7 @@ use kira::{
     sound::static_sound::{StaticSoundData, StaticSoundSettings},
 };
 use miette::{Context, IntoDiagnostic, Result};
+use parking_lot::Mutex;
 
 /// Globally accessible audio manager for playing audio the device the game runs on.
 pub(crate) static AUDIO_MANAGER: OnceLock<Arc<Mutex<AudioManager<DefaultBackend>>>> =
@@ -34,7 +35,7 @@ impl Audio {
     pub fn play(&self) {
         // Get global the manager
         let manager_ref = AUDIO_MANAGER.get().expect("Audio is not initialized yet, did you try to play the sound before the window is spawned?").clone();
-        let mut manager = manager_ref.lock().expect("Could not lock audio manager");
+        let mut manager = manager_ref.lock();
 
         // Play the sound on the global manager
         // Cloning the sound here is fine because the bytes of the static date are reference counted

@@ -189,7 +189,7 @@ impl Context {
     /// fn tick(&mut self, ctx: Context) {
     ///   // Draw a simple FPS counter on the top-left of the screen
     ///   let fps = ctx.delta_time().recip();
-    ///   ctx.draw_text("Beachball", Vector2::ZERO, format!("{fps:.1}"));
+    ///   ctx.text("Beachball", &format!("{fps:.1}")).draw();
     /// }
     /// # }
     #[inline]
@@ -425,6 +425,8 @@ impl ContextInner {
 
     /// Get all sprites from any container with sprites.
     pub(crate) fn sprites_iter_mut(&mut self) -> impl Iterator<Item = &mut Sprite> {
+        // PERF: improve performance by removing chain, prerably using a single arena allocator for all sprites
+
         self.sprites.values_mut().chain(
             self.fonts
                 .values_mut()
