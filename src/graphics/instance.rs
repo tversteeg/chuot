@@ -45,6 +45,17 @@ struct Instance {
     _padding: u32,
 }
 
+impl From<(Affine2, TextureRef)> for Instance {
+    fn from((transformation, texture_ref): (Affine2, TextureRef)) -> Self {
+        Self {
+            matrix: transformation.matrix2.into(),
+            translation: transformation.translation.into(),
+            texture_ref: texture_ref as u32,
+            ..Default::default()
+        }
+    }
+}
+
 /// Raw instance data.
 ///
 /// Shouldn't be used directly outside of the internal rendering code.
@@ -55,12 +66,12 @@ pub(crate) struct Instances(Vec<Instance>);
 impl Instances {
     /// Push an instance to draw this frame.
     pub(crate) fn push(&mut self, transformation: Affine2, texture_ref: TextureRef) {
-        self.0.push(Instance {
-            matrix: transformation.matrix2.into(),
-            translation: transformation.translation.into(),
-            texture_ref: texture_ref as u32,
-            ..Default::default()
-        });
+        self.0.push((transformation, texture_ref).into());
+    }
+
+    /// Push an iterator of instances to draw this frame.
+    pub(crate) fn extend(&mut self, items: impl Iterator<Item = (Affine2, TextureRef)>) {
+        self.0.extend(items.map(Into::<Instance>::into));
     }
 
     /// Remove all items.

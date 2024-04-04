@@ -8,7 +8,7 @@ use crate::Context;
 ///
 /// Must call [`Self::draw`] to finish drawing.
 ///
-/// Used by [`crate::Context::draw_text`].
+/// Used by [`crate::Context::text`].
 pub struct DrawTextContext<'path, 'text, 'ctx> {
     /// Path of the font to draw.
     pub(crate) path: &'path str,
@@ -35,6 +35,8 @@ impl<'path, 'text, 'ctx> DrawTextContext<'path, 'text, 'ctx> {
     }
 
     /// Draw the text.
+    ///
+    /// Text glyphs and other sprites that are drawn last are always shown on top of sprites that are drawn earlier.
     ///
     /// # Panics
     ///

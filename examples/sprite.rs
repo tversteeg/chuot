@@ -1,4 +1,4 @@
-//! Show how a sprite can be loaded from disk and rendered multiple times..
+//! Show how a sprite can be loaded from disk and rendered multiple times.
 
 use glamour::{Rect, Size2, Vector2};
 use pixel_game_lib::{Context, GameConfig, KeyCode, MouseButton, PixelGame};
@@ -40,22 +40,21 @@ impl PixelGame for GameState {
 
             // If the middle mouse button is held draw a pixel on the sprite
             if ctx.mouse_held(MouseButton::Middle) {
-                ctx.update_sprite_pixels(
-                    "threeforms",
-                    Rect::new(mouse, Size2::splat(1.0)),
-                    [0xFF00FF00],
-                );
+                // This will update the uploaded texture on the GPU for an area of a single pixel
+                ctx.sprite("threeforms")
+                    .update_pixels(Rect::new(mouse, Size2::splat(1.0)), [0xFF00FF00]);
             }
         }
 
-        // If the right mouse button is held rotate every sprite a tiny bit
+        // If the right mouse button is held rotate every sprite at a steady rate
         if ctx.mouse_held(MouseButton::Right) {
             self.sprites
                 .iter_mut()
                 .for_each(|sprite| sprite.rotation += ctx.delta_time());
         }
 
-        // Draw sprite, will be loaded from disk if the `hot-reloading` feature is enabled, otherwise it will be embedded in the binary
+        // Draw sprites
+        // Will be loaded from disk if the `hot-reloading` feature is enabled, otherwise it will be embedded in the binary
         for sprite in &self.sprites {
             ctx.sprite("threeforms")
                 .translate(sprite.position)
@@ -66,6 +65,8 @@ impl PixelGame for GameState {
         // Draw a basic FPS counter
         let fps = ctx.delta_time().recip();
         ctx.text("Beachball", &format!("{fps:.1}")).draw();
+
+        // Draw some instructions at the bottom of the screen
         ctx.text(
             "Beachball",
             "Left mouse: new sprite\nRight mouse: rotate\nMiddle mouse: update pixel",

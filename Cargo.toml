@@ -64,6 +64,7 @@ glam = { version = "0.27", features = ["bytemuck", "fast-math"] }
 glamour = { version = "0.11.1", features = ["serde"] }
 packr2 = "0.3.3"
 parking_lot = "0.12.1"
+smol_str = "0.2.1"
 
 # `dialogue` feature
 
