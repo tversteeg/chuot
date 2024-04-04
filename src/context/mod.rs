@@ -5,9 +5,10 @@ pub mod text;
 
 use std::{cell::RefCell, rc::Rc};
 
-use assets_manager::{Compound, SharedString};
-use glamour::{Rect, Size2, Vector2};
+use assets_manager::Compound;
+use glamour::{Angle, Rect, Vector2};
 use hashbrown::HashMap;
+use smol_str::SmolStr;
 use winit::{event::MouseButton, keyboard::KeyCode};
 use winit_input_helper::WinitInputHelper;
 
@@ -38,7 +39,7 @@ impl Context {
     /// Handle sprite assets, mostly used for drawing.
     ///
     /// This will load the sprite asset from disk and upload it to the GPU the first time this sprite is referenced.
-    /// Check the [`crate::context::DrawSpriteContext`] documentation for drawing options available.
+    /// Check the [`DrawSpriteContext`] documentation for drawing options available.
     ///
     /// # Arguments
     ///
@@ -57,13 +58,14 @@ impl Context {
             path,
             ctx: self,
             position: Vector2::ZERO,
+            rotation: Angle::new(0.0),
         }
     }
 
     /// Draw some text on the screen at the set position with a rotation of `0`.
     ///
     /// This will load the font asset from disk and upload it to the GPU the first time this font is referenced.
-    /// Check the [`crate::context::DrawTextContext`] documentation for drawing options available.
+    /// Check the [`DrawTextContext`] documentation for drawing options available.
     ///
     /// # Arguments
     ///
@@ -85,62 +87,6 @@ impl Context {
             ctx: self,
             position: Vector2::ZERO,
         }
-    }
-
-    /// Update the pixels of a portion of the sprite.
-    ///
-    /// # Arguments
-    ///
-    /// * `path` - Asset path of the sprite, see [`crate::assets`] for more information about asset loading and storing.
-    /// * `sub_rectangle` - Sub rectangle within the sprite to update. Width * height must be equal to the amount of pixels, and fall within the sprite's rectangle.
-    /// * `pixels` - Array of ARGB pixels, amount must match size of the sub rectangle.
-    ///
-    /// # Panics
-    ///
-    /// - When asset failed loading.
-    /// - When the sub rectangle does not fit inside the sprite's rectangle.
-    /// - When the size of the sub rectangle does not match the amount of pixels
-    #[inline]
-    pub fn update_sprite_pixels(
-        &self,
-        path: &str,
-        sub_rectangle: impl Into<Rect>,
-        pixels: impl Into<Vec<u32>>,
-    ) {
-        self.write(|ctx| {
-            ctx.load_sprite_if_not_loaded(path);
-
-            // Put the update the pixels of the sprite on a queue
-            ctx.texture_update_queue
-                .push((path.to_string(), sub_rectangle.into(), pixels.into()));
-        });
-    }
-
-    /// Get the size of a sprite in pixels.
-    ///
-    /// This will load the sprite asset from disk and upload it to the GPU the first time this sprite is referenced.
-    ///
-    /// # Arguments
-    ///
-    /// * `path` - Asset path of the sprite, see [`crate::assets`] for more information about asset loading and storing.
-    ///
-    /// # Returns
-    ///
-    /// - Size of the sprite in pixels.
-    ///
-    /// # Panics
-    ///
-    /// - When asset failed loading.
-    #[inline]
-    pub fn sprite_size(&self, path: &str) -> Size2 {
-        self.write(|ctx| {
-            ctx.load_sprite_if_not_loaded(path);
-
-            ctx.sprites
-                .get(path)
-                .expect("Error accessing sprite in context")
-                .size()
-        })
     }
 }
 
@@ -392,11 +338,11 @@ pub(crate) struct ContextInner {
     /// Asset cache.
     pub(crate) assets: Assets,
     /// All sprite textures to render.
-    pub(crate) sprites: HashMap<SharedString, Sprite>,
+    pub(crate) sprites: HashMap<SmolStr, Sprite>,
     /// All font textures to render.
-    pub(crate) fonts: HashMap<SharedString, Font>,
+    pub(crate) fonts: HashMap<SmolStr, Font>,
     /// Portions of textures that need to be re-written.
-    pub(crate) texture_update_queue: Vec<(String, Rect, Vec<u32>)>,
+    pub(crate) texture_update_queue: Vec<(SmolStr, Rect, Vec<u32>)>,
 }
 
 impl ContextInner {
@@ -425,7 +371,8 @@ impl ContextInner {
 
     /// Get all sprites from any container with sprites.
     pub(crate) fn sprites_iter_mut(&mut self) -> impl Iterator<Item = &mut Sprite> {
-        // PERF: improve performance by removing chain, prerably using a single arena allocator for all sprites
+        profiling::scope!("Sprite iterator");
+        // PERF: improve performance by removing chain
 
         self.sprites.values_mut().chain(
             self.fonts
