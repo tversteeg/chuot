@@ -1,10 +1,8 @@
 //! Blittable sprite definitions.
-//!
-//! Can be loaded as an asset when the `asset` feature flag is set.
 
 use assets_manager::{AnyCache, Asset, BoxedError, Compound, SharedString};
 use glam::Affine2;
-use glamour::{Angle, Size2, Transform2, Vector2};
+use glamour::{Angle, AsRaw, Size2, Transform2, Vector2};
 use miette::Result;
 use serde::Deserialize;
 
@@ -43,49 +41,65 @@ impl Sprite {
         }
     }
 
-    /// Draw the sprite without rotation if the texture is already uploaded.
-    #[inline]
-    pub(crate) fn draw(&mut self, position: Vector2, instances: &mut Instances) {
-        let Some(texture_ref) = self.image.try_as_ref() else {
-            return;
-        };
-
-        // Apply the offset
-        let translation = self.metadata.offset.offset(self.size) + position;
-
-        instances.push(Affine2::from_translation(translation.into()), texture_ref);
-    }
-
     /// Draw the sprite if the texture is already uploaded.
     #[inline]
-    pub(crate) fn draw_rotated(
-        &mut self,
-        position: Vector2,
-        rotation: Angle,
-        instances: &mut Instances,
-    ) {
-        // Draw with a more optimized version if no rotation needs to be applied
-        if rotation.radians == 0.0 {
-            return self.draw(position, instances);
-        }
-
+    pub(crate) fn draw(&mut self, position: Vector2, rotation: Angle, instances: &mut Instances) {
         let Some(texture_ref) = self.image.try_as_ref() else {
             return;
         };
 
-        // First translate negatively from the center point
-        let transform = Transform2::from_translation(self.metadata.offset.offset(self.size))
-            // Then apply the rotation so it rotates around the offset
-            .then_rotate(rotation)
-            // Finally move it to the correct position
-            .then_translate(position);
+        instances.push(self.matrix(position, rotation), texture_ref);
+    }
 
-        instances.push(Affine2::from_mat3(transform.matrix.into()), texture_ref);
+    /// Draw the sprites if the texture is already uploaded.
+    #[inline]
+    pub(crate) fn draw_multiple(
+        &mut self,
+        base_translation: Vector2,
+        base_rotation: Angle,
+        translations: impl Iterator<Item = Vector2>,
+        instances: &mut Instances,
+    ) {
+        let Some(texture_ref) = self.image.try_as_ref() else {
+            return;
+        };
+
+        // Calculate the base transformation
+        let transform = self.matrix(base_translation, base_rotation);
+
+        // Transform each instance on top of the base transformation
+        instances.extend(translations.map(|translation| {
+            let mut transform = transform;
+            transform.translation += *translation.as_raw();
+
+            (transform, texture_ref)
+        }));
     }
 
     /// Get the size of the sprite in pixels.
+    #[inline]
     pub(crate) fn size(&self) -> Size2 {
         self.size
+    }
+
+    /// Calculate the transformation matrix.
+    #[inline]
+    fn matrix(&self, translation: Vector2, rotation: Angle) -> Affine2 {
+        let sprite_offset = self.metadata.offset.offset(self.size);
+
+        // Draw with a more optimized version if no rotation needs to be applied
+        if rotation.radians == 0.0 {
+            Affine2::from_translation((sprite_offset + translation).into())
+        } else {
+            // First translate negatively from the center point
+            let transform = Transform2::from_translation(sprite_offset)
+                // Then apply the rotation so it rotates around the offset
+                .then_rotate(rotation)
+                // Finally move it to the correct position
+                .then_translate(translation);
+
+            Affine2::from_mat3(transform.matrix.into())
+        }
     }
 
     /// Vertices for the instanced sprite quad.
@@ -139,6 +153,7 @@ pub(crate) enum SpriteOffset {
 
 impl SpriteOffset {
     /// Get the offset based on the sprite size.
+    #[inline]
     pub(crate) fn offset(&self, sprite_size: Size2) -> Vector2 {
         match self {
             SpriteOffset::Middle => {

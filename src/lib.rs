@@ -82,7 +82,7 @@
 //! # Example
 //!
 //! This example will show a window with a counter that's incremented when pressing the left mouse button[^left-mouse].
-//! The counter is rendered as text[^draw-text] loaded from a font in the top-left corner.
+//! The counter is rendered as text[^text] loaded from a font in the top-left corner.
 //! When the 'Escape' key is pressed[^escape-key] the game will exit and the window will close.
 //!
 //! ```no_run
@@ -127,9 +127,9 @@
 //! # try_main().unwrap();
 //! ```
 //!
-//! [^left-mouse]: [`Context::mouse_pressed`]
-//! [^draw-text]: [`Context::draw_text`]
-//! [^escape-key]: [`Context::key_pressed`]
+//! [^left-mouse]: [`crate::Context::mouse_pressed`]
+//! [^text]: [`crate::Context::text`]
+//! [^escape-key]: [`crate::Context::key_pressed`]
 
 pub mod assets;
 #[cfg(feature = "audio")]

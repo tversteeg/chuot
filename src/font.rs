@@ -1,7 +1,7 @@
 //! Split a horizontal sprite of equal size text segments into a font.
 
 use assets_manager::{loader::TomlLoader, AnyCache, Asset, BoxedError, Compound, SharedString};
-use glamour::{Size2, Vector2};
+use glamour::{Angle, Size2, Vector2};
 use serde::Deserialize;
 
 use crate::{
@@ -53,7 +53,7 @@ impl Font {
             let char_offset = char_index - self.first_char;
 
             // Draw the character
-            self.sprites[char_offset].draw(position, instances);
+            self.sprites[char_offset].draw(position, Angle::from_radians(0.0), instances);
         });
     }
 }
