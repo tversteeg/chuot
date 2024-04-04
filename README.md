@@ -10,18 +10,31 @@
 
 <!-- cargo-rdme start -->
 
-AGPL licensed and opinionated game engine for pixel-art games.
+AGPL licensed and opinionated game engine for 2D pixel-art games.
 
 #### Features
 
 - Pixel-perfect pixel art rendering with built-in rotsprite rotation shader.
 - Window creation with independent update and render game loop.
-- Hot-reloadable asset management.
-- Sprite loading.
+- Hot-reloadable assets, seeing your assets update live in the game when you save them is a great boost in productivity for quickly iterating on ideas.
+- Single-binary, all assets should be embedded in the binary when deploying.
+- Simple bitmap font drawing.
 - Dialogue scripting system.
 - Audio playback.
-- In game profiler GUI.
-- Simple bitmap font drawing.
+- In game CPU & memory profiler GUI.
+
+#### Goals
+
+- Ergonomic API, with a focus on quickly creating small games, especially for game jams.
+- Reasonable performance, drawing thousands of animated sprites at the same time shouldn't be a problem.
+- Proper web support, it should be very easy to bundle as WASM for the web.
+
+#### Non-Goals
+
+- An ECS (Entity component system), although an ECS architecture is great for cache locality and performance, I feel that it's overkill for most small games. Nothing is stopping you to add your own on top of this engine if that's what you want though!
+- 3D, this engine is only for 2D pixel art.
+- Vector graphics, similar to the above, this engine is focused specifically on pixel art with lower resolutions.
+- Reinventing the wheel for everything, when there's a proper crate with good support I prefer to use that instead of creating additional maintainer burden.
 
 #### Usage
 
