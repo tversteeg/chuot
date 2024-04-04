@@ -6,6 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0-alpha.5](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.9.0-alpha.4...pixel-game-lib-v0.9.0-alpha.5) - 2024-04-04
+
+### Added
+- *(sprite)* add `SpriteContext::draw_multiple_translated` for a performant way of drawing an iterator of offsets
+- *(profiler)* profile heap allocations for rendering and tick call
+- *(context)* [**breaking**] use ergonomic zero cost abstraction for text drawing similar to sprite refactor
+- *(assets)* export different types that can be used for loading assets
+
+### Other
+- *(context)* [**breaking**] move `Context::draw_sprite` and `Context::draw_text` to `Context::sprite|text::draw`
+- *(cargo)* only include 'src/' folder for a smaller crate size
+- *(sprite)* [**breaking**] use zero-cast abstraction with helper structs for more ergonic sprite drawing
+- *(assets)* [**breaking**] move `crate::asset` and `crate::asset_owned` to `Context` as methods
+
 ## [0.9.0-alpha.4](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.9.0-alpha.3...pixel-game-lib-v0.9.0-alpha.4) - 2024-03-29
 
 ### Added

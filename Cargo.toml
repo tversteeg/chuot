@@ -1,6 +1,6 @@
 [package]
 name = "pixel-game-lib"
-version = "0.9.0-alpha.4"
+version = "0.9.0-alpha.5"
 edition = "2021"
 authors = ["Thomas Versteeg <t@versteeg.email>"]
 license = "AGPL-3.0"
