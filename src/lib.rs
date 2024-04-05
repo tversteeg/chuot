@@ -13,7 +13,7 @@
 //!
 //! # Goals
 //!
-//! - Ergonomic API, with a focus on quickly creating small games, especially for game jams.
+//! - Ergonomic API with a focus on quickly creating small games, especially for game jams.
 //! - Reasonable performance, drawing thousands of animated sprites at the same time shouldn't be a problem.
 //! - Proper web support, it should be very easy to bundle as WASM for the web.
 //!
@@ -153,6 +153,7 @@ pub mod context;
 pub mod dialogue;
 mod font;
 pub mod graphics;
+mod random;
 mod sprite;
 mod window;
 
@@ -167,6 +168,7 @@ pub use winit::{
 
 pub use config::GameConfig;
 pub use context::Context;
+pub use random::{random, random_range};
 
 use miette::Result;
 
