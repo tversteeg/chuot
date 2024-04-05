@@ -25,7 +25,7 @@ AGPL licensed and opinionated game engine for 2D pixel-art games.
 
 #### Goals
 
-- Ergonomic API, with a focus on quickly creating small games, especially for game jams.
+- Ergonomic API with a focus on quickly creating small games, especially for game jams.
 - Reasonable performance, drawing thousands of animated sprites at the same time shouldn't be a problem.
 - Proper web support, it should be very easy to bundle as WASM for the web.
 

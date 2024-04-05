@@ -4,7 +4,9 @@ use glamour::{Size2, Vector2};
 use pixel_game_lib::{Context, GameConfig, KeyCode, MouseButton, PixelGame};
 
 /// How long a particle lives in seconds.
-const PARTICLE_LIFE_SECS: f32 = 1.0;
+const PARTICLE_LIFE_SECS: f32 = 10.0;
+/// How much gravity is applied each second.
+const GRAVITY: f32 = 98.1;
 
 /// A single particle instance to draw.
 struct Particle {
@@ -37,10 +39,13 @@ impl PixelGame for GameState {
         if let Some(mouse) = ctx.mouse() {
             if ctx.mouse_pressed(MouseButton::Left) {
                 // Spawn many particles when clicking
-                for _ in 0..10 {
+                for _ in 0..1000 {
                     self.particles.push(Particle {
                         position: mouse,
-                        velocity: Vector2::ZERO,
+                        velocity: Vector2::new(
+                            pixel_game_lib::random_range(-100.0, 100.0),
+                            pixel_game_lib::random_range(-100.0, 100.0),
+                        ),
                         life: PARTICLE_LIFE_SECS,
                     });
                 }
@@ -49,7 +54,10 @@ impl PixelGame for GameState {
             // Spawn a new particle at the mouse
             self.particles.push(Particle {
                 position: mouse,
-                velocity: Vector2::ZERO,
+                velocity: Vector2::new(
+                    pixel_game_lib::random_range(-10.0, 10.0),
+                    pixel_game_lib::random_range(-10.0, 10.0),
+                ),
                 life: PARTICLE_LIFE_SECS,
             });
         }
@@ -61,6 +69,26 @@ impl PixelGame for GameState {
         self.particles.retain_mut(|particle| {
             // Update the particle
             particle.position += particle.velocity * dt;
+
+            // Bounce the particles on the left and right edges of the screen
+            if particle.position.x < 10.0 {
+                particle.position.x = 10.0;
+                particle.velocity.x = -particle.velocity.x;
+            } else if particle.position.x > 310.0 {
+                particle.position.x = 310.0;
+                particle.velocity.x = -particle.velocity.x;
+            }
+
+            // Bounce the particles when they hit the bottom of the screen
+            if particle.position.y > 220.0 {
+                particle.position.y = 220.0;
+                particle.velocity.y = -particle.velocity.y * 0.9;
+            }
+
+            // Apply gravity
+            particle.velocity.y += GRAVITY * dt;
+
+            // Reduce the particle's life
             particle.life -= dt;
 
             // Keep the particle if it's still alive
@@ -72,9 +100,13 @@ impl PixelGame for GameState {
         ctx.sprite("crate")
             .draw_multiple_translated(self.particles.iter().map(|particle| particle.position));
 
-        // Draw a basic FPS counter
+        // Draw a basic FPS counter with the amount of particles
         let fps = dt.recip();
-        ctx.text("Beachball", &format!("{fps:.1}")).draw();
+        ctx.text(
+            "Beachball",
+            &format!("FPS: {fps:.1}\nParticles: {}", self.particles.len()),
+        )
+        .draw();
     }
 }
 
@@ -86,6 +118,8 @@ fn main() {
         // Apply a minimum of 3 times scaling for the buffer
         // Will result in a minimum, and on web exact, window size of 960x720
         scaling: 3.0,
+        // Disable vsync so we can see the effect of the particles on the FPS
+        vsync: false,
         ..Default::default()
     };
 

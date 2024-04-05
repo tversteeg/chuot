@@ -121,6 +121,7 @@ impl<'window> MainRenderState<'window> {
         let profile_region = InGameProfiler::start_profile_heap();
 
         // Get the screen size early because we can't access it later due to borrowing
+        #[cfg(feature = "in-game-profiler")]
         let screen_size = self.screen_size();
 
         // Render on the GPU
