@@ -3,7 +3,8 @@
 [![Build Status](https://github.com/tversteeg/pixel-game-lib/workflows/CI/badge.svg)](https://github.com/tversteeg/pixel-game-lib/actions?workflow=CI)
 [![Crates.io](https://img.shields.io/crates/v/pixel-game-lib.svg)](https://crates.io/crates/pixel-game-lib)
 [![Documentation](https://docs.rs/pixel-game-lib/badge.svg)](https://docs.rs/pixel-game-lib)
-[![License: GPL-3.0](https://img.shields.io/crates/l/pixel-game-lib.svg)](#license)
+[![License: AGPL-3.0](https://img.shields.io/crates/l/pixel-game-lib.svg)](#license)
+[![Dependency Status](https://deps.rs/repo/github/tversteeg/pixel-game-lib/status.svg)](https://deps.rs/repo/github/tversteeg/pixel-game-lib)
 [![Downloads](https://img.shields.io/crates/d/pixel-game-lib.svg)](#downloads)
 
 ### [Documentation](https://docs.rs/pixel-game-lib/)
