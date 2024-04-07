@@ -202,13 +202,13 @@ where
     ///     }
     ///   }
     /// }
-    fn tick(&mut self, context: Context);
+    fn tick(&mut self, ctx: Context);
 
     /// Run the game, spawning the window.
     ///
     /// # Arguments
     ///
-    /// * `window_config` - Configuration for the window, can be used to set the buffer size, the window title and other things.
+    /// * `game_config` - Configuration for the window, can be used to set the buffer size, the window title and other things.
     ///
     /// # Example
     ///
@@ -231,12 +231,12 @@ where
     /// # Ok(()) }
     /// # try_main().unwrap();
     /// ```
-    fn run(self, window_config: GameConfig) -> Result<()> {
+    fn run(self, game_config: GameConfig) -> Result<()> {
         // Setup the audio
         #[cfg(feature = "audio")]
         crate::audio::init_audio()?;
 
         // Spawn the window with the game loop
-        window::window(self, window_config, |state, ctx| state.tick(ctx))
+        window::window(self, game_config, |state, ctx| state.tick(ctx))
     }
 }
