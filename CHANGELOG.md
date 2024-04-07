@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0-alpha.6](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.9.0-alpha.5...pixel-game-lib-v0.9.0-alpha.6) - 2024-04-07
+
+### Added
+- *(random)* add `crate::random` and `crate::random_range` functions
+
+### Fixed
+- *(deps)* update egui related rust crates
+
+### Other
+- *(readme)* add dependency status badge to README.md
+- *(example)* add example drawing and moving thousands of particles
+- *(project)* document goals and non-goals
+
 ## [0.9.0-alpha.5](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.9.0-alpha.4...pixel-game-lib-v0.9.0-alpha.5) - 2024-04-04
 
 ### Added
