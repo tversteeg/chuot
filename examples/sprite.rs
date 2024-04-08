@@ -19,8 +19,8 @@ struct GameState {
 }
 
 impl PixelGame for GameState {
-    // Update and render the game
-    fn tick(&mut self, ctx: Context) {
+    /// Update the game.
+    fn update(&mut self, ctx: Context) {
         // Exit when escape is pressed
         if ctx.key_pressed(KeyCode::Escape) {
             ctx.exit();
@@ -52,7 +52,10 @@ impl PixelGame for GameState {
                 .iter_mut()
                 .for_each(|sprite| sprite.rotation += ctx.delta_time());
         }
+    }
 
+    /// Render the game.
+    fn render(&mut self, ctx: Context) {
         // Draw sprites
         // Will be loaded from disk if the `hot-reloading` feature is enabled, otherwise it will be embedded in the binary
         for sprite in &self.sprites {
@@ -63,8 +66,8 @@ impl PixelGame for GameState {
         }
 
         // Draw a basic FPS counter
-        let fps = ctx.delta_time().recip();
-        ctx.text("Beachball", &format!("{fps:.1}")).draw();
+        ctx.text("Beachball", &format!("{:.1}", ctx.frames_per_second()))
+            .draw();
 
         // Draw some instructions at the bottom of the screen
         ctx.text(

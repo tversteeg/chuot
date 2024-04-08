@@ -1,4 +1,4 @@
-//! User-facing context used in [`crate::PixelGame::tick`].
+//! User-facing context used in [`crate::PixelGame::update`] and [`crate::PixelGame::render`].
 
 pub mod sprite;
 pub mod text;
@@ -6,7 +6,7 @@ pub mod text;
 use std::{cell::RefCell, rc::Rc};
 
 use assets_manager::Compound;
-use glamour::{Angle, Rect, Vector2};
+use glamour::{Angle, Rect, Size2, Vector2};
 use hashbrown::HashMap;
 use smol_str::SmolStr;
 use winit::{event::MouseButton, keyboard::KeyCode};
@@ -17,13 +17,14 @@ use crate::{
     font::Font,
     graphics::instance::Instances,
     sprite::Sprite,
+    GameConfig,
 };
 
 use self::{sprite::DrawSpriteContext, text::DrawTextContext};
 
 /// Context containing most functionality for interfacing with the game engine.
 ///
-/// Exposed in [`crate::PixelGame::tick`].
+/// Exposed in [`crate::PixelGame::update`] and [`crate::PixelGame::render`].
 ///
 /// [`Context`] is safe and cheap to clone due to being a `Rc<RefCell<..>>` under the hood.
 #[derive(Clone)]
@@ -101,10 +102,10 @@ impl Context {
     /// ```
     /// use pixel_game_lib::{Context, KeyCode};
     ///
-    /// # struct Empty; impl pixel_game_lib::PixelGame for Empty {
-    /// // In `PixelGame::tick` trait implementation
+    /// # struct Empty; impl Empty {
+    /// // In `PixelGame::update` trait implementation
     /// // ..
-    /// fn tick(&mut self, ctx: Context) {
+    /// fn update(&mut self, ctx: Context) {
     ///   // Stop game when 'Escape' is pressed
     ///   if ctx.key_pressed(KeyCode::Escape) {
     ///     ctx.exit();
@@ -116,31 +117,92 @@ impl Context {
         self.write(|ctx| ctx.exit = true)
     }
 
-    /// Get the delta time in seconds, how long since the last tick call.
+    /// Get the delta time in seconds for the update tick.
     ///
-    /// Useful for calculating frame-independent physics.
+    /// This is a constant set by [`GameConfig::with_update_delta_time`].
     ///
     /// # Returns
     ///
-    /// - Time since last tick in seconds.
+    /// - Seconds a single update tick took, this is a constant.
+    #[inline]
+    pub fn delta_time(&self) -> f32 {
+        self.read(|ctx| ctx.delta_time)
+    }
+
+    /// Get the amount of frames drawn in a second.
+    ///
+    /// This counts the times [`crate::PixelGame::render`] is called.
+    ///
+    /// # Returns
+    ///
+    /// - Frames per second drawn.
     ///
     /// # Example
     ///
     /// ```
     /// use pixel_game_lib::{Context, KeyCode, glamour::Vector2};
     ///
-    /// # struct Empty; impl pixel_game_lib::PixelGame for Empty {
-    /// // In `PixelGame::tick` trait implementation
+    /// # struct Empty; impl Empty {
+    /// // In `PixelGame::render` trait implementation
     /// // ..
-    /// fn tick(&mut self, ctx: Context) {
+    /// fn render(&mut self, ctx: Context) {
     ///   // Draw a simple FPS counter on the top-left of the screen
     ///   let fps = ctx.delta_time().recip();
-    ///   ctx.text("Beachball", &format!("{fps:.1}")).draw();
+    ///   ctx.text("Beachball", &format!("{:.1}", ctx.frames_per_second())).draw();
     /// }
     /// # }
     #[inline]
-    pub fn delta_time(&self) -> f32 {
-        self.read(|ctx| ctx.input.delta_time().unwrap_or_default().as_secs_f32())
+    pub fn frames_per_second(&self) -> f32 {
+        self.read(|ctx| ctx.frames_per_second)
+    }
+
+    /// Get the blending factor between the update states used in the render state.
+    ///
+    /// This is only set for [`crate::PixelGame::render`].
+    ///
+    /// Using this number allows you to create smooth animations for slower update loops.
+    /// A common way to do this is to keep a previous state and interpolate the current state with the previous one.
+    /// For most use cases a basic lerp function suffices for this.
+    ///
+    /// # Returns
+    ///
+    /// - Number between `0.0`-`1.0` which is the ratio between the previous state and the current state for interpolating.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use pixel_game_lib::{Context, KeyCode, glamour::Vector2};
+    ///
+    /// # #[derive(Default)] struct S{position: Vector2, previous_position: Vector2}
+    /// # struct Empty; impl Empty {
+    /// // In `PixelGame::render` trait implementation
+    /// // ..
+    /// fn render(&mut self, ctx: Context) {
+    /// # let sprite = S::default();
+    ///   // Lerp a sprite between it's last position and the current position
+    ///   let interpolated_position =
+    ///       sprite.position * ctx.blending_factor() +
+    ///       sprite.previous_position * (1.0 - ctx.blending_factor());
+    ///
+    ///   // Draw the sprite with smooth position
+    ///   ctx.sprite("sprite").translate(interpolated_position).draw();
+    /// }
+    /// # }
+    #[inline]
+    pub fn blending_factor(&self) -> f32 {
+        self.read(|ctx| ctx.blending_factor)
+    }
+
+    /// Size of the drawable part of the window in pixels.
+    ///
+    /// This ignores any scaling.
+    ///
+    /// # Returns
+    ///
+    /// - Width and height of the drawable part of the window.
+    #[inline]
+    pub fn size(&self) -> Size2 {
+        self.read(|ctx| ctx.size)
     }
 }
 
@@ -296,9 +358,9 @@ impl Context {
 impl Context {
     /// Create a new empty context.
     #[inline]
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(config: &GameConfig) -> Self {
         Self {
-            inner: Rc::new(RefCell::new(ContextInner::new())),
+            inner: Rc::new(RefCell::new(ContextInner::new(config))),
         }
     }
 
@@ -343,11 +405,19 @@ pub(crate) struct ContextInner {
     pub(crate) fonts: HashMap<SmolStr, Font>,
     /// Portions of textures that need to be re-written.
     pub(crate) texture_update_queue: Vec<(SmolStr, Rect, Vec<u32>)>,
+    /// Time in seconds between every update tick.
+    pub(crate) delta_time: f32,
+    /// Frames per second for the render tick.
+    pub(crate) frames_per_second: f32,
+    /// Interpolation alpha for the render tick.
+    pub(crate) blending_factor: f32,
+    /// Size of the inner window in pixels.
+    pub(crate) size: Size2,
 }
 
 impl ContextInner {
     /// Initialize the inner context.
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(config: &GameConfig) -> Self {
         let exit = false;
         let mouse = None;
         let input = WinitInputHelper::default();
@@ -356,6 +426,10 @@ impl ContextInner {
         let sprites = HashMap::new();
         let fonts = HashMap::new();
         let texture_update_queue = Vec::new();
+        let delta_time = config.update_delta_time;
+        let size = config.buffer_size;
+        let frames_per_second = 0.0;
+        let blending_factor = 0.0;
 
         Self {
             exit,
@@ -366,6 +440,10 @@ impl ContextInner {
             sprites,
             fonts,
             texture_update_queue,
+            delta_time,
+            frames_per_second,
+            blending_factor,
+            size,
         }
     }
 

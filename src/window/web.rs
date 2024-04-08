@@ -8,15 +8,18 @@ use winit::{event_loop::EventLoop, platform::web::WindowBuilderExtWebSys, window
 use super::{GameConfig, TickFn};
 
 /// Desktop implementation of opening a window.
-pub(crate) async fn window<G, T>(
+#[inline(always)]
+pub(crate) async fn window<G, U, R>(
     window_builder: WindowBuilder,
     game_state: G,
     window_config: GameConfig,
-    tick: T,
+    update: U,
+    render: R,
 ) -> Result<()>
 where
     G: 'static,
-    T: TickFn<G> + 'static,
+    U: TickFn<G> + 'static,
+    R: TickFn<G> + 'static,
 {
     // Create a canvas the winit window can be attached to
     let window = web_sys::window().ok_or_else(|| miette::miette!("Error finding web window"))?;
@@ -65,5 +68,13 @@ where
     canvas.set_width((window_config.buffer_size.width * window_config.scaling) as u32);
     canvas.set_height((window_config.buffer_size.height * window_config.scaling) as u32);
 
-    crate::window::winit_start(event_loop, window, game_state, tick, window_config).await
+    crate::window::winit_start(
+        event_loop,
+        window,
+        game_state,
+        update,
+        render,
+        window_config,
+    )
+    .await
 }

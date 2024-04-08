@@ -30,14 +30,17 @@ impl FromStr for TxtString {
 struct GameState;
 
 impl PixelGame for GameState {
-    // Game loop tick, this is where you would handle the game logic
-    fn tick(&mut self, ctx: Context) {
+    /// Game render tick, handle drawing things here.
+    fn render(&mut self, ctx: Context) {
         // Load a reference to the asset
         let example_txt = ctx.asset::<TxtString>("example");
 
         // Draw the asset text
         ctx.text("Beachball", &example_txt.0).draw();
+    }
 
+    /// Game update tick, this is where you would handle the game logic.
+    fn update(&mut self, ctx: Context) {
         // Exit when escape is pressed
         if ctx.key_pressed(KeyCode::Escape) {
             ctx.exit();

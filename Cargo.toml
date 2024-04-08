@@ -66,6 +66,7 @@ packr2 = "0.3.3"
 parking_lot = "0.12.1"
 smol_str = "0.2.1"
 fastrand = "2.0.2"
+web-time = "1.1.0"
 
 # `dialogue` feature
 
