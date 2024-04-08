@@ -6,16 +6,19 @@ use pixel_game_lib::{Context, GameConfig, KeyCode, PixelGame};
 struct GameState {}
 
 impl PixelGame for GameState {
-    // Game loop tick, this is where you would handle the game logic
-    fn tick(&mut self, ctx: Context) {
-        // Draw a basic FPS counter
-        let fps = ctx.delta_time().recip();
-        ctx.text("Beachball", &format!("{fps:.1}")).draw();
-
+    /// Game loop tick, this is where you would handle the game logic.
+    fn update(&mut self, ctx: Context) {
         // Exit when escape is pressed
         if ctx.key_pressed(KeyCode::Escape) {
             ctx.exit();
         }
+    }
+
+    /// Game render tick, handle drawing things here.
+    fn render(&mut self, ctx: Context) {
+        // Draw a basic FPS counter
+        let fps = ctx.delta_time().recip();
+        ctx.text("Beachball", &format!("{fps:.1}")).draw();
     }
 }
 

@@ -26,8 +26,8 @@ struct GameState {
 }
 
 impl PixelGame for GameState {
-    // Update and render the game
-    fn tick(&mut self, ctx: Context) {
+    /// Update the game.
+    fn update(&mut self, ctx: Context) {
         // Exit when escape is pressed
         if ctx.key_pressed(KeyCode::Escape) {
             ctx.exit();
@@ -94,17 +94,23 @@ impl PixelGame for GameState {
             // Keep the particle if it's still alive
             particle.life > 0.0
         });
+    }
 
+    /// Render the game.
+    fn render(&mut self, ctx: Context) {
         // Draw all particles
         // Will be loaded from disk if the `hot-reloading` feature is enabled, otherwise it will be embedded in the binary
         ctx.sprite("crate")
             .draw_multiple_translated(self.particles.iter().map(|particle| particle.position));
 
         // Draw a basic FPS counter with the amount of particles
-        let fps = dt.recip();
         ctx.text(
             "Beachball",
-            &format!("FPS: {fps:.1}\nParticles: {}", self.particles.len()),
+            &format!(
+                "FPS: {:.1}\nParticles: {}",
+                ctx.frames_per_second(),
+                self.particles.len()
+            ),
         )
         .draw();
     }

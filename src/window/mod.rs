@@ -10,6 +10,7 @@ mod web;
 // Allow passing the profiler without having to change function signatures
 #[cfg(feature = "in-game-profiler")]
 pub(crate) use in_game_profiler::InGameProfiler;
+use web_time::Instant;
 #[cfg(not(feature = "in-game-profiler"))]
 pub(crate) type InGameProfiler = ();
 
@@ -19,14 +20,14 @@ use glamour::{Size2, Vector2};
 use miette::{IntoDiagnostic, Result, WrapErr};
 use winit::{
     dpi::LogicalSize,
+    event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     window::{Window, WindowBuilder},
 };
-use winit_input_helper::WinitInputHelper;
 
 use crate::{graphics::state::MainRenderState, Context, GameConfig};
 
-/// Tick function signature.
+/// Update and render tick function signature.
 pub(crate) trait TickFn<G>: FnMut(&mut G, Context) {}
 
 impl<G, T: FnMut(&mut G, Context)> TickFn<G> for T {}
@@ -47,10 +48,16 @@ impl<G, T: FnMut(&mut G, Context)> TickFn<G> for T {}
 /// # Errors
 ///
 /// - When the audio manager could not find a device to play audio on.
-pub(crate) fn window<G, T>(game_state: G, window_config: GameConfig, tick: T) -> Result<()>
+pub(crate) fn window<G, U, R>(
+    game_state: G,
+    window_config: GameConfig,
+    update: U,
+    render: R,
+) -> Result<()>
 where
     G: 'static,
-    T: TickFn<G> + 'static,
+    U: TickFn<G> + 'static,
+    R: TickFn<G> + 'static,
 {
     // Build the window builder with the event loop the user supplied
     let window_builder = WindowBuilder::new()
@@ -72,7 +79,7 @@ where
         env_logger::init();
 
         pollster::block_on(async {
-            desktop::window(window_builder, game_state, window_config, tick).await
+            desktop::window(window_builder, game_state, window_config, update, render).await
         })
     }
     #[cfg(target_arch = "wasm32")]
@@ -85,7 +92,7 @@ where
 
         // Web window function is async, so we need to spawn it into a local async runtime
         wasm_bindgen_futures::spawn_local(async {
-            web::window(window_builder, game_state, window_config, tick)
+            web::window(window_builder, game_state, window_config, update, render)
                 .await
                 .expect("Error opening WASM window")
         });
@@ -95,22 +102,21 @@ where
 }
 
 /// Open a winit window with an event loop.
-async fn winit_start<G, T>(
+async fn winit_start<G, U, R>(
     event_loop: EventLoop<()>,
     window: Window,
     mut game_state: G,
-    mut tick: T,
+    mut update: U,
+    mut render: R,
     game_config: GameConfig,
 ) -> Result<()>
 where
     G: 'static,
-    T: TickFn<G> + 'static,
+    U: TickFn<G> + 'static,
+    R: TickFn<G> + 'static,
 {
     // Wrap the window in an atomic reference counter so it can be shared in multiple places
     let window = Arc::new(window);
-
-    // Setup the winit input helper state
-    let mut input = WinitInputHelper::new();
 
     // Create a surface on the window and setup the render state to it
     let mut render_state = MainRenderState::new(&game_config, window.clone())
@@ -118,7 +124,7 @@ where
         .wrap_err("Error setting up the rendering pipeline")?;
 
     // Setup the context passed to the tick function implemented by the user
-    let mut ctx = Context::new();
+    let mut ctx = Context::new(&game_config);
 
     // Setup the in-game profiler
     #[cfg(feature = "in-game-profiler")]
@@ -130,75 +136,143 @@ where
     // Set the event loop to polling so we don't have to wait for new events to draw new frames
     event_loop.set_control_flow(ControlFlow::Poll);
 
+    // Current time
+    let mut last_time = Instant::now();
+    // Timestep accumulator
+    let mut accumulator = 0.0;
+
+    // Window events to send to the input update
+    let mut window_events = Vec::with_capacity(4);
+
     // Start the window and game loop
     event_loop
         .run(move |event, elwt| {
-            // Update egui inside in-game-profiler
-            #[cfg(feature = "in-game-profiler")]
-            if let winit::event::Event::WindowEvent { event, .. } = &event {
-                in_game_profiler.handle_window_event(&window, event);
-            };
+            match event {
+                Event::WindowEvent { window_id, event } if window_id == window.id() => {
+                    // Update egui inside in-game-profiler
+                    #[cfg(feature = "in-game-profiler")]
+                    in_game_profiler.handle_window_event(&window, &event);
 
-            // Pass every event to the input helper, when it returns `true` it's time to run the logic
-            if input.update(&event) {
-                // Exit when the window is destroyed or closed
-                if input.close_requested() || input.destroyed() || ctx.read(|ctx| ctx.exit) {
-                    elwt.exit();
-                    return;
+                    // Redraw the window when requested
+                    match event {
+                        // Resize render surface if window is resized on the desktop, on the web the size is always the same
+                        #[cfg(not(target_arch = "wasm32"))]
+                        WindowEvent::Resized(new_size) => {
+                            // Resize GPU surface
+                            render_state.resize(Size2::new(new_size.width, new_size.height));
+
+                            // On MacOS the window needs to be redrawn manually after resizing
+                            window.request_redraw();
+                        }
+                        // Render the frame
+                        WindowEvent::RedrawRequested => {
+                            // Set the updated state for the context
+                            ctx.write(|ctx| {
+                                // Set the mouse position
+                                ctx.mouse = ctx.input.cursor().and_then(|(x, y)| {
+                                    render_state.map_coordinate(Vector2::new(x, y))
+                                });
+
+                                // Reset the sprite instances
+                                ctx.instances.clear();
+                            });
+
+                            // Update the timestep
+                            let current_time = Instant::now();
+                            let frame_time = (current_time - last_time)
+                                .as_secs_f32()
+                                // Ensure the frametime will never surpass this amount
+                                .min(game_config.max_frame_time_secs);
+                            last_time = current_time;
+
+                            accumulator += frame_time;
+
+                            // Call the update tick function with the context
+                            while accumulator >= game_config.update_delta_time {
+                                let should_exit = ctx.write(|ctx| {
+                                    // Handle the accumulated window events
+                                    ctx.input.step_with_window_events(&window_events);
+                                    window_events.clear();
+
+                                    // Exit when the window is destroyed or closed
+                                    let should_exit = ctx.input.close_requested()
+                                        || ctx.input.destroyed()
+                                        || ctx.exit;
+
+                                    if should_exit {
+                                        elwt.exit();
+                                    }
+
+                                    should_exit
+                                });
+
+                                if should_exit {
+                                    // Exit was requested
+                                    return;
+                                }
+
+                                profiling::scope!("Update");
+
+                                // Profile the allocations
+                                #[cfg(feature = "in-game-profiler")]
+                                let profile_region = InGameProfiler::start_profile_heap();
+
+                                // Call the implemented update function on the 'PixelGame' trait
+                                update(&mut game_state, ctx.clone());
+
+                                #[cfg(feature = "in-game-profiler")]
+                                in_game_profiler.finish_profile_heap("Update", profile_region);
+
+                                // Mark this tick as executed
+                                accumulator -= game_config.update_delta_time;
+                            }
+
+                            // Set the blending factor for the render loop
+                            ctx.write(|ctx| {
+                                ctx.blending_factor = accumulator / game_config.update_delta_time;
+                            });
+
+                            // Call the render tick function with the context
+                            {
+                                profiling::scope!("Render");
+
+                                // Profile the allocations
+                                #[cfg(feature = "in-game-profiler")]
+                                let profile_region = InGameProfiler::start_profile_heap();
+
+                                // Call the implemented render function on the 'PixelGame' trait
+                                render(&mut game_state, ctx.clone());
+
+                                #[cfg(feature = "in-game-profiler")]
+                                in_game_profiler.finish_profile_heap("Render", profile_region);
+                            }
+
+                            // Render the saved render state
+                            {
+                                profiling::scope!("Render Internal");
+
+                                // Render everything
+                                #[cfg(feature = "in-game-profiler")]
+                                render_state.render(&mut ctx, &mut in_game_profiler, &window);
+                                #[cfg(not(feature = "in-game-profiler"))]
+                                render_state.render(&mut ctx, &mut (), &window);
+                            }
+
+                            // Tell the profiler we've executed a tick
+                            profiling::finish_frame!();
+                        }
+                        _ => (),
+                    }
+
+                    // Push all events so we can handle them at once in the update tick
+                    window_events.push(event);
                 }
-
-                // Resize render surface if window is resized on the desktop, on the web the size is always the same
-                #[cfg(not(target_arch = "wasm32"))]
-                if let Some(new_size) = input.window_resized() {
-                    // Resize GPU surface
-                    render_state.resize(Size2::new(new_size.width, new_size.height));
-
-                    // On MacOS the window needs to be redrawn manually after resizing
+                Event::AboutToWait => {
+                    // Request a redraw so the render loop can be executed
                     window.request_redraw();
                 }
-
-                // Set the updated state for the context
-                ctx.write(|ctx| {
-                    // Set the mouse position
-                    ctx.mouse = input
-                        .cursor()
-                        .and_then(|(x, y)| render_state.map_coordinate(Vector2::new(x, y)));
-
-                    // Embed the input
-                    // TODO: remove clone
-                    ctx.input = input.clone();
-
-                    // Reset the sprite instances
-                    ctx.instances.clear();
-                });
-
-                // Call the tick function with the context
-                {
-                    profiling::scope!("Tick");
-
-                    // Profile the allocations
-                    #[cfg(feature = "in-game-profiler")]
-                    let profile_region = InGameProfiler::start_profile_heap();
-
-                    tick(&mut game_state, ctx.clone());
-
-                    #[cfg(feature = "in-game-profiler")]
-                    in_game_profiler.finish_profile_heap("Tick", profile_region);
-                }
-
-                {
-                    profiling::scope!("Render");
-
-                    // Render everything
-                    #[cfg(feature = "in-game-profiler")]
-                    render_state.render(&mut ctx, &mut in_game_profiler, &window);
-                    #[cfg(not(feature = "in-game-profiler"))]
-                    render_state.render(&mut ctx, &mut (), &window);
-                }
-
-                // Tell the profiler we've executed a tick
-                profiling::finish_frame!();
-            }
+                _ => (),
+            };
         })
         .into_diagnostic()
         .wrap_err("Error running game loop")?;

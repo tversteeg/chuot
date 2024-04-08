@@ -8,7 +8,8 @@ use pixel_game_lib::{audio::Audio, Context, GameConfig, KeyCode, MouseButton, Pi
 struct GameState;
 
 impl PixelGame for GameState {
-    fn tick(&mut self, ctx: Context) {
+    /// Handle input events to play a sound.
+    fn update(&mut self, ctx: Context) {
         // Play a sound when the mouse is pressed
         if ctx.mouse_released(MouseButton::Left) {
             // Load the asset if not loaded yet
@@ -22,6 +23,9 @@ impl PixelGame for GameState {
             ctx.exit();
         }
     }
+
+    /// Don't render anything.
+    fn render(&mut self, _ctx: Context) {}
 }
 
 /// Run the game.

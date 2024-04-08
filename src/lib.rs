@@ -26,7 +26,7 @@
 //!
 //! # Usage
 //!
-//! Using this crate is quite simple, there is a single trait [`PixelGame`] with a single required function, [`PixelGame::tick`] that needs to be implemented for a state.
+//! Using this crate is quite simple, there is a single trait [`PixelGame`] with two required functions, [`PixelGame::update`] and [`PixelGame::render`], that need to be implemented for a game state object.
 //!
 //! ```no_run
 //! use pixel_game_lib::{PixelGame, Context, GameConfig};
@@ -34,7 +34,11 @@
 //! struct MyGame;
 //!
 //! impl PixelGame for MyGame {
-//!   fn tick(&mut self, ctx: Context) {
+//!   fn update(&mut self, ctx: Context) {
+//!     // ..
+//!   }
+//!
+//!   fn render(&mut self, ctx: Context) {
 //!     // ..
 //!   }
 //! }
@@ -108,23 +112,25 @@
 //! }
 //!
 //! impl PixelGame for MyGame {
-//!   fn tick(&mut self, ctx: Context) {
+//!   fn update(&mut self, ctx: Context) {
 //!     // ^1
 //!     // Increment the counter when we press the left mouse button
 //!     if ctx.mouse_pressed(MouseButton::Left) {
 //!       self.counter += 1;
 //!     }
 //!
-//!     // ^2
-//!     // Display the counter with a font called 'font' automatically loaded from the `assets/` directory
-//!     // It will be shown in the top-left corner
-//!     ctx.text("font", &format!("Counter: {}", self.counter)).draw();
-//!
 //!     // ^3
 //!     // Exit the game if 'Escape' is pressed
 //!     if ctx.key_pressed(KeyCode::Escape) {
 //!       ctx.exit();
 //!     }
+//!   }
+//!
+//!   fn render(&mut self, ctx: Context) {
+//!     // ^2
+//!     // Display the counter with a font called 'font' automatically loaded from the `assets/` directory
+//!     // It will be shown in the top-left corner
+//!     ctx.text("font", &format!("Counter: {}", self.counter)).draw();
 //!   }
 //! }
 //!
@@ -172,20 +178,21 @@ pub use random::{random, random_range};
 
 use miette::Result;
 
-/// Setup a game with a shared state and run it.
+/// Main entrypoint containing game state for running the game.
 ///
 /// This is the main interface with the game engine.
 pub trait PixelGame: Sized
 where
     Self: 'static,
 {
-    /// A single tick in the game loop.
+    /// A single update tick in the game loop.
     ///
-    /// Must be used for rendering and updating the game state.
+    /// Will run on a different rate from the render loop specified in the game configuration.
+    /// Must be used for updating the game state.
     ///
     /// # Arguments
     ///
-    /// * `context` - Game context, used to queue draw calls and obtain information about the state.
+    /// * `ctx` - Game context, used to obtain information about the state.
     ///
     /// # Example
     ///
@@ -195,14 +202,49 @@ where
     /// struct MyGame;
     ///
     /// impl PixelGame for MyGame {
-    ///   fn tick(&mut self, ctx: Context) {
+    ///   fn update(&mut self, ctx: Context) {
     ///     // Stop the game and close the window when 'Escape' is pressed
     ///     if ctx.key_pressed(KeyCode::Escape) {
     ///       ctx.exit();
     ///     }
     ///   }
+    ///
+    ///   fn render(&mut self, ctx: Context) {
+    ///     // ..
+    ///   }
     /// }
-    fn tick(&mut self, ctx: Context);
+    /// ```
+    fn update(&mut self, ctx: Context);
+
+    /// A single render tick in the game loop.
+    ///
+    /// Will run on a different rate from the update loop specified in the game configuration.
+    /// Must be used for rendering items on the screen.
+    /// Shouldn't be used for updating the game state since it runs framerate dependent.
+    ///
+    /// # Arguments
+    ///
+    /// * `ctx` - Game context, used to queue draw calls .
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use pixel_game_lib::{PixelGame, Context, GameConfig, KeyCode};
+    ///
+    /// struct MyGame;
+    ///
+    /// impl PixelGame for MyGame {
+    ///   fn render(&mut self, ctx: Context) {
+    ///     // Draw a sprite on the screen
+    ///     ctx.sprite("sprite").draw();
+    ///   }
+    ///
+    ///   fn update(&mut self, ctx: Context) {
+    ///     // ..
+    ///   }
+    /// }
+    /// ```
+    fn render(&mut self, ctx: Context);
 
     /// Run the game, spawning the window.
     ///
@@ -213,12 +255,19 @@ where
     /// # Example
     ///
     /// ```no_run
-    /// use pixel_game_lib::{PixelGame, Context, GameConfig};
+    /// use pixel_game_lib::{PixelGame, Context, GameConfig, KeyCode};
     ///
     /// struct MyGame;
     ///
     /// impl PixelGame for MyGame {
-    ///   fn tick(&mut self, ctx: Context) {
+    ///   fn update(&mut self, ctx: Context) {
+    ///     // Stop the game and close the window when 'Escape' is pressed
+    ///     if ctx.key_pressed(KeyCode::Escape) {
+    ///       ctx.exit();
+    ///     }
+    ///   }
+    ///
+    ///   fn render(&mut self, ctx: Context) {
     ///     // ..
     ///   }
     /// }
@@ -237,6 +286,11 @@ where
         crate::audio::init_audio()?;
 
         // Spawn the window with the game loop
-        window::window(self, game_config, |state, ctx| state.tick(ctx))
+        window::window(
+            self,
+            game_config,
+            |state, ctx| state.update(ctx),
+            |state, ctx| state.render(ctx),
+        )
     }
 }

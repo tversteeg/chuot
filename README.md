@@ -39,7 +39,7 @@ AGPL licensed and opinionated game engine for 2D pixel-art games.
 
 #### Usage
 
-Using this crate is quite simple, there is a single trait [`PixelGame`] with a single required function, [`PixelGame::tick`] that needs to be implemented for a state.
+Using this crate is quite simple, there is a single trait [`PixelGame`] with two required functions, [`PixelGame::update`] and [`PixelGame::render`], that need to be implemented for a game state object.
 
 ```rust
 use pixel_game_lib::{PixelGame, Context, GameConfig};
@@ -47,7 +47,11 @@ use pixel_game_lib::{PixelGame, Context, GameConfig};
 struct MyGame;
 
 impl PixelGame for MyGame {
-  fn tick(&mut self, ctx: Context) {
+  fn update(&mut self, ctx: Context) {
+    // ..
+  }
+
+  fn render(&mut self, ctx: Context) {
     // ..
   }
 }
@@ -118,23 +122,25 @@ struct MyGame {
 }
 
 impl PixelGame for MyGame {
-  fn tick(&mut self, ctx: Context) {
+  fn update(&mut self, ctx: Context) {
     // ^1
     // Increment the counter when we press the left mouse button
     if ctx.mouse_pressed(MouseButton::Left) {
       self.counter += 1;
     }
 
-    // ^2
-    // Display the counter with a font called 'font' automatically loaded from the `assets/` directory
-    // It will be shown in the top-left corner
-    ctx.text("font", &format!("Counter: {}", self.counter)).draw();
-
     // ^3
     // Exit the game if 'Escape' is pressed
     if ctx.key_pressed(KeyCode::Escape) {
       ctx.exit();
     }
+  }
+
+  fn render(&mut self, ctx: Context) {
+    // ^2
+    // Display the counter with a font called 'font' automatically loaded from the `assets/` directory
+    // It will be shown in the top-left corner
+    ctx.text("font", &format!("Counter: {}", self.counter)).draw();
   }
 }
 

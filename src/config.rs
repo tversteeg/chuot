@@ -30,7 +30,7 @@ pub struct GameConfig {
     pub buffer_size: Size2,
     /// Factor applied to the buffer size for the requested window size.
     ///
-    /// Defaults to `1.0`.
+    /// Defaults to `2.0`.
     pub scaling: f32,
     /// Enable vsync on the GPU.
     ///
@@ -62,6 +62,14 @@ pub struct GameConfig {
     ///
     /// Defaults to [`RotationAlgorithm::Scale3x`].
     pub rotation_algorithm: RotationAlgorithm,
+    /// Maximum amount a single frame may take in seconds.
+    ///
+    /// Defaults to `1.0/4.0`.
+    pub max_frame_time_secs: f32,
+    /// Fixed duration in seconds a single update tick will take.
+    ///
+    /// Defaults to `1.0/30.0`, AKA 30 update ticks per second.
+    pub update_delta_time: f32,
 }
 
 impl GameConfig {
@@ -124,18 +132,34 @@ impl GameConfig {
 
         self
     }
+
+    /// Set the maximum amount a single frame may take in seconds.
+    pub fn with_max_frame_time_secs(mut self, max_frame_time_secs: f32) -> Self {
+        self.max_frame_time_secs = max_frame_time_secs;
+
+        self
+    }
+
+    /// Set the duration in seconds a single update tick will take.
+    pub fn with_update_delta_time(mut self, update_delta_time: f32) -> Self {
+        self.update_delta_time = update_delta_time;
+
+        self
+    }
 }
 
 impl Default for GameConfig {
     fn default() -> Self {
         Self {
             buffer_size: Size2::new(320.0, 280.0),
-            scaling: 1.0,
+            scaling: 2.0,
             vsync: true,
             title: "Pixel Game".to_string(),
             viewport_color: 0xFF76428A,
             background_color: 0xFF9BADB7,
             rotation_algorithm: RotationAlgorithm::Scale3x,
+            max_frame_time_secs: 1.0 / 4.0,
+            update_delta_time: 1.0 / 30.0,
         }
     }
 }
