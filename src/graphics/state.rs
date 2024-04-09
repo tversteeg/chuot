@@ -101,7 +101,7 @@ impl<'window> MainRenderState<'window> {
     }
 
     /// Render the frame and call the user `render` function.
-    #[inline]
+    #[allow(unused_variables)]
     pub(crate) fn render(
         &mut self,
         ctx: &mut Context,
@@ -128,7 +128,8 @@ impl<'window> MainRenderState<'window> {
         let mut frame = self.gpu.start();
 
         // Determine whether we need a downscale pass, we know this if the letterbox is at position zero it fits exactly
-        let needs_downscale_pass = self.letterbox.origin.x != 0.0 || self.letterbox.origin.y != 0.0;
+        let needs_downscale_pass = !cfg!(target_arch = "wasm32")
+            && (self.letterbox.origin.x != 0.0 || self.letterbox.origin.y != 0.0);
 
         // If we need a downscale pass use that as the texture target, otherwise use the framebuffer directly
         let target_texture_view = if needs_downscale_pass {
@@ -152,7 +153,7 @@ impl<'window> MainRenderState<'window> {
             );
         });
 
-        // Second pass, render the custom buffer to the viewport
+        // Second optional pass, render the custom buffer to the viewport
         if needs_downscale_pass {
             profiling::scope!("Render downscale pass");
 

@@ -75,7 +75,7 @@ impl SpriteRenderState {
             primitive: wgpu::PrimitiveState {
                 topology: wgpu::PrimitiveTopology::TriangleList,
                 strip_index_format: None,
-                front_face: wgpu::FrontFace::Ccw,
+                front_face: wgpu::FrontFace::Cw,
                 // Irrelevant since we disable culling
                 cull_mode: None,
                 polygon_mode: wgpu::PolygonMode::Fill,
@@ -152,67 +152,73 @@ impl SpriteRenderState {
             (instances.bytes(), instances.len())
         };
 
+        // Resize the buffer if needed
+        let instance_buffer_already_pushed =
+            if instances_bytes.len() as u64 > self.instance_buffer.size() {
+                log::debug!(
+                    "Previous instance buffer is too small, rescaling to {} items",
+                    instances_len
+                );
+
+                // We have more instances than the buffer size, recreate the buffer
+                self.instance_buffer.destroy();
+                self.instance_buffer = frame.device.create_buffer_init(&BufferInitDescriptor {
+                    label: Some("Instance Buffer"),
+                    contents: instances_bytes,
+                    usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+                });
+
+                true
+            } else {
+                false
+            };
+
+        {
+            // Start the render pass
+            let mut render_pass = frame
+                .encoder
+                .begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("Component Render Pass"),
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view: view.unwrap_or(&frame.surface_view),
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Clear(background_color),
+                            store: wgpu::StoreOp::Store,
+                        },
+                    })],
+                    depth_stencil_attachment: None,
+                    timestamp_writes: None,
+                    occlusion_query_set: None,
+                });
+
+            // Set our pipeline
+            render_pass.set_pipeline(&self.render_pipeline);
+
+            // Bind the atlas texture
+            render_pass.set_bind_group(0, &texture_atlas.bind_group, &[]);
+            // Bind the atlas texture info
+            render_pass.set_bind_group(1, &texture_atlas.rects.bind_group, &[]);
+
+            // Bind the screen size
+            render_pass.set_bind_group(2, screen_size_bind_group, &[]);
+
+            // Set the target vertices
+            render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+            // Set the instances
+            render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
+            // Set the target indices
+            render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+
+            // Draw the instances
+            render_pass.draw_indexed(0..self.indices, 0, 0..instances_len as u32);
+        }
+
         // Upload the instance buffer
-        if instances_bytes.len() as u64 <= self.instance_buffer.size() {
-            // We still fit in the buffer, we don't have to resize it
+        if !instance_buffer_already_pushed {
             frame
                 .queue
                 .write_buffer(&self.instance_buffer, 0, instances_bytes);
-        } else {
-            // We have more instances than the buffer size, recreate the buffer
-
-            log::debug!(
-                "Previous instance buffer is too small, rescaling to {} items",
-                instances_len
-            );
-
-            self.instance_buffer.destroy();
-            self.instance_buffer = frame.device.create_buffer_init(&BufferInitDescriptor {
-                label: Some("Instance Buffer"),
-                contents: instances_bytes,
-                usage: wgpu::BufferUsages::VERTEX
-                    | wgpu::BufferUsages::COPY_DST
-                    | wgpu::BufferUsages::STORAGE,
-            });
         }
-
-        // Start the render pass
-        let mut render_pass = frame
-            .encoder
-            .begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("Component Render Pass"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: view.unwrap_or(&frame.surface_view),
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(background_color),
-                        store: wgpu::StoreOp::Store,
-                    },
-                })],
-                depth_stencil_attachment: None,
-                timestamp_writes: None,
-                occlusion_query_set: None,
-            });
-
-        // Set our pipeline
-        render_pass.set_pipeline(&self.render_pipeline);
-
-        // Bind the atlas texture
-        render_pass.set_bind_group(0, &texture_atlas.bind_group, &[]);
-        // Bind the atlas texture info
-        render_pass.set_bind_group(1, &texture_atlas.rects.bind_group, &[]);
-
-        // Bind the screen size
-        render_pass.set_bind_group(2, screen_size_bind_group, &[]);
-
-        // Set the target vertices
-        render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-        // Set the instances
-        render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
-        // Set the target indices
-        render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-
-        // Draw the instances
-        render_pass.draw_indexed(0..self.indices, 0, 0..instances_len as u32);
     }
 }

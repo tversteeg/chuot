@@ -102,7 +102,7 @@ assets_manager = { version = "0.11.4", default-features = false, features = ["to
 # Not used directly but the JS feature is required by the 'ahash' feature in `assets_manager`
 getrandom = { version = "0.2", features = ["js"] }
 
-wgpu = { version = "0.19.3", default-features = false, features = ["webgl", "wgsl"] }
+wgpu = { version = "0.19.3", default-features = false, features = ["webgl", "wgsl", "fragile-send-sync-non-atomic-wasm"] }
 console_log = "1.0.0"
 web-sys = { version = "0.3.69", features = ["Document", "Window", "Element"] }
 wasm-bindgen = "0.2.92"
@@ -131,3 +131,10 @@ cpal.opt-level = 3
 symphonia.opt-level = 3
 symphonia-format-ogg.opt-level = 3
 symphonia-codec-vorbis.opt-level = 3
+
+# Create small WASM binaries
+[profile.release]
+panic = "abort"
+codegen-units = 1
+opt-level = "z"
+lto = true

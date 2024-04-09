@@ -1,7 +1,9 @@
 //! Show how we can efficiently draw thousands of particles.
 
 use glamour::{Size2, Vector2};
-use pixel_game_lib::{Context, GameConfig, KeyCode, MouseButton, PixelGame};
+use pixel_game_lib::{
+    config::RotationAlgorithm, Context, GameConfig, KeyCode, MouseButton, PixelGame,
+};
 
 /// How long a particle lives in seconds.
 const PARTICLE_LIFE_SECS: f32 = 10.0;
@@ -51,6 +53,34 @@ impl PixelGame for GameState {
                 }
             }
 
+            if ctx.mouse_pressed(MouseButton::Right) {
+                // Spawn many particles when clicking
+                for _ in 0..10_000 {
+                    self.particles.push(Particle {
+                        position: mouse,
+                        velocity: Vector2::new(
+                            pixel_game_lib::random_range(-200.0, 200.0),
+                            pixel_game_lib::random_range(-200.0, 200.0),
+                        ),
+                        life: PARTICLE_LIFE_SECS,
+                    });
+                }
+            }
+
+            if ctx.mouse_pressed(MouseButton::Middle) {
+                // Spawn many particles when clicking
+                for _ in 0..100_000 {
+                    self.particles.push(Particle {
+                        position: mouse,
+                        velocity: Vector2::new(
+                            pixel_game_lib::random_range(-300.0, 300.0),
+                            pixel_game_lib::random_range(-300.0, 300.0),
+                        ),
+                        life: PARTICLE_LIFE_SECS,
+                    });
+                }
+            }
+
             // Spawn a new particle at the mouse
             self.particles.push(Particle {
                 position: mouse,
@@ -65,23 +95,27 @@ impl PixelGame for GameState {
         // Get the deltatime once
         let dt = ctx.delta_time();
 
+        // Get the size once
+        let border = Size2::splat(10.0);
+        let boundary = ctx.size() - border;
+
         // Remove all particles that are dead, and update all other particles
         self.particles.retain_mut(|particle| {
             // Update the particle
             particle.position += particle.velocity * dt;
 
             // Bounce the particles on the left and right edges of the screen
-            if particle.position.x < 10.0 {
-                particle.position.x = 10.0;
+            if particle.position.x < border.width {
+                particle.position.x = border.width;
                 particle.velocity.x = -particle.velocity.x;
-            } else if particle.position.x > 310.0 {
-                particle.position.x = 310.0;
+            } else if particle.position.x > boundary.width {
+                particle.position.x = boundary.width;
                 particle.velocity.x = -particle.velocity.x;
             }
 
             // Bounce the particles when they hit the bottom of the screen
-            if particle.position.y > 220.0 {
-                particle.position.y = 220.0;
+            if particle.position.y > boundary.height {
+                particle.position.y = boundary.height;
                 particle.velocity.y = -particle.velocity.y * 0.9;
             }
 
@@ -113,6 +147,14 @@ impl PixelGame for GameState {
             ),
         )
         .draw();
+
+        // Draw some instructions at the bottom of the screen
+        ctx.text(
+            "Beachball",
+            "Left click to spawn 1000 particles\nRight click to spawn 10.000 particles\nMiddle mouse click to spawn 100.000 particles",
+        )
+        .translate(Vector2::new(0.0, ctx.size().height - 36.0))
+        .draw();
     }
 }
 
@@ -120,12 +162,13 @@ impl PixelGame for GameState {
 fn main() {
     // Game configuration
     let config = GameConfig {
-        buffer_size: Size2::new(320.0, 240.0),
-        // Apply a minimum of 3 times scaling for the buffer
-        // Will result in a minimum, and on web exact, window size of 960x720
-        scaling: 3.0,
+        buffer_size: Size2::new(800.0, 600.0),
+        // Don't scale the pixels
+        scaling: 1.0,
         // Disable vsync so we can see the effect of the particles on the FPS
         vsync: false,
+        // We don't rotate the sprites so use the best performing algorithm
+        rotation_algorithm: RotationAlgorithm::NearestNeighbor,
         ..Default::default()
     };
 

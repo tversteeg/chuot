@@ -1,3 +1,3 @@
 fn main() {
-    cargo_run_wasm::run_wasm_with_css("body { margin: 0px; overflow: hidden; }");
+    cargo_run_wasm::run_wasm_with_css("");
 }

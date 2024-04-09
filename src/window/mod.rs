@@ -10,22 +10,25 @@ mod web;
 // Allow passing the profiler without having to change function signatures
 #[cfg(feature = "in-game-profiler")]
 pub(crate) use in_game_profiler::InGameProfiler;
-use web_time::Instant;
 #[cfg(not(feature = "in-game-profiler"))]
 pub(crate) type InGameProfiler = ();
 
 use std::sync::Arc;
 
-use glamour::{Size2, Vector2};
+use glamour::Vector2;
 use miette::{IntoDiagnostic, Result, WrapErr};
+use web_time::Instant;
 use winit::{
-    dpi::LogicalSize,
+    dpi::{LogicalSize, PhysicalSize},
     event::{Event, WindowEvent},
-    event_loop::{ControlFlow, EventLoop},
+    event_loop::EventLoop,
     window::{Window, WindowBuilder},
 };
 
 use crate::{graphics::state::MainRenderState, Context, GameConfig};
+
+/// How fast old FPS values decay in the smoothed average.
+const FPS_SMOOTHED_AVERAGE_ALPHA: f32 = 0.8;
 
 /// Update and render tick function signature.
 pub(crate) trait TickFn<G>: FnMut(&mut G, Context) {}
@@ -118,6 +121,12 @@ where
     // Wrap the window in an atomic reference counter so it can be shared in multiple places
     let window = Arc::new(window);
 
+    // Scale to the scaled size
+    let _ = window.request_inner_size(PhysicalSize::new(
+        game_config.buffer_size.width * game_config.scaling,
+        game_config.buffer_size.height * game_config.scaling,
+    ));
+
     // Create a surface on the window and setup the render state to it
     let mut render_state = MainRenderState::new(&game_config, window.clone())
         .await
@@ -132,9 +141,6 @@ where
         in_game_profiler::InGameProfiler::new(render_state.device(), window.clone());
 
     log::debug!("Opening window with game loop");
-
-    // Set the event loop to polling so we don't have to wait for new events to draw new frames
-    event_loop.set_control_flow(ControlFlow::Poll);
 
     // Current time
     let mut last_time = Instant::now();
@@ -159,7 +165,8 @@ where
                         #[cfg(not(target_arch = "wasm32"))]
                         WindowEvent::Resized(new_size) => {
                             // Resize GPU surface
-                            render_state.resize(Size2::new(new_size.width, new_size.height));
+                            render_state
+                                .resize(glamour::Size2::new(new_size.width, new_size.height));
 
                             // On MacOS the window needs to be redrawn manually after resizing
                             window.request_redraw();
@@ -172,20 +179,16 @@ where
                                 ctx.mouse = ctx.input.cursor().and_then(|(x, y)| {
                                     render_state.map_coordinate(Vector2::new(x, y))
                                 });
-
-                                // Reset the sprite instances
-                                ctx.instances.clear();
                             });
 
                             // Update the timestep
                             let current_time = Instant::now();
-                            let frame_time = (current_time - last_time)
-                                .as_secs_f32()
-                                // Ensure the frametime will never surpass this amount
-                                .min(game_config.max_frame_time_secs);
+                            let frame_time = (current_time - last_time).as_secs_f32();
                             last_time = current_time;
 
-                            accumulator += frame_time;
+                            accumulator += frame_time
+                                // Ensure the frametime will never surpass this amount
+                                .min(game_config.max_frame_time_secs);
 
                             // Call the update tick function with the context
                             while accumulator >= game_config.update_delta_time {
@@ -229,7 +232,16 @@ where
 
                             // Set the blending factor for the render loop
                             ctx.write(|ctx| {
+                                // Set the blending factor
                                 ctx.blending_factor = accumulator / game_config.update_delta_time;
+
+                                // Set the FPS with a smoothed average function
+                                ctx.frames_per_second = FPS_SMOOTHED_AVERAGE_ALPHA
+                                    * ctx.frames_per_second
+                                    + (1.0 - FPS_SMOOTHED_AVERAGE_ALPHA) * frame_time.recip();
+
+                                // Reset the renderable instances
+                                ctx.instances.clear();
                             });
 
                             // Call the render tick function with the context

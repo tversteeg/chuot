@@ -55,18 +55,17 @@ where
         .wrap_err("Error setting up event loop for window")?;
     let window = window_builder
         .with_canvas(Some(canvas.clone()))
+        .with_prevent_default(true)
         .build(&event_loop)
         .into_diagnostic()
         .wrap_err("Error setting up window")?;
 
     // Ensure the pixels are not rendered with wrong filtering and that the size is correct
     canvas.style().set_css_text(&format!(
-        "display:block; margin: auto; image-rendering: pixelated; width: {}px; height: {}px",
-        (window_config.buffer_size.width * window_config.scaling).round(),
-        (window_config.buffer_size.height * window_config.scaling).round()
+        "display:block; margin: auto; image-rendering: pixelated; outline: none; border: none;",
     ));
-    canvas.set_width((window_config.buffer_size.width * window_config.scaling) as u32);
-    canvas.set_height((window_config.buffer_size.height * window_config.scaling) as u32);
+    // canvas.set_width((window_config.buffer_size.width * window_config.scaling).floor() as u32);
+    // canvas.set_height((window_config.buffer_size.height * window_config.scaling).floor() as u32);
 
     crate::window::winit_start(
         event_loop,

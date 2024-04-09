@@ -18,8 +18,6 @@ pub(crate) struct Gpu<'window> {
 }
 
 impl<'window> Gpu<'window> {
-    /// Setup a surface on the window.
-
     /// Create a GPU surface on the window.
     pub(crate) async fn new<W>(game_config: &GameConfig, window: W) -> Result<Self>
     where
@@ -157,6 +155,7 @@ impl<'window> Gpu<'window> {
     /// Size of the screen in pixels.
     ///
     /// Is allowed to be unused because the `in-game-profiler` feature flag uses it.
+    #[inline]
     pub(crate) fn screen_size(&self) -> Size2<u32> {
         Size2::new(self.config.width, self.config.height)
     }
