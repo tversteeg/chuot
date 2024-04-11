@@ -3,13 +3,13 @@
 pub mod sprite;
 pub mod text;
 
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::Rc, sync::Arc};
 
 use assets_manager::Compound;
 use glamour::{Angle, Rect, Size2, Vector2};
 use hashbrown::HashMap;
 use smol_str::SmolStr;
-use winit::{event::MouseButton, keyboard::KeyCode};
+use winit::{event::MouseButton, keyboard::KeyCode, window::Window};
 use winit_input_helper::WinitInputHelper;
 
 use crate::{
@@ -204,6 +204,16 @@ impl Context {
     pub fn size(&self) -> Size2 {
         self.read(|ctx| ctx.size)
     }
+
+    /// Show the OS cursor or hide it.
+    ///
+    /// # Arguments
+    ///
+    /// * `visible` - `true` to show the OS cursor, `false` to hide it.
+    #[inline]
+    pub fn set_cursor_visible(&self, visible: bool) {
+        self.write(|ctx| ctx.window.set_cursor_visible(visible));
+    }
 }
 
 /// Input methods.
@@ -358,9 +368,9 @@ impl Context {
 impl Context {
     /// Create a new empty context.
     #[inline]
-    pub(crate) fn new(config: &GameConfig) -> Self {
+    pub(crate) fn new(config: &GameConfig, window: Arc<Window>) -> Self {
         Self {
-            inner: Rc::new(RefCell::new(ContextInner::new(config))),
+            inner: Rc::new(RefCell::new(ContextInner::new(config, window))),
         }
     }
 
@@ -413,11 +423,13 @@ pub(crate) struct ContextInner {
     pub(crate) blending_factor: f32,
     /// Size of the inner window in pixels.
     pub(crate) size: Size2,
+    /// Reference to the window.
+    pub(crate) window: Arc<Window>,
 }
 
 impl ContextInner {
     /// Initialize the inner context.
-    pub(crate) fn new(config: &GameConfig) -> Self {
+    pub(crate) fn new(config: &GameConfig, window: Arc<Window>) -> Self {
         let exit = false;
         let mouse = None;
         let input = WinitInputHelper::default();
@@ -444,6 +456,7 @@ impl ContextInner {
             frames_per_second,
             blending_factor,
             size,
+            window,
         }
     }
 

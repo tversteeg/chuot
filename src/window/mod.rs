@@ -133,7 +133,7 @@ where
         .wrap_err("Error setting up the rendering pipeline")?;
 
     // Setup the context passed to the tick function implemented by the user
-    let mut ctx = Context::new(&game_config);
+    let mut ctx = Context::new(&game_config, window.clone());
 
     // Setup the in-game profiler
     #[cfg(feature = "in-game-profiler")]

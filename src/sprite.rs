@@ -1,13 +1,11 @@
 //! Blittable sprite definitions.
 
-use std::collections::HashMap;
-
 use assets_manager::{AnyCache, Asset, BoxedError, Compound, SharedString};
 use glam::Affine2;
 use glamour::{Angle, AsRaw, Size2, Transform2, Vector2};
 use miette::Result;
 use serde::{
-    de::{Error, MapAccess, Unexpected},
+    de::{Error, Unexpected},
     Deserialize, Deserializer,
 };
 use serde_untagged::UntaggedEnumVisitor;
