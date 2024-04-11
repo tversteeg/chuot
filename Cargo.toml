@@ -52,6 +52,7 @@ in-game-profiler = [
 [dependencies]
 miette = "7.2.0"
 serde = { version = "1.0.197", features = ["derive"] }
+serde-untagged = "0.1.5"
 bytemuck = { version = "1.15.0", features = ["derive"] }
 bitvec = "1.0.1"
 log = "0.4.21"

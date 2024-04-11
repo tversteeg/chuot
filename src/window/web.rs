@@ -61,11 +61,9 @@ where
         .wrap_err("Error setting up window")?;
 
     // Ensure the pixels are not rendered with wrong filtering and that the size is correct
-    canvas.style().set_css_text(&format!(
+    canvas.style().set_css_text(
         "display:block; margin: auto; image-rendering: pixelated; outline: none; border: none;",
-    ));
-    // canvas.set_width((window_config.buffer_size.width * window_config.scaling).floor() as u32);
-    // canvas.set_height((window_config.buffer_size.height * window_config.scaling).floor() as u32);
+    );
 
     crate::window::winit_start(
         event_loop,

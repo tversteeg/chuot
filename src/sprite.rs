@@ -1,10 +1,16 @@
 //! Blittable sprite definitions.
 
+use std::collections::HashMap;
+
 use assets_manager::{AnyCache, Asset, BoxedError, Compound, SharedString};
 use glam::Affine2;
 use glamour::{Angle, AsRaw, Size2, Transform2, Vector2};
 use miette::Result;
-use serde::Deserialize;
+use serde::{
+    de::{Error, MapAccess, Unexpected},
+    Deserialize, Deserializer,
+};
+use serde_untagged::UntaggedEnumVisitor;
 
 use crate::{
     assets::Image,
@@ -138,7 +144,7 @@ impl Compound for Sprite {
 }
 
 /// Center of the sprite.
-#[derive(Debug, Clone, Copy, PartialEq, Default, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub(crate) enum SpriteOffset {
     /// Middle of the sprite will be rendered at `(0, 0)`.
     Middle,
@@ -161,8 +167,28 @@ impl SpriteOffset {
             }
             SpriteOffset::MiddleTop => Vector2::new(-sprite_size.width / 2.0, 0.0),
             SpriteOffset::LeftTop => Vector2::ZERO,
-            SpriteOffset::Custom(offset) => *offset,
+            SpriteOffset::Custom(offset) => -*offset,
         }
+    }
+}
+
+impl<'de> Deserialize<'de> for SpriteOffset {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        UntaggedEnumVisitor::new()
+            .string(|string| match string {
+                "middle" | "Middle" => Ok(Self::Middle),
+                "middle_top" | "Middle_Top" | "MiddleTop" => Ok(Self::MiddleTop),
+                "left_top" | "Left_Top" | "LeftTop" => Ok(Self::LeftTop),
+                _ => Err(Error::invalid_value(
+                    Unexpected::Str(string),
+                    &r#""middle" or "middle_top" or "left_top" or { x = .., y = .. }"#,
+                )),
+            })
+            .map(|map| map.deserialize().map(Self::Custom))
+            .deserialize(deserializer)
     }
 }
 
