@@ -2,7 +2,7 @@
 //!
 //! To play it press the left mouse button.
 
-use pixel_game_lib::{audio::Audio, Context, GameConfig, KeyCode, MouseButton, PixelGame};
+use pixel_game_lib::{Context, GameConfig, KeyCode, MouseButton, PixelGame};
 
 /// Define empty game state.
 struct GameState;
@@ -13,7 +13,7 @@ impl PixelGame for GameState {
         // Play a sound when the mouse is pressed
         if ctx.mouse_released(MouseButton::Left) {
             // Load the asset if not loaded yet
-            ctx.asset::<Audio>("switch31")
+            ctx.audio("switch31")
                 // Play the loaded sound
                 .play();
         }

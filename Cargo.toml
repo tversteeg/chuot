@@ -18,7 +18,7 @@ rust-version = "1.77.0"
 include = ["/src"]
 
 [features]
-default = ["hot-reloading-assets", "dialogue", "audio", "in-game-profiler"]
+default = ["hot-reloading-assets", "dialogue", "in-game-profiler"]
 
 # Enable assets and hot-reload assets from disk when they are saved.
 #
@@ -34,9 +34,6 @@ embedded-assets = ["assets_manager/embedded"]
 
 # Integrate [Yarn Spinner](https://www.yarnspinner.dev/), a friendly DSL for writing dialogue.
 dialogue = ["dep:yarnspinner"]
-
-# Allow playing music and sounds using the [Kira](https://docs.rs/kira/latest/kira/) crate.
-audio = ["dep:kira"]
 
 # Show an in-game profiler
 in-game-profiler = [
@@ -68,14 +65,12 @@ parking_lot = "0.12.1"
 smol_str = "0.2.1"
 fastrand = "2.0.2"
 web-time = "1.1.0"
+kira = { version = "0.8.7", default-features = false, features = ["cpal", "ogg", "serde"] }
 
 # `dialogue` feature
 
 yarnspinner = { version = "0.2.0", optional = true }
 
-# `audio` feature
-
-kira = { version = "0.8.7", default-features = false, features = ["cpal", "ogg", "serde"], optional = true }
 
 # `in-game-profiler` feature
 
@@ -127,6 +122,7 @@ members = ["run-wasm"]
 
 # Ensure audio performance is not too poor when running in dev mode
 [profile.dev.package]
+png = { opt-level = 3 }
 kira.opt-level = 3
 cpal.opt-level = 3
 symphonia.opt-level = 3

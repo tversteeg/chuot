@@ -10,6 +10,7 @@ mod web;
 // Allow passing the profiler without having to change function signatures
 #[cfg(feature = "in-game-profiler")]
 pub(crate) use in_game_profiler::InGameProfiler;
+use kira::manager::{AudioManager, AudioManagerSettings};
 #[cfg(not(feature = "in-game-profiler"))]
 pub(crate) type InGameProfiler = ();
 
@@ -132,8 +133,13 @@ where
         .await
         .wrap_err("Error setting up the rendering pipeline")?;
 
+    // Start the audio
+    let audio_manager = AudioManager::new(AudioManagerSettings::default())
+        .into_diagnostic()
+        .wrap_err("Error setting up audio manager")?;
+
     // Setup the context passed to the tick function implemented by the user
-    let mut ctx = Context::new(&game_config, window.clone());
+    let mut ctx = Context::new(&game_config, window.clone(), audio_manager);
 
     // Setup the in-game profiler
     #[cfg(feature = "in-game-profiler")]

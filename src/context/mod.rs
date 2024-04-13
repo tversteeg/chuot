@@ -1,5 +1,6 @@
 //! User-facing context used in [`crate::PixelGame::update`] and [`crate::PixelGame::render`].
 
+pub mod audio;
 pub mod sprite;
 pub mod text;
 
@@ -8,6 +9,7 @@ use std::{cell::RefCell, rc::Rc, sync::Arc};
 use assets_manager::Compound;
 use glamour::{Angle, Rect, Size2, Vector2};
 use hashbrown::HashMap;
+use kira::manager::{backend::DefaultBackend, AudioManager};
 use smol_str::SmolStr;
 use winit::{event::MouseButton, keyboard::KeyCode, window::Window};
 use winit_input_helper::WinitInputHelper;
@@ -20,7 +22,7 @@ use crate::{
     GameConfig,
 };
 
-use self::{sprite::DrawSpriteContext, text::DrawTextContext};
+use self::{audio::AudioContext, sprite::DrawSpriteContext, text::DrawTextContext};
 
 /// Context containing most functionality for interfacing with the game engine.
 ///
@@ -88,6 +90,26 @@ impl Context {
             ctx: self,
             position: Vector2::ZERO,
         }
+    }
+}
+
+/// Audio methods.
+impl Context {
+    /// Play an audio clip.
+    ///
+    /// This will load the audio asset from disk.
+    /// Check the [`AudioContext`] documentation for drawing options available.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Asset path of the `.ogg` audio file, see [`crate::assets`] for more information about asset loading and storing.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
+    #[inline(always)]
+    pub fn audio<'path>(&self, path: &'path str) -> AudioContext<'path, '_> {
+        AudioContext { path, ctx: self }
     }
 }
 
@@ -368,9 +390,17 @@ impl Context {
 impl Context {
     /// Create a new empty context.
     #[inline]
-    pub(crate) fn new(config: &GameConfig, window: Arc<Window>) -> Self {
+    pub(crate) fn new(
+        config: &GameConfig,
+        window: Arc<Window>,
+        audio_manager: AudioManager<DefaultBackend>,
+    ) -> Self {
         Self {
-            inner: Rc::new(RefCell::new(ContextInner::new(config, window))),
+            inner: Rc::new(RefCell::new(ContextInner::new(
+                config,
+                window,
+                audio_manager,
+            ))),
         }
     }
 
@@ -425,11 +455,17 @@ pub(crate) struct ContextInner {
     pub(crate) size: Size2,
     /// Reference to the window.
     pub(crate) window: Arc<Window>,
+    /// Audio manager for playing audio.
+    pub(crate) audio_manager: AudioManager<DefaultBackend>,
 }
 
 impl ContextInner {
     /// Initialize the inner context.
-    pub(crate) fn new(config: &GameConfig, window: Arc<Window>) -> Self {
+    pub(crate) fn new(
+        config: &GameConfig,
+        window: Arc<Window>,
+        audio_manager: AudioManager<DefaultBackend>,
+    ) -> Self {
         let exit = false;
         let mouse = None;
         let input = WinitInputHelper::default();
@@ -457,6 +493,7 @@ impl ContextInner {
             blending_factor,
             size,
             window,
+            audio_manager,
         }
     }
 

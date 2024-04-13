@@ -21,7 +21,7 @@ AGPL licensed and opinionated game engine for 2D pixel-art games.
 - Single-binary, all assets should be embedded in the binary when deploying.
 - Simple bitmap font drawing.
 - Dialogue scripting system.
-- Audio playback.
+- OGG audio playback.
 - In game CPU & memory profiler GUI.
 
 #### Goals
@@ -36,6 +36,7 @@ AGPL licensed and opinionated game engine for 2D pixel-art games.
 - 3D, this engine is only for 2D pixel art.
 - Vector graphics, similar to the above, this engine is focused specifically on pixel art with lower resolutions.
 - Reinventing the wheel for everything, when there's a proper crate with good support I prefer to use that instead of creating additional maintainer burden.
+- Support all possible file formats, this bloats the engine.
 
 #### Usage
 
@@ -84,13 +85,6 @@ When creating a release binary this feature flag should be enabled.
 
 A thin wrapper around [Yarn Spinner](https://www.yarnspinner.dev/).
 Allows creating hot-reloadable dialogue systems.
-
-##### `audio` (default)
-
-A thin wrapper around [Kira](https://docs.rs/kira/latest/kira/).
-Play sounds and music files which can be hot-reloadable using assets.
-
-To keep the binary and compile-times small only `.ogg` audio files are supported.
 
 ###### Requirements
 

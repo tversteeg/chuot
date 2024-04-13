@@ -4,10 +4,12 @@
 //!
 //! Asset loading is done through the [`crate::Context::asset`] and [`crate::Context::asset_owned`] calls.
 
+mod audio;
 mod image;
 
 use assets_manager::AssetReadGuard;
 pub use assets_manager::{asset::*, Asset, BoxedError};
+pub use audio::{Audio, AudioLoader};
 pub use image::{Image, ImageLoader};
 
 /// Reference to a single asset.
