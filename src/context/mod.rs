@@ -109,7 +109,14 @@ impl Context {
     /// - When asset failed loading.
     #[inline(always)]
     pub fn audio<'path>(&self, path: &'path str) -> AudioContext<'path, '_> {
-        AudioContext { path, ctx: self }
+        AudioContext {
+            path,
+            ctx: self,
+            volume: None,
+            panning: None,
+            loop_region: None,
+            playback_region: None,
+        }
     }
 }
 
