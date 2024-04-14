@@ -121,18 +121,16 @@ impl Context {
     /// # Example
     ///
     /// ```no_run
-    /// use pixel_game_lib::{Context};
+    /// use pixel_game_lib::Context;
     ///
-    /// # #[derive(Default)] struct S{position: Vector2, previous_position: Vector2}
     /// # struct Empty; impl Empty {
     /// // In `PixelGame::update` trait implementation
     /// // ..
     /// fn update(&mut self, ctx: Context) {
     /// # let play_song = false;
-    /// # let sprite = S::default();
     ///   if play_song {
     ///     // Load a "song.ogg" file play it again and again
-    ///     ctx.audio("song").loop().play();
+    ///     ctx.audio("song").with_loop().play();
     ///   }
     /// }
     /// # }
