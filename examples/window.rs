@@ -26,6 +26,6 @@ impl PixelGame for GameState {
 fn main() {
     // Spawn the window with the default configuration
     GameState {}
-        .run(GameConfig::default())
+        .run(pixel_game_lib::load_assets!(), GameConfig::default())
         .expect("Error running game");
 }

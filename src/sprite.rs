@@ -1,6 +1,6 @@
 //! Blittable sprite definitions.
 
-use assets_manager::{AnyCache, Asset, BoxedError, Compound, SharedString};
+use assets_manager::{loader::TomlLoader, AnyCache, Asset, BoxedError, Compound, SharedString};
 use glam::Affine2;
 use glamour::{Angle, AsRaw, Size2, Transform2, Vector2};
 use miette::Result;
@@ -191,10 +191,15 @@ impl<'de> Deserialize<'de> for SpriteOffset {
 }
 
 /// Sprite metadata to load from TOML.
-#[derive(Debug, Clone, Default, Deserialize, Asset)]
-#[asset_format = "toml"]
+#[derive(Debug, Clone, Default, Deserialize)]
 pub(crate) struct SpriteMetadata {
     /// Pixel offset to render at.
     #[serde(default)]
     pub(crate) offset: SpriteOffset,
+}
+
+impl Asset for SpriteMetadata {
+    const EXTENSION: &'static str = "toml";
+
+    type Loader = TomlLoader;
 }

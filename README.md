@@ -58,9 +58,10 @@ impl PixelGame for MyGame {
 }
 
 // In main
+
 let game = MyGame;
 
-game.run(GameConfig::default())?;
+game.run(pixel_game_lib::load_assets!(), GameConfig::default())?;
 ```
 
 #### Feature Flags
@@ -75,11 +76,7 @@ cargo add pixel_game_lib --no-default-features
 
 Hot-reload assets from disk when they are saved.
 Has no effect on the web target.
-
-##### `embedded-assets` (default on web)
-
-Bake _all_ assets in the `assets/` folder in the binary.
-When creating a release binary this feature flag should be enabled.
+If disabled _all_ assets will be baked into the binary.
 
 ##### `dialogue` (default)
 
@@ -144,12 +141,12 @@ impl PixelGame for MyGame {
 let game = MyGame { counter: 0 };
 
 // Run the game until exit is requested
-game.run(GameConfig::default().with_title("My Game"))?;
+game.run(pixel_game_lib::load_assets!(), GameConfig::default().with_title("My Game"))?;
 ```
 
-[^left-mouse]: [`crate::Context::mouse_pressed`]
-[^text]: [`crate::Context::text`]
-[^escape-key]: [`crate::Context::key_pressed`]
+[^left-mouse]: [`Context::mouse_pressed`]
+[^text]: [`Context::text`]
+[^escape-key]: [`Context::key_pressed`]
 
 <!-- cargo-rdme end -->
 

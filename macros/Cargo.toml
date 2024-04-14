@@ -1,0 +1,23 @@
+[package]
+name = "pixel-game-lib-macros"
+version = "0.1.0"
+edition = "2021"
+authors = ["Thomas Versteeg <t@versteeg.email>"]
+license = "AGPL-3.0"
+homepage = "https://github.com/tversteeg/pixel-game-lib"
+readme = "README.md"
+description = "Procedural macros for pixel-game-lib"
+documentation = "https://docs.rs/pixel-game-lib"
+repository = "https://github.com/tversteeg/pixel-game-lib.git"
+rust-version = "1.77.0"
+include = ["/src"]
+
+[lib]
+proc-macro = true
+
+[features]
+hot-reloading-assets = []
+
+[dependencies]
+litrs = "0.4.1"
+quote = "1.0"

@@ -46,9 +46,10 @@
 //!
 //! # fn try_main() -> miette::Result<()> {
 //! // In main
+//!
 //! let game = MyGame;
 //!
-//! game.run(GameConfig::default())?;
+//! game.run(pixel_game_lib::load_assets!(), GameConfig::default())?;
 //! # Ok(()) }
 //! # try_main().unwrap();
 //! ```
@@ -65,11 +66,7 @@
 //!
 //! Hot-reload assets from disk when they are saved.
 //! Has no effect on the web target.
-//!
-//! ## `embedded-assets` (default on web)
-//!
-//! Bake _all_ assets in the `assets/` folder in the binary.
-//! When creating a release binary this feature flag should be enabled.
+//! If disabled _all_ assets will be baked into the binary.
 //!
 //! ## `dialogue` (default)
 //!
@@ -135,14 +132,14 @@
 //! let game = MyGame { counter: 0 };
 //!
 //! // Run the game until exit is requested
-//! game.run(GameConfig::default().with_title("My Game"))?;
+//! game.run(pixel_game_lib::load_assets!(), GameConfig::default().with_title("My Game"))?;
 //! # Ok(()) }
 //! # try_main().unwrap();
 //! ```
 //!
-//! [^left-mouse]: [`crate::Context::mouse_pressed`]
-//! [^text]: [`crate::Context::text`]
-//! [^escape-key]: [`crate::Context::key_pressed`]
+//! [^left-mouse]: [`Context::mouse_pressed`]
+//! [^text]: [`Context::text`]
+//! [^escape-key]: [`Context::key_pressed`]
 
 pub mod assets;
 pub mod config;
@@ -155,6 +152,7 @@ mod random;
 mod sprite;
 mod window;
 
+use assets::AssetCacheSource;
 /// Re-exported vector math type.
 pub use glamour;
 /// Re-exported winit type used in [`Context`].
@@ -163,6 +161,25 @@ pub use winit::{
     event::MouseButton,
     keyboard::{Key, KeyCode},
 };
+
+/// Define the directory of the assets.
+///
+/// *MUST* be passed as first argument to [`PixelGame::run`].
+///
+/// The assets will be embedded in the binary when not using the `hot-reloading-assets` feature flag.
+///
+/// # Arguments
+///
+/// * `path` - Local directory where the game assets reside. Defaults to `"assets/"`.
+///
+/// # Example
+///
+/// ```
+/// pixel_game_lib::load_assets!("assets/");
+/// // Is the same as..
+/// pixel_game_lib::load_assets!();
+/// ```
+pub use pixel_game_lib_macros::load_assets;
 
 pub use config::GameConfig;
 pub use context::Context;
@@ -242,6 +259,7 @@ where
     ///
     /// # Arguments
     ///
+    /// * `assets` - Source of the assets, needs to be `pixel_game_lib::load_assets!()`.
     /// * `game_config` - Configuration for the window, can be used to set the buffer size, the window title and other things.
     ///
     /// # Example
@@ -268,17 +286,18 @@ where
     /// // In main
     /// let game = MyGame;
     ///
-    /// game.run(GameConfig::default())?;
+    /// game.run(pixel_game_lib::load_assets!(), GameConfig::default())?;
     /// # Ok(()) }
     /// # try_main().unwrap();
     /// ```
-    fn run(self, game_config: GameConfig) -> Result<()> {
+    fn run(self, assets: AssetCacheSource, game_config: GameConfig) -> Result<()> {
         // Spawn the window with the game loop
         window::window(
             self,
             game_config,
             |state, ctx| state.update(ctx),
             |state, ctx| state.render(ctx),
+            assets,
         )
     }
 }

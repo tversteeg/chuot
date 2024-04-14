@@ -5,6 +5,8 @@ use wasm_bindgen::JsCast;
 use web_sys::HtmlCanvasElement;
 use winit::{event_loop::EventLoop, platform::web::WindowBuilderExtWebSys, window::WindowBuilder};
 
+use crate::assets::AssetCacheSource;
+
 use super::{GameConfig, TickFn};
 
 /// Desktop implementation of opening a window.
@@ -15,6 +17,7 @@ pub(crate) async fn window<G, U, R>(
     window_config: GameConfig,
     update: U,
     render: R,
+    assets: AssetCacheSource,
 ) -> Result<()>
 where
     G: 'static,
@@ -72,6 +75,7 @@ where
         update,
         render,
         window_config,
+        assets,
     )
     .await
 }

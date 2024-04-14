@@ -81,6 +81,6 @@ fn main() {
 
     // Spawn the window and run the 'game'
     GameState::default()
-        .run(config)
+        .run(pixel_game_lib::load_assets!(), config)
         .expect("Error running game");
 }
