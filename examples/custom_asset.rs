@@ -6,18 +6,25 @@
 
 use std::str::FromStr;
 
-use glamour::Size2;
 use pixel_game_lib::{
-    assets::{Asset, BoxedError},
+    assets::{Asset, BoxedError, ParseLoader},
+    glamour::Size2,
     Context, GameConfig, KeyCode, PixelGame,
 };
 use serde::Deserialize;
 
 /// We define a custom asset that will load a string from a '.txt' file.
-#[derive(Asset, Deserialize)]
-#[asset_format = "txt"]
+#[derive(Deserialize)]
 struct TxtString(pub String);
 
+impl Asset for TxtString {
+    const EXTENSION: &'static str = "txt";
+
+    // The parse loader loads any type with a `FromStr` implementation
+    type Loader = ParseLoader;
+}
+
+/// Implement loading from string so the `ParseLoader` type in the `Asset` trait can load it from disk.
 impl FromStr for TxtString {
     type Err = BoxedError;
 
@@ -52,6 +59,9 @@ impl PixelGame for GameState {
 fn main() {
     // Spawn the window with the default configuration but with a horizontally stretched buffer for displaying longer text
     GameState {}
-        .run(GameConfig::default().with_buffer_size(Size2::new(400.0, 50.0)))
+        .run(
+            pixel_game_lib::load_assets!(),
+            GameConfig::default().with_buffer_size(Size2::new(400.0, 50.0)),
+        )
         .expect("Error running game");
 }

@@ -1,7 +1,5 @@
 //! Zero-cost abstraction types for building more complicated audio playbacks.
 
-use std::ops::Range;
-
 use kira::sound::Region;
 
 use crate::{assets::Audio, Context};
@@ -94,40 +92,41 @@ impl<'path, 'ctx> AudioContext<'path, 'ctx> {
     #[inline(always)]
     pub fn play(self) {
         self.ctx.write(|ctx| {
+            let sound_data = ctx
+                .asset::<Audio>(self.path)
+                .0
+                .with_modified_settings(|settings| {
+                    // Set the volume
+                    let settings = if let Some(volume) = self.volume {
+                        settings.volume(volume as f64)
+                    } else {
+                        settings
+                    };
+
+                    // Set the panning
+                    let settings = if let Some(panning) = self.panning {
+                        settings.panning(panning as f64)
+                    } else {
+                        settings
+                    };
+
+                    // Set the loop region
+                    let settings = if let Some(loop_region) = self.loop_region {
+                        settings.loop_region(loop_region)
+                    } else {
+                        settings
+                    };
+
+                    // Set the playback region
+                    if let Some(playback_region) = self.playback_region {
+                        settings.playback_region(playback_region)
+                    } else {
+                        settings
+                    }
+                });
+
             ctx.audio_manager
-                .play(
-                    ctx.asset::<Audio>(self.path)
-                        .0
-                        .with_modified_settings(|settings| {
-                            // Set the volume
-                            let settings = if let Some(volume) = self.volume {
-                                settings.volume(volume as f64)
-                            } else {
-                                settings
-                            };
-
-                            // Set the panning
-                            let settings = if let Some(panning) = self.panning {
-                                settings.panning(panning as f64)
-                            } else {
-                                settings
-                            };
-
-                            // Set the loop region
-                            let settings = if let Some(loop_region) = self.loop_region {
-                                settings.loop_region(loop_region)
-                            } else {
-                                settings
-                            };
-
-                            // Set the playback region
-                            if let Some(playback_region) = self.playback_region {
-                                settings.playback_region(playback_region)
-                            } else {
-                                settings
-                            }
-                        }),
-                )
+                .play(sound_data)
                 .expect("Error playing audio")
         });
     }

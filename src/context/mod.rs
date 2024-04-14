@@ -6,7 +6,7 @@ pub mod text;
 
 use std::{cell::RefCell, rc::Rc, sync::Arc};
 
-use assets_manager::Compound;
+use assets_manager::{Compound, LocalAssetCache};
 use glamour::{Angle, Rect, Size2, Vector2};
 use hashbrown::HashMap;
 use kira::manager::{backend::DefaultBackend, AudioManager};
@@ -15,7 +15,7 @@ use winit::{event::MouseButton, keyboard::KeyCode, window::Window};
 use winit_input_helper::WinitInputHelper;
 
 use crate::{
-    assets::{AssetRef, Assets},
+    assets::{AssetCacheSource, AssetRef},
     font::Font,
     graphics::instance::Instances,
     sprite::Sprite,
@@ -29,6 +29,16 @@ use self::{audio::AudioContext, sprite::DrawSpriteContext, text::DrawTextContext
 /// Exposed in [`crate::PixelGame::update`] and [`crate::PixelGame::render`].
 ///
 /// [`Context`] is safe and cheap to clone due to being a `Rc<RefCell<..>>` under the hood.
+///
+/// All paths used for asset loading use a `.` symbol instead of a path separator and exclude extensions, here's a list of examples how assets are converted:
+///
+/// | Example call | Path(s) on disk |
+/// | --- | --- |
+/// | `ctx.sprite("player")` | `assets/player.png` & `assets/player.toml` (optional) |
+/// | `ctx.sprite("gui.widgets.button")` | `assets/gui/widgets/button.png` & `assets/gui/widgets/button.toml` (optional) |
+/// | `ctx.audio("song")` | `assets/song.ogg` |
+///
+/// It's assumed for this table that [`crate::load_assets`] in [`crate::PixelGame`] is called without any arguments or with `pixel_game_lib::load_assets!("assets/")`.
 #[derive(Clone)]
 pub struct Context {
     /// Implementation of all non-primitive parts.
@@ -37,7 +47,7 @@ pub struct Context {
 
 /// Render methods.
 ///
-/// All methods use a `path` as the first argument, which is then used to retrieve the assets when they haven't been loaded before with [`crate::assets`].
+/// All methods use a `path` as the first argument, which is then used to retrieve the assets when they haven't been loaded before..
 impl Context {
     /// Handle sprite assets, mostly used for drawing.
     ///
@@ -46,7 +56,7 @@ impl Context {
     ///
     /// # Arguments
     ///
-    /// * `path` - Asset path of the sprite, see [`crate::assets`] for more information about asset loading and storing.
+    /// * `path` - Asset path of the sprite, see [`Self`] for more information about asset loading and storing.
     ///
     /// # Returns
     ///
@@ -72,7 +82,7 @@ impl Context {
     ///
     /// # Arguments
     ///
-    /// * `path` - Asset path of the font, see [`crate::assets`] for more information about asset loading and storing.
+    /// * `path` - Asset path of the font, see [`Self`] for more information about asset loading and storing.
     /// * `text` - ASCII text that will be drawn character by character.
     ///
     /// # Panics
@@ -102,11 +112,30 @@ impl Context {
     ///
     /// # Arguments
     ///
-    /// * `path` - Asset path of the `.ogg` audio file, see [`crate::assets`] for more information about asset loading and storing.
+    /// * `path` - Asset path of the `.ogg` audio file, see [`Self`] for more information about asset loading and storing.
     ///
     /// # Panics
     ///
     /// - When asset failed loading.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use pixel_game_lib::{Context};
+    ///
+    /// # #[derive(Default)] struct S{position: Vector2, previous_position: Vector2}
+    /// # struct Empty; impl Empty {
+    /// // In `PixelGame::update` trait implementation
+    /// // ..
+    /// fn update(&mut self, ctx: Context) {
+    /// # let play_song = false;
+    /// # let sprite = S::default();
+    ///   if play_song {
+    ///     // Load a "song.ogg" file play it again and again
+    ///     ctx.audio("song").loop().play();
+    ///   }
+    /// }
+    /// # }
     #[inline(always)]
     pub fn audio<'path>(&self, path: &'path str) -> AudioContext<'path, '_> {
         AudioContext {
@@ -128,7 +157,7 @@ impl Context {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```no_run
     /// use pixel_game_lib::{Context, KeyCode};
     ///
     /// # struct Empty; impl Empty {
@@ -168,7 +197,7 @@ impl Context {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```no_run
     /// use pixel_game_lib::{Context, KeyCode, glamour::Vector2};
     ///
     /// # struct Empty; impl Empty {
@@ -199,7 +228,7 @@ impl Context {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```no_run
     /// use pixel_game_lib::{Context, KeyCode, glamour::Vector2};
     ///
     /// # #[derive(Default)] struct S{position: Vector2, previous_position: Vector2}
@@ -354,24 +383,6 @@ impl Context {
 
 /// Generic asset loading.
 impl Context {
-    /// Load a reference to any non-renderable asset.
-    ///
-    /// # Arguments
-    ///
-    /// * `path` - Directory structure of the asset file in `assets/` where every `/` is a `.`.
-    ///
-    /// # Panics
-    ///
-    /// - When asset with path does not exist.
-    /// - When asset could not be loaded due to an invalid format.
-    #[inline]
-    pub fn asset<T>(&self, path: impl AsRef<str>) -> AssetRef<T>
-    where
-        T: Compound,
-    {
-        self.read(|ctx| ctx.asset(path.as_ref()))
-    }
-
     /// Load a clone of any non-renderable asset.
     ///
     /// Sets up the asset manager once, which can be accessed with the global function in this module.
@@ -385,7 +396,7 @@ impl Context {
     /// - When asset with path does not exist.
     /// - When asset could not be loaded due to an invalid format.
     #[inline]
-    pub fn asset_owned<T>(&self, path: impl AsRef<str>) -> T
+    pub fn asset<T>(&self, path: impl AsRef<str>) -> T
     where
         T: Compound,
     {
@@ -401,12 +412,14 @@ impl Context {
         config: &GameConfig,
         window: Arc<Window>,
         audio_manager: AudioManager<DefaultBackend>,
+        assets: AssetCacheSource,
     ) -> Self {
         Self {
             inner: Rc::new(RefCell::new(ContextInner::new(
                 config,
                 window,
                 audio_manager,
+                assets,
             ))),
         }
     }
@@ -444,8 +457,6 @@ pub(crate) struct ContextInner {
     pub(crate) input: WinitInputHelper,
     /// Instances of all sprites drawn this tick, also includes sprites from the fonts.
     pub(crate) instances: Instances,
-    /// Asset cache.
-    pub(crate) assets: Assets,
     /// All sprite textures to render.
     pub(crate) sprites: HashMap<SmolStr, Sprite>,
     /// All font textures to render.
@@ -464,6 +475,8 @@ pub(crate) struct ContextInner {
     pub(crate) window: Arc<Window>,
     /// Audio manager for playing audio.
     pub(crate) audio_manager: AudioManager<DefaultBackend>,
+    /// Place where all assets are stored.
+    pub(crate) asset_cache: LocalAssetCache<AssetCacheSource>,
 }
 
 impl ContextInner {
@@ -472,12 +485,12 @@ impl ContextInner {
         config: &GameConfig,
         window: Arc<Window>,
         audio_manager: AudioManager<DefaultBackend>,
+        assets: AssetCacheSource,
     ) -> Self {
         let exit = false;
         let mouse = None;
         let input = WinitInputHelper::default();
         let instances = Instances::default();
-        let assets = Assets::new();
         let sprites = HashMap::new();
         let fonts = HashMap::new();
         let texture_update_queue = Vec::new();
@@ -485,13 +498,13 @@ impl ContextInner {
         let size = config.buffer_size;
         let frames_per_second = 0.0;
         let blending_factor = 0.0;
+        let asset_cache = LocalAssetCache::with_source(assets);
 
         Self {
             exit,
             mouse,
             input,
             instances,
-            assets,
             sprites,
             fonts,
             texture_update_queue,
@@ -501,6 +514,7 @@ impl ContextInner {
             size,
             window,
             audio_manager,
+            asset_cache,
         }
     }
 
@@ -560,22 +574,26 @@ impl ContextInner {
     }
 
     /// Load an asset.
+    #[inline]
     pub(crate) fn asset<T>(&self, path: &str) -> AssetRef<T>
     where
         T: Compound,
     {
         profiling::scope!("Load asset");
 
-        self.assets.asset(path)
+        self.asset_cache.load_expect(path).read()
     }
 
     /// Load a clone of an asset.
+    #[inline]
     pub(crate) fn asset_owned<T>(&self, path: &str) -> T
     where
         T: Compound,
     {
         profiling::scope!("Load owned asset");
 
-        self.assets.asset_owned(path)
+        self.asset_cache
+            .load_owned(path)
+            .expect("Could not load owned asset")
     }
 }

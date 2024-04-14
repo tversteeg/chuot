@@ -90,7 +90,7 @@ impl<'path, 'ctx> DrawSpriteContext<'path, 'ctx> {
     ///
     /// This example runs on my PC with an average FPS of 35 when rendering 100000 sprites.
     ///
-    /// ```
+    /// ```no_run
     /// # use pixel_game_lib::glamour::Vector2;
     /// # fn call(ctx: pixel_game_lib::Context) {
     /// ctx.sprite("some_asset")
@@ -100,7 +100,7 @@ impl<'path, 'ctx> DrawSpriteContext<'path, 'ctx> {
     ///
     /// It's functionally the same as:
     ///
-    /// ```
+    /// ```no_run
     /// # use pixel_game_lib::glamour::Vector2;
     /// # fn call(ctx: pixel_game_lib::Context) {
     /// for x in 0..10 {

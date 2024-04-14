@@ -26,7 +26,7 @@ use winit::{
     window::{Window, WindowBuilder},
 };
 
-use crate::{graphics::state::MainRenderState, Context, GameConfig};
+use crate::{assets::AssetCacheSource, graphics::state::MainRenderState, Context, GameConfig};
 
 /// How fast old FPS values decay in the smoothed average.
 const FPS_SMOOTHED_AVERAGE_ALPHA: f32 = 0.8;
@@ -57,6 +57,7 @@ pub(crate) fn window<G, U, R>(
     window_config: GameConfig,
     update: U,
     render: R,
+    assets: AssetCacheSource,
 ) -> Result<()>
 where
     G: 'static,
@@ -83,7 +84,15 @@ where
         env_logger::init();
 
         pollster::block_on(async {
-            desktop::window(window_builder, game_state, window_config, update, render).await
+            desktop::window(
+                window_builder,
+                game_state,
+                window_config,
+                update,
+                render,
+                assets,
+            )
+            .await
         })
     }
     #[cfg(target_arch = "wasm32")]
@@ -96,9 +105,16 @@ where
 
         // Web window function is async, so we need to spawn it into a local async runtime
         wasm_bindgen_futures::spawn_local(async {
-            web::window(window_builder, game_state, window_config, update, render)
-                .await
-                .expect("Error opening WASM window")
+            web::window(
+                window_builder,
+                game_state,
+                window_config,
+                update,
+                render,
+                assets,
+            )
+            .await
+            .expect("Error opening WASM window")
         });
 
         Ok(())
@@ -113,6 +129,7 @@ async fn winit_start<G, U, R>(
     mut update: U,
     mut render: R,
     game_config: GameConfig,
+    assets: AssetCacheSource,
 ) -> Result<()>
 where
     G: 'static,
@@ -139,7 +156,7 @@ where
         .wrap_err("Error setting up audio manager")?;
 
     // Setup the context passed to the tick function implemented by the user
-    let mut ctx = Context::new(&game_config, window.clone(), audio_manager);
+    let mut ctx = Context::new(&game_config, window.clone(), audio_manager, assets);
 
     // Setup the in-game profiler
     #[cfg(feature = "in-game-profiler")]

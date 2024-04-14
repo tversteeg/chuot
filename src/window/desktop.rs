@@ -3,6 +3,8 @@
 use miette::{Context, IntoDiagnostic, Result};
 use winit::{event_loop::EventLoop, window::WindowBuilder};
 
+use crate::assets::AssetCacheSource;
+
 use super::{GameConfig, TickFn};
 
 /// Desktop implementation of opening a window.
@@ -10,9 +12,10 @@ use super::{GameConfig, TickFn};
 pub(crate) async fn window<G, U, R>(
     window_builder: WindowBuilder,
     game_state: G,
-    window_config: GameConfig,
+    game_config: GameConfig,
     update: U,
     render: R,
+    assets: AssetCacheSource,
 ) -> Result<()>
 where
     G: 'static,
@@ -33,7 +36,8 @@ where
         game_state,
         update,
         render,
-        window_config,
+        game_config,
+        assets,
     )
     .await
 }
