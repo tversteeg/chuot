@@ -4,7 +4,7 @@ use glamour::{Contains, Rect, Size2, Vector2};
 use miette::Result;
 use winit::window::Window;
 
-use crate::{window::InGameProfiler, Context, GameConfig};
+use crate::{graphics::Texture, window::InGameProfiler, Context, GameConfig};
 
 use super::{
     atlas::Atlas, component::SpriteRenderState, data::ScreenInfo, gpu::Gpu,
@@ -296,6 +296,17 @@ impl<'window> MainRenderState<'window> {
             ctx.sprites_iter_mut().for_each(|sprite| {
                 sprite.image.upload(&mut self.atlas, &self.gpu.queue);
             });
+
+            // Re-upload updated sprites
+            ctx.sprites_needing_reupload_iter()
+                .for_each(|(old_sprite, new_sprite)| {
+                    old_sprite.image.update_pixels(
+                        Rect::from_size(new_sprite.size()),
+                        &new_sprite.image.into_rgba_image(),
+                        &mut self.atlas,
+                        &self.gpu.queue,
+                    );
+                });
 
             profiling::scope!("Apply texture updates");
 

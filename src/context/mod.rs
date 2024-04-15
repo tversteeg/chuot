@@ -381,20 +381,18 @@ impl Context {
 
 /// Generic asset loading.
 impl Context {
-    /// Load a clone of any non-renderable asset.
-    ///
-    /// Sets up the asset manager once, which can be accessed with the global function in this module.
+    /// Load a clone of a custom defined asset.
     ///
     /// # Arguments
     ///
-    /// * `path` - Directory structure of the asset file in `assets/` where every `/` is a `.`.
+    /// * `path` - Asset path of the custom asset, see [`Self`] for more information about asset loading and storing.
     ///
     /// # Panics
     ///
     /// - When asset with path does not exist.
     /// - When asset could not be loaded due to an invalid format.
     #[inline]
-    pub fn asset<T>(&self, path: impl AsRef<str>) -> T
+    pub fn asset_owned<T>(&self, path: impl AsRef<str>) -> T
     where
         T: Compound,
     {
@@ -526,6 +524,30 @@ impl ContextInner {
                 .values_mut()
                 .flat_map(|font| font.sprites.iter_mut()),
         )
+    }
+
+    /// Get all sprites that need to be reuploaded to the GPU.
+    pub(crate) fn sprites_needing_reupload_iter(&self) -> impl Iterator<Item = (&Sprite, Sprite)> {
+        // Get all reloaded sprites
+        self.sprites.iter().filter_map(|(id, sprite)| {
+            // Check if the sprite has been reuploaded this frame
+            if self
+                .asset_cache
+                .get_cached::<Sprite>(id)
+                .is_some_and(|handle| handle.reloaded_global())
+            {
+                log::debug!("Reuploading hot-reloaded sprite {id}");
+
+                let new_sprite = self
+                    .asset_cache
+                    .load_owned::<Sprite>(id)
+                    .expect("Reuploading sprite that does not exist");
+
+                Some((sprite, new_sprite))
+            } else {
+                None
+            }
+        })
     }
 
     /// Take all updates to textures that need to be done.
