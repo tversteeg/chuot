@@ -52,7 +52,7 @@ impl Input {
         not(doctest)
     ))]
     pub fn expand_dir(&self) -> TokenStream {
-        embedded::expand_dir(&self.0)
+        embedded::parse_dir(&self.0)
     }
 
     /// Create the Rust code to load from the directory.

@@ -297,6 +297,7 @@ impl<'window> MainRenderState<'window> {
                 sprite.image.upload(&mut self.atlas, &self.gpu.queue);
             });
 
+            /*
             // Re-upload updated sprites
             ctx.sprites_needing_reupload_iter()
                 .for_each(|(old_sprite, new_sprite)| {
@@ -307,6 +308,7 @@ impl<'window> MainRenderState<'window> {
                         &self.gpu.queue,
                     );
                 });
+                */
 
             profiling::scope!("Apply texture updates");
 

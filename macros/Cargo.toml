@@ -21,3 +21,4 @@ hot-reloading-assets = []
 [dependencies]
 litrs = "0.4.1"
 quote = "1.0"
+walkdir = "2"

@@ -5,7 +5,7 @@ use glamour::{Angle, Size2, Vector2};
 use serde::Deserialize;
 
 use crate::{
-    assets::Image,
+    assets::{Image, Loadable},
     graphics::instance::Instances,
     sprite::{Sprite, SpriteMetadata},
 };
@@ -26,7 +26,7 @@ impl Font {
     /// Draw the font on the screen.
     ///
     /// Will create an instance for every glyph sprite.
-    pub(crate) fn draw(&mut self, position: Vector2, text: &str, instances: &mut Instances) {
+    pub(crate) fn draw(&self, position: Vector2, text: &str, instances: &mut Instances) {
         // Put the start position back 1 glyph since the first action is to move the cursor
         let start_position = position - Vector2::new(self.glyph_size.width, 0.0);
         let mut position = start_position;
@@ -94,6 +94,17 @@ impl Compound for Font {
             last_char,
             first_char,
         })
+    }
+}
+
+impl Loadable for Font {
+    const EXTENSION: &'static str = "png";
+
+    fn from_bytes(bytes: &[u8]) -> Self
+    where
+        Self: Sized,
+    {
+        todo!()
     }
 }
 

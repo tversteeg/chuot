@@ -93,7 +93,8 @@ impl<'path, 'ctx> AudioContext<'path, 'ctx> {
     pub fn play(self) {
         self.ctx.write(|ctx| {
             let sound_data = ctx
-                .asset::<Audio>(self.path)
+                .assets
+                .audio(self.path)
                 .0
                 .with_modified_settings(|settings| {
                     // Set the volume

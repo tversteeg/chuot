@@ -6,6 +6,8 @@ use assets_manager::{loader::Loader, Asset, BoxedError};
 use kira::sound::static_sound::{StaticSoundData, StaticSoundSettings};
 use miette::Result;
 
+use super::Loadable;
+
 /// Audio asset for playing sounds and music.
 #[derive(Debug)]
 pub struct Audio(pub(crate) StaticSoundData);
@@ -15,6 +17,17 @@ impl Asset for Audio {
     const EXTENSION: &'static str = "ogg";
 
     type Loader = AudioLoader;
+}
+
+impl Loadable for Audio {
+    const EXTENSION: &'static str = "ogg";
+
+    fn from_bytes(bytes: &[u8]) -> Self
+    where
+        Self: Sized,
+    {
+        todo!()
+    }
 }
 
 /// Audio asset loader.

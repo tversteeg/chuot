@@ -59,15 +59,10 @@ impl<'path, 'ctx> DrawSpriteContext<'path, 'ctx> {
     #[inline(always)]
     pub fn draw(self) {
         self.ctx.write(|ctx| {
-            ctx.load_sprite_if_not_loaded(self.path);
-
-            let sprite = ctx
-                .sprites
-                .get_mut(self.path)
-                .expect("Error accessing sprite in context");
-
             // Push the instance if the texture is already uploaded
-            sprite.draw(self.position, self.rotation, &mut ctx.instances);
+            ctx.assets
+                .sprite(self.path)
+                .draw(self.position, self.rotation, &mut ctx.instances);
         });
     }
 
@@ -115,12 +110,7 @@ impl<'path, 'ctx> DrawSpriteContext<'path, 'ctx> {
     #[inline(always)]
     pub fn draw_multiple_translated(self, translations: impl Iterator<Item = Vector2>) {
         self.ctx.write(|ctx| {
-            ctx.load_sprite_if_not_loaded(self.path);
-
-            let sprite = ctx
-                .sprites
-                .get_mut(self.path)
-                .expect("Error accessing sprite in context");
+            let sprite = ctx.assets.sprite(self.path);
 
             // Push the instances if the texture is already uploaded
             sprite.draw_multiple(
@@ -147,8 +137,6 @@ impl<'path, 'ctx> DrawSpriteContext<'path, 'ctx> {
     #[inline]
     pub fn update_pixels(self, sub_rectangle: impl Into<Rect>, pixels: impl Into<Vec<u32>>) {
         self.ctx.write(|ctx| {
-            ctx.load_sprite_if_not_loaded(self.path);
-
             // Put the update the pixels of the sprite on a queue
             ctx.texture_update_queue
                 .push((self.path.into(), sub_rectangle.into(), pixels.into()));
@@ -166,13 +154,6 @@ impl<'path, 'ctx> DrawSpriteContext<'path, 'ctx> {
     /// - When asset failed loading.
     #[inline]
     pub fn size(&self) -> Size2 {
-        self.ctx.write(|ctx| {
-            ctx.load_sprite_if_not_loaded(self.path);
-
-            ctx.sprites
-                .get(self.path)
-                .expect("Error accessing sprite in context")
-                .size()
-        })
+        self.ctx.write(|ctx| ctx.assets.sprite(self.path).size())
     }
 }

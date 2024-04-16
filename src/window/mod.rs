@@ -26,7 +26,11 @@ use winit::{
     window::{Window, WindowBuilder},
 };
 
-use crate::{assets::AssetCacheSource, graphics::state::MainRenderState, Context, GameConfig};
+use crate::{
+    assets::{AssetCacheSource, AssetSource},
+    graphics::state::MainRenderState,
+    Context, GameConfig,
+};
 
 /// How fast old FPS values decay in the smoothed average.
 const FPS_SMOOTHED_AVERAGE_ALPHA: f32 = 0.8;
@@ -57,7 +61,7 @@ pub(crate) fn window<G, U, R>(
     window_config: GameConfig,
     update: U,
     render: R,
-    assets: AssetCacheSource,
+    assets: AssetSource,
 ) -> Result<()>
 where
     G: 'static,
@@ -129,7 +133,7 @@ async fn winit_start<G, U, R>(
     mut update: U,
     mut render: R,
     game_config: GameConfig,
-    assets: AssetCacheSource,
+    assets: AssetSource,
 ) -> Result<()>
 where
     G: 'static,

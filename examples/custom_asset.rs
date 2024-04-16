@@ -40,7 +40,7 @@ impl PixelGame for GameState {
     /// Game render tick, handle drawing things here.
     fn render(&mut self, ctx: Context) {
         // Load a reference to the asset
-        let example_txt = ctx.asset::<TxtString>("example");
+        let example_txt = ctx.asset_owned::<TxtString>("example");
 
         // Draw the asset text
         ctx.text("Beachball", &example_txt.0).draw();

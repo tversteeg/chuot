@@ -11,7 +11,7 @@ use serde::{
 use serde_untagged::UntaggedEnumVisitor;
 
 use crate::{
-    assets::Image,
+    assets::{Image, Loadable},
     graphics::{
         data::TexturedVertex,
         instance::Instances,
@@ -47,7 +47,7 @@ impl Sprite {
 
     /// Draw the sprite if the texture is already uploaded.
     #[inline]
-    pub(crate) fn draw(&mut self, position: Vector2, rotation: Angle, instances: &mut Instances) {
+    pub(crate) fn draw(&self, position: Vector2, rotation: Angle, instances: &mut Instances) {
         let Some(texture_ref) = self.image.try_as_ref() else {
             return;
         };
@@ -58,7 +58,7 @@ impl Sprite {
     /// Draw the sprites if the texture is already uploaded.
     #[inline]
     pub(crate) fn draw_multiple(
-        &mut self,
+        &self,
         base_translation: Vector2,
         base_rotation: Angle,
         translations: impl Iterator<Item = Vector2>,
@@ -138,6 +138,17 @@ impl Compound for Sprite {
         };
 
         Ok(Self::from_image(image, metadata))
+    }
+}
+
+impl Loadable for Sprite {
+    const EXTENSION: &'static str = "png";
+
+    fn from_bytes(bytes: &[u8]) -> Self
+    where
+        Self: Sized,
+    {
+        todo!()
     }
 }
 
