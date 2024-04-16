@@ -63,7 +63,7 @@ smol_str = "0.2.1"
 fastrand = "2.0.2"
 web-time = "1.1.0"
 kira = { version = "0.8.7", default-features = false, features = ["cpal", "ogg", "serde"] }
-assets_manager = { version = "0.11.4", default-features = false, features = ["toml", "ahash", "embedded"] }
+assets_manager = { version = "0.11.5", default-features = false, features = ["toml", "ahash", "embedded"] }
 
 # `dialogue` feature
 
