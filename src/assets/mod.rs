@@ -6,6 +6,7 @@
 
 mod audio;
 mod image;
+mod loader;
 
 use std::{
     any::{Any, TypeId},
@@ -20,10 +21,11 @@ pub use assets_manager::source;
 /// Re-export [`assets_manager`] types for loading and defining custom assets.
 pub use assets_manager::{asset::*, loader::*, BoxedError};
 pub use audio::{Audio, AudioLoader};
-use hashbrown::HashMap;
 pub use image::{Image, ImageLoader};
 
 use assets_manager::{source::Empty, AssetReadGuard, LocalAssetCache};
+use hashbrown::HashMap;
+use loader::Loader;
 use nanoserde::DeJson;
 use smol_str::SmolStr;
 
@@ -55,13 +57,10 @@ pub type AssetCacheSource = assets_manager::source::FileSystem;
 #[doc(hidden)]
 pub type AssetCacheSource = assets_manager::source::Embedded<'static>;
 
-/// Any asset that's loadable from a binary file.
+/// Any asset that's loadable from any amount of binary files.
 pub trait Loadable {
-    /// Extension for the file.
-    const EXTENSIONS: &'static [(&'static str, Loadable)];
-
     /// Convert a file object to this type.
-    fn from_bytes(bytes: &[u8]) -> Self
+    fn load(asset_source: &AssetSource) -> Self
     where
         Self: Sized;
 }
@@ -126,11 +125,7 @@ impl<T: Loadable> AssetManager<T> {
             asset.clone()
         } else {
             // Load the asset
-            let asset = Rc::new(T::from_bytes(
-                source
-                    .asset(id, T::EXTENSION)
-                    .expect("Asset does not exist"),
-            ));
+            let asset = Rc::new(T::load(source));
 
             // Store the asset so it can be accessed later again
             self.assets.insert(id.to_owned(), asset.clone());

@@ -11,7 +11,7 @@ use serde::{
 use serde_untagged::UntaggedEnumVisitor;
 
 use crate::{
-    assets::{Image, Loadable},
+    assets::{AssetSource, Image, Loadable},
     graphics::{
         data::TexturedVertex,
         instance::Instances,
@@ -122,6 +122,7 @@ impl Sprite {
     }
 }
 
+/*
 impl Compound for Sprite {
     fn load(cache: AnyCache, id: &SharedString) -> Result<Self, BoxedError> {
         // Load the image
@@ -140,11 +141,10 @@ impl Compound for Sprite {
         Ok(Self::from_image(image, metadata))
     }
 }
+*/
 
 impl Loadable for Sprite {
-    const EXTENSION: &'static str = "png";
-
-    fn from_bytes(bytes: &[u8]) -> Self
+    fn load(asset_source: &AssetSource) -> Self
     where
         Self: Sized,
     {

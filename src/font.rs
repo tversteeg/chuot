@@ -5,7 +5,7 @@ use glamour::{Angle, Size2, Vector2};
 use serde::Deserialize;
 
 use crate::{
-    assets::{Image, Loadable},
+    assets::{AssetSource, Image, ImageLoader, Loadable},
     graphics::instance::Instances,
     sprite::{Sprite, SpriteMetadata},
 };
@@ -58,6 +58,7 @@ impl Font {
     }
 }
 
+/*
 impl Compound for Font {
     fn load(cache: AnyCache, id: &SharedString) -> Result<Self, BoxedError> {
         // Load the image
@@ -96,15 +97,47 @@ impl Compound for Font {
         })
     }
 }
+*/
 
 impl Loadable for Font {
-    const EXTENSION: &'static str = "png";
-
-    fn from_bytes(bytes: &[u8]) -> Self
+    fn load(asset_source: &AssetSource) -> Self
     where
         Self: Sized,
     {
-        todo!()
+        // Load the image
+        let image = ImageLoader::load(asset_source);
+
+        // Load the metadata
+        let FontMetadata {
+            glyph_size,
+            first_char,
+            last_char,
+        } = cache.load_owned::<FontMetadata>(id)?;
+
+        // Convert types used in calculations
+        let glyph_size = Size2::new(glyph_size.width as f32, glyph_size.height as f32);
+        let first_char = first_char as usize;
+        let last_char = last_char as usize;
+
+        // Split the image into multiple sub-images
+        let sprites = image
+            .into_horizontal_parts(glyph_size.width as u32)
+            .into_iter()
+            .map(|image| Sprite::from_image(image, SpriteMetadata::default()))
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            last_char - first_char,
+            sprites.len() - 1,
+            "Font not properly defined, last char does not match length of parsed glyphs"
+        );
+
+        Ok(Self {
+            sprites,
+            glyph_size,
+            last_char,
+            first_char,
+        })
     }
 }
 

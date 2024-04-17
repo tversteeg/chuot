@@ -4,12 +4,13 @@
 
 use std::{borrow::Cow, io::Cursor};
 
-use assets_manager::{loader::Loader, Asset, BoxedError};
 use glamour::Size2;
 use miette::{Context, IntoDiagnostic};
 use png::{BitDepth, ColorType, Decoder, Reader, Transformations};
 
 use crate::graphics::texture::Texture;
+
+use super::loader::Loader;
 
 /// Core of a sprite loaded from disk.
 pub enum Image {
@@ -73,13 +74,6 @@ impl Image {
     }
 }
 
-impl Asset for Image {
-    // We only support PNG images currently
-    const EXTENSION: &'static str = "png";
-
-    type Loader = ImageLoader;
-}
-
 impl Texture for Image {
     fn size(&self) -> Size2<u32> {
         match self {
@@ -115,11 +109,11 @@ impl Texture for Image {
 pub struct ImageLoader;
 
 impl Loader<Image> for ImageLoader {
-    fn load(content: Cow<[u8]>, _ext: &str) -> Result<Image, BoxedError> {
+    fn load(bytes: &[u8]) -> Image {
         log::debug!("Decoding PNG");
 
         // Copy the bytes into a cursor
-        let cursor = Cursor::new(content.to_vec());
+        let cursor = Cursor::new(bytes.to_vec());
 
         // Decode the PNG
         let mut decoder = Decoder::new(cursor);
@@ -134,23 +128,16 @@ impl Loader<Image> for ImageLoader {
             .set_transformations(Transformations::normalize_to_color8() | Transformations::ALPHA);
 
         // Start parsing the PNG
-        let reader = Box::new(
-            decoder
-                .read_info()
-                .into_diagnostic()
-                .wrap_err("Error reading PNG")?,
-        );
+        let reader = Box::new(decoder.read_info().expect("Error redaing PNG"));
 
         // Ensure we can use the PNG colors
         let (color_type, bits) = reader.output_color_type();
 
         // Must be 8 bit RGBA or indexed
         if color_type != ColorType::Rgba || bits != BitDepth::Eight {
-            Err(miette::miette!(
-                "PNG is not 8 bit RGB with an alpha channel"
-            ))?;
+            panic!("PNG is not 8 bit RGB with an alpha channel");
         }
 
-        Ok(Image::Png { reader })
+        Image::Png { reader }
     }
 }

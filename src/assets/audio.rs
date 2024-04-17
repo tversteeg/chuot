@@ -2,27 +2,17 @@
 
 use std::{borrow::Cow, io::Cursor};
 
-use assets_manager::{loader::Loader, Asset, BoxedError};
 use kira::sound::static_sound::{StaticSoundData, StaticSoundSettings};
 use miette::Result;
 
-use super::Loadable;
+use super::{loader::Loader, AssetSource, Loadable};
 
 /// Audio asset for playing sounds and music.
 #[derive(Debug)]
 pub struct Audio(pub(crate) StaticSoundData);
 
-impl Asset for Audio {
-    // We only support OGG files currently
-    const EXTENSION: &'static str = "ogg";
-
-    type Loader = AudioLoader;
-}
-
 impl Loadable for Audio {
-    const EXTENSION: &'static str = "ogg";
-
-    fn from_bytes(bytes: &[u8]) -> Self
+    fn load(asset_source: &AssetSource) -> Self
     where
         Self: Sized,
     {
@@ -34,13 +24,14 @@ impl Loadable for Audio {
 pub struct AudioLoader;
 
 impl Loader<Audio> for AudioLoader {
-    fn load(content: Cow<[u8]>, _ext: &str) -> Result<Audio, BoxedError> {
+    fn load(bytes: &[u8]) -> Audio {
         // Allocate the bytes into a cursor
-        let bytes = Cursor::new(content.into_owned());
+        let bytes = Cursor::new(bytes.to_vec());
 
         // Parse the sound file
-        let sound_data = StaticSoundData::from_cursor(bytes, StaticSoundSettings::new())?;
+        let sound_data = StaticSoundData::from_cursor(bytes, StaticSoundSettings::new())
+            .expect("Error loading audio");
 
-        Ok(Audio(sound_data))
+        Audio(sound_data)
     }
 }
