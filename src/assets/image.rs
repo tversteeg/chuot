@@ -2,32 +2,24 @@
 //!
 //! Shouldn't be used directly, use [`crate::sprite::Sprite`].
 
-use std::{borrow::Cow, io::Cursor};
-
 use glamour::Size2;
-use miette::{Context, IntoDiagnostic};
-use png::{BitDepth, ColorType, Decoder, Reader, Transformations};
 
-use crate::graphics::texture::Texture;
+use crate::graphics::texture::{Texture, TextureRef};
 
-use super::loader::Loader;
+use super::{
+    loader::png::{PngLoader, PngReader},
+    AssetSource, Id, Loadable,
+};
 
 /// Core of a sprite loaded from disk.
-pub enum Image {
-    /// Image is raw PNG bytes inside a reader.
-    Png {
-        /// PNG image reader.
-        reader: Box<Reader<Cursor<Vec<u8>>>>,
-    },
-    /// Image is a raw ARGB byte buffer.
-    Raw {
-        /// Size of the image in pixels.
-        size: Size2<u32>,
-        /// Raw pixels.
-        data: Vec<u32>,
-    },
+pub struct Image {
+    /// Asset ID of the uploaded image.
+    pub(crate) texture_ref: TextureRef,
+    /// Size of the image in pixels.
+    size: Size2<u32>,
 }
 
+/*
 impl Image {
     /// Read the image and split into equal horizontal parts.
     pub(crate) fn into_horizontal_parts(self, part_width: u32) -> Vec<Image> {
@@ -73,71 +65,27 @@ impl Image {
             .collect()
     }
 }
+*/
 
 impl Texture for Image {
     fn size(&self) -> Size2<u32> {
-        match self {
-            Image::Png { reader } => {
-                let info = reader.info();
-
-                Size2::new(info.width, info.height)
-            }
-            Image::Raw { size, .. } => *size,
-        }
-    }
-
-    fn into_rgba_image(self) -> Vec<u32> {
-        match self {
-            Image::Png { mut reader } => {
-                // Allocate the output buffer
-                let mut buf = vec![0; reader.output_buffer_size()];
-
-                // Read the bytes into the buffer
-                reader
-                    .next_frame(&mut buf)
-                    .expect("Error reading PNG frame");
-
-                // Convert bytes to ARGB array
-                bytemuck::cast_slice(&buf).to_vec()
-            }
-            Image::Raw { data, .. } => data,
-        }
+        self.size
     }
 }
 
-/// Image asset loader.
-pub struct ImageLoader;
+impl Loadable for Image {
+    type Upload = PngReader;
 
-impl Loader<Image> for ImageLoader {
-    fn load(bytes: &[u8]) -> Image {
-        log::debug!("Decoding PNG");
+    fn load_if_exists(id: &Id, asset_source: &AssetSource) -> Option<(Self, Self::Upload)>
+    where
+        Self: Sized,
+    {
+        let reader = asset_source.load_if_exists::<PngLoader, _>(id)?;
+        let (width, height) = reader.info().size();
 
-        // Copy the bytes into a cursor
-        let cursor = Cursor::new(bytes.to_vec());
+        let size = Size2::new(width, height);
+        let id = id.to_owned();
 
-        // Decode the PNG
-        let mut decoder = Decoder::new(cursor);
-
-        // Discard text chunks
-        decoder.set_ignore_text_chunk(true);
-        // Make it faster by not checking if it's correct
-        decoder.ignore_checksums(true);
-
-        // Convert indexed images to RGBA
-        decoder
-            .set_transformations(Transformations::normalize_to_color8() | Transformations::ALPHA);
-
-        // Start parsing the PNG
-        let reader = Box::new(decoder.read_info().expect("Error redaing PNG"));
-
-        // Ensure we can use the PNG colors
-        let (color_type, bits) = reader.output_color_type();
-
-        // Must be 8 bit RGBA or indexed
-        if color_type != ColorType::Rgba || bits != BitDepth::Eight {
-            panic!("PNG is not 8 bit RGB with an alpha channel");
-        }
-
-        Image::Png { reader }
+        Some((Self::Png { size, id }, reader))
     }
 }

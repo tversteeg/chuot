@@ -3,7 +3,7 @@
 use miette::{Context, IntoDiagnostic, Result};
 use winit::{event_loop::EventLoop, window::WindowBuilder};
 
-use crate::assets::{AssetCacheSource, AssetSource};
+use crate::assets::AssetSource;
 
 use super::{GameConfig, TickFn};
 

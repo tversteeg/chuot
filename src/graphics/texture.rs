@@ -11,9 +11,6 @@ pub(crate) type TextureRef = u16;
 pub trait Texture {
     /// Dimensions of the texture.
     fn size(&self) -> Size2<u32>;
-
-    /// Image representation we can upload to the GPU.
-    fn into_rgba_image(self) -> Vec<u32>;
 }
 
 /// Texture holder that can be in a non-uploaded state.
@@ -68,29 +65,5 @@ impl<T: Texture> PendingOrUploaded<T> {
         };
 
         atlas.update(*texture_ref, sub_rectangle, pixels, queue);
-    }
-}
-
-impl<T: Texture> Texture for PendingOrUploaded<T> {
-    /// Throw an error when the inner type is already uploaded.
-    fn size(&self) -> Size2<u32> {
-        match self {
-            PendingOrUploaded::Pending(pending) => pending.size(),
-            PendingOrUploaded::Uploaded(..) => panic!("Texture is already uploaded"),
-        }
-    }
-
-    /// Throw an error when the inner type is already uploaded.
-    fn into_rgba_image(self) -> Vec<u32> {
-        match self {
-            PendingOrUploaded::Pending(pending) => pending.into_rgba_image(),
-            PendingOrUploaded::Uploaded(..) => panic!("Image is already uploaded, bytes are lost"),
-        }
-    }
-}
-
-impl<T: Texture> Default for PendingOrUploaded<T> {
-    fn default() -> Self {
-        Self::Uploaded(0)
     }
 }

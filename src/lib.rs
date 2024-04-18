@@ -152,7 +152,7 @@ mod random;
 mod sprite;
 mod window;
 
-use assets::{AssetCacheSource, AssetSource};
+use assets::AssetSource;
 /// Re-exported vector math type.
 pub use glamour;
 /// Re-exported winit type used in [`Context`].

@@ -1,6 +1,5 @@
 //! Blittable sprite definitions.
 
-use assets_manager::{loader::TomlLoader, AnyCache, Asset, BoxedError, Compound, SharedString};
 use glam::Affine2;
 use glamour::{Angle, AsRaw, Size2, Transform2, Vector2};
 use miette::Result;
@@ -11,7 +10,10 @@ use serde::{
 use serde_untagged::UntaggedEnumVisitor;
 
 use crate::{
-    assets::{AssetSource, Image, Loadable},
+    assets::{
+        loader::{png::PngLoader, toml::TomlLoader},
+        AssetSource, Id, Image, Loadable,
+    },
     graphics::{
         data::TexturedVertex,
         instance::Instances,
@@ -22,9 +24,7 @@ use crate::{
 /// Sprite that can be drawn on the  canvas.
 pub(crate) struct Sprite {
     /// Reference of the texture to render.
-    pub(crate) image: PendingOrUploaded<Image>,
-    /// Size of the image in a form we can calculate with without casting.
-    size: Size2,
+    pub(crate) image: Image,
     /// Sprite metadata.
     metadata: SpriteMetadata,
 }
@@ -32,27 +32,13 @@ pub(crate) struct Sprite {
 impl Sprite {
     /// Create from an image.
     pub(crate) fn from_image(image: Image, metadata: SpriteMetadata) -> Self {
-        // Mark the image as a texture not being uploaded yet
-        let image = PendingOrUploaded::new(image);
-
-        let size = image.size();
-        let size = Size2::new(size.width as f32, size.height as f32);
-
-        Self {
-            image,
-            size,
-            metadata,
-        }
+        Self { image, metadata }
     }
 
     /// Draw the sprite if the texture is already uploaded.
     #[inline]
     pub(crate) fn draw(&self, position: Vector2, rotation: Angle, instances: &mut Instances) {
-        let Some(texture_ref) = self.image.try_as_ref() else {
-            return;
-        };
-
-        instances.push(self.matrix(position, rotation), texture_ref);
+        instances.push(self.matrix(position, rotation), self.image.id);
     }
 
     /// Draw the sprites if the texture is already uploaded.
@@ -122,33 +108,27 @@ impl Sprite {
     }
 }
 
-/*
-impl Compound for Sprite {
-    fn load(cache: AnyCache, id: &SharedString) -> Result<Self, BoxedError> {
+impl Loadable for Sprite {
+    type Upload = PngLoader;
+
+    fn load_if_exists(id: &Id, asset_source: &AssetSource) -> Option<(Self, Self::Upload)>
+    where
+        Self: Sized,
+    {
         // Load the image
-        let image = cache.load_owned::<Image>(id)?;
+        let (image_ref, image_data) = Image::load_if_exists(id, asset_source)?;
 
         // Load the metadata
-        let metadata = match cache.load::<SpriteMetadata>(id) {
-            Ok(metadata) => metadata.read().clone(),
-            Err(err) => {
-                log::warn!("Error loading sprite metadata, using default: {err}");
+        let metadata = match SpriteMetadata::load_if_exists(id, asset_source) {
+            Some((metadata, _)) => metadata,
+            None => {
+                log::warn!("Sprite metadata for '{id}' not found, using default");
 
                 SpriteMetadata::default()
             }
         };
 
-        Ok(Self::from_image(image, metadata))
-    }
-}
-*/
-
-impl Loadable for Sprite {
-    fn load(asset_source: &AssetSource) -> Self
-    where
-        Self: Sized,
-    {
-        todo!()
+        Some((Self::from_image(image_ref, metadata), image_data))
     }
 }
 
@@ -209,8 +189,15 @@ pub(crate) struct SpriteMetadata {
     pub(crate) offset: SpriteOffset,
 }
 
-impl Asset for SpriteMetadata {
-    const EXTENSION: &'static str = "toml";
+impl Loadable for SpriteMetadata {
+    type Upload = ();
 
-    type Loader = TomlLoader;
+    fn load_if_exists(id: &Id, asset_source: &AssetSource) -> Option<(Self, Self::Upload)>
+    where
+        Self: Sized,
+    {
+        asset_source
+            .load_if_exists::<TomlLoader, _>(id)
+            .map(|asset| (asset, ()))
+    }
 }

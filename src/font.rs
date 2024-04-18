@@ -1,11 +1,10 @@
 //! Split a horizontal sprite of equal size text segments into a font.
 
-use assets_manager::{loader::TomlLoader, AnyCache, Asset, BoxedError, Compound, SharedString};
 use glamour::{Angle, Size2, Vector2};
 use serde::Deserialize;
 
 use crate::{
-    assets::{AssetSource, Image, ImageLoader, Loadable},
+    assets::{loader::toml::TomlLoader, AssetSource, Id, Image, Loadable},
     graphics::instance::Instances,
     sprite::{Sprite, SpriteMetadata},
 };
@@ -58,61 +57,20 @@ impl Font {
     }
 }
 
-/*
-impl Compound for Font {
-    fn load(cache: AnyCache, id: &SharedString) -> Result<Self, BoxedError> {
-        // Load the image
-        let image = cache.load_owned::<Image>(id)?;
-
-        // Load the metadata
-        let FontMetadata {
-            glyph_size,
-            first_char,
-            last_char,
-        } = cache.load_owned::<FontMetadata>(id)?;
-
-        // Convert types used in calculations
-        let glyph_size = Size2::new(glyph_size.width as f32, glyph_size.height as f32);
-        let first_char = first_char as usize;
-        let last_char = last_char as usize;
-
-        // Split the image into multiple sub-images
-        let sprites = image
-            .into_horizontal_parts(glyph_size.width as u32)
-            .into_iter()
-            .map(|image| Sprite::from_image(image, SpriteMetadata::default()))
-            .collect::<Vec<_>>();
-
-        assert_eq!(
-            last_char - first_char,
-            sprites.len() - 1,
-            "Font not properly defined, last char does not match length of parsed glyphs"
-        );
-
-        Ok(Self {
-            sprites,
-            glyph_size,
-            last_char,
-            first_char,
-        })
-    }
-}
-*/
-
 impl Loadable for Font {
-    fn load(asset_source: &AssetSource) -> Self
+    fn load_if_exists(id: &Id, asset_source: &AssetSource) -> Option<Self>
     where
         Self: Sized,
     {
         // Load the image
-        let image = ImageLoader::load(asset_source);
+        let image = Image::load_if_exists(id, asset_source)?;
 
         // Load the metadata
         let FontMetadata {
             glyph_size,
             first_char,
             last_char,
-        } = cache.load_owned::<FontMetadata>(id)?;
+        } = FontMetadata::load_if_exists(id, asset_source)?;
 
         // Convert types used in calculations
         let glyph_size = Size2::new(glyph_size.width as f32, glyph_size.height as f32);
@@ -132,7 +90,7 @@ impl Loadable for Font {
             "Font not properly defined, last char does not match length of parsed glyphs"
         );
 
-        Ok(Self {
+        Some(Self {
             sprites,
             glyph_size,
             last_char,
@@ -167,8 +125,11 @@ impl FontMetadata {
     }
 }
 
-impl Asset for FontMetadata {
-    const EXTENSION: &'static str = "toml";
-
-    type Loader = TomlLoader;
+impl Loadable for FontMetadata {
+    fn load_if_exists(id: &Id, asset_source: &AssetSource) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        asset_source.load_if_exists::<TomlLoader, _>(id)
+    }
 }

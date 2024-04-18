@@ -6,7 +6,6 @@ pub mod text;
 
 use std::{cell::RefCell, rc::Rc, sync::Arc};
 
-use assets_manager::{Compound, LocalAssetCache};
 use glamour::{Angle, Rect, Size2, Vector2};
 use hashbrown::HashMap;
 use kira::manager::{backend::DefaultBackend, AudioManager};
@@ -15,7 +14,7 @@ use winit::{event::MouseButton, keyboard::KeyCode, window::Window};
 use winit_input_helper::WinitInputHelper;
 
 use crate::{
-    assets::{AssetCacheSource, AssetRef, AssetSource, AssetsManager},
+    assets::{AssetSource, AssetsManager, Id},
     font::Font,
     graphics::instance::Instances,
     sprite::Sprite,
@@ -517,15 +516,10 @@ impl ContextInner {
     }
 
     /// Get all sprites from any container with sprites.
-    pub(crate) fn sprites_iter_mut(&mut self) -> impl Iterator<Item = &mut Sprite> {
-        profiling::scope!("Sprite iterator");
-        // PERF: improve performance by removing chain
-
-        self.sprites.values_mut().chain(
-            self.fonts
-                .values_mut()
-                .flat_map(|font| font.sprites.iter_mut()),
-        )
+    pub(crate) fn unuploaded_textures_iter(
+        &mut self,
+    ) -> impl Iterator<Item = (Id, Rc<Sprite>)> + '_ {
+        self.assets.sprites.drain()
     }
 
     /*

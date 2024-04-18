@@ -293,7 +293,7 @@ impl<'window> MainRenderState<'window> {
             profiling::scope!("Upload pending textures");
 
             // Upload the un-uploaded sprites
-            ctx.sprites_iter_mut().for_each(|sprite| {
+            ctx.unuploaded_sprites_iter().for_each(|(id, sprite)| {
                 sprite.image.upload(&mut self.atlas, &self.gpu.queue);
             });
 
