@@ -13,8 +13,9 @@ use super::{
 
 /// Core of a sprite loaded from disk.
 pub struct Image {
-    /// Asset ID of the uploaded image.
-    pub(crate) texture_ref: TextureRef,
+    /// PNG raw data.
+    png: PngReader,
+
     /// Size of the image in pixels.
     size: Size2<u32>,
 }
@@ -86,6 +87,6 @@ impl Loadable for Image {
         let size = Size2::new(width, height);
         let id = id.to_owned();
 
-        Some((Self::Png { size, id }, reader))
+        Some((Self { size, png }, reader))
     }
 }

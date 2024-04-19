@@ -12,7 +12,7 @@ use serde_untagged::UntaggedEnumVisitor;
 use crate::{
     assets::{
         loader::{png::PngLoader, toml::TomlLoader},
-        AssetSource, Id, Image, Loadable,
+        Asset, AssetSource, AssetsManager, Id, Image, Loadable,
     },
     graphics::{
         data::TexturedVertex,
@@ -24,17 +24,12 @@ use crate::{
 /// Sprite that can be drawn on the  canvas.
 pub(crate) struct Sprite {
     /// Reference of the texture to render.
-    pub(crate) image: Image,
+    pub(crate) image: Id,
     /// Sprite metadata.
     metadata: SpriteMetadata,
 }
 
 impl Sprite {
-    /// Create from an image.
-    pub(crate) fn from_image(image: Image, metadata: SpriteMetadata) -> Self {
-        Self { image, metadata }
-    }
-
     /// Draw the sprite if the texture is already uploaded.
     #[inline]
     pub(crate) fn draw(&self, position: Vector2, rotation: Angle, instances: &mut Instances) {
@@ -50,10 +45,6 @@ impl Sprite {
         translations: impl Iterator<Item = Vector2>,
         instances: &mut Instances,
     ) {
-        let Some(texture_ref) = self.image.try_as_ref() else {
-            return;
-        };
-
         // Calculate the base transformation
         let transform = self.matrix(base_translation, base_rotation);
 
@@ -62,7 +53,7 @@ impl Sprite {
             let mut transform = transform;
             transform.translation += *translation.as_raw();
 
-            (transform, texture_ref)
+            (transform, self.image)
         }));
     }
 
@@ -108,18 +99,16 @@ impl Sprite {
     }
 }
 
-impl Loadable for Sprite {
-    type Upload = PngLoader;
-
-    fn load_if_exists(id: &Id, asset_source: &AssetSource) -> Option<(Self, Self::Upload)>
+impl Asset for Sprite {
+    fn load_if_exists(id: &Id, assets: &mut AssetsManager) -> Option<Self>
     where
         Self: Sized,
     {
         // Load the image
-        let (image_ref, image_data) = Image::load_if_exists(id, asset_source)?;
+        let image = assets.image(id);
 
         // Load the metadata
-        let metadata = match SpriteMetadata::load_if_exists(id, asset_source) {
+        let metadata = match SpriteMetadata::load_if_exists(id, &assets.source) {
             Some((metadata, _)) => metadata,
             None => {
                 log::warn!("Sprite metadata for '{id}' not found, using default");
@@ -128,7 +117,7 @@ impl Loadable for Sprite {
             }
         };
 
-        Some((Self::from_image(image_ref, metadata), image_data))
+        Some(Self::from_image(image, metadata))
     }
 }
 

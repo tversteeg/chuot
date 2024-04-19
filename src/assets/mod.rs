@@ -24,6 +24,34 @@ use crate::{font::Font, sprite::Sprite};
 /// When the string is smaller than 23 bytes this will be stored on the stack.
 pub type Id = SmolStr;
 
+/// An asset that can be a combination of multiple or one loadable components.
+///
+/// The difference between this and [`Loadable`] is that this needs a reference to the assets manager so it can load sub-items.
+pub trait Asset {
+    /// Convert a file object to this type if it exists, if it doesn't return `None`.
+    ///
+    /// # Panics
+    ///
+    /// - When parsing binary bytes of asset into type fails.
+    fn load_if_exists(id: &Id, assets: &mut AssetsManager) -> Option<Self>
+    where
+        Self: Sized;
+
+    /// Convert a file object to this type.
+    ///
+    /// - When parsing binary bytes of asset into type fails.
+    /// - When asset does not exist in the source.
+    fn load(id: &Id, assets: &mut AssetsManager) -> Self
+    where
+        Self: Sized,
+    {
+        match Self::load_if_exists(id, assets) {
+            Some(asset) => asset,
+            None => panic!("Error loading asset: '{id}' does not exist"),
+        }
+    }
+}
+
 /// Any asset that's loadable from any amount of binary files.
 pub trait Loadable {
     /// Part of the asset that needs to be uploaded once.
@@ -36,7 +64,7 @@ pub trait Loadable {
     /// # Panics
     ///
     /// - When parsing binary bytes of asset into type fails.
-    fn load_if_exists(id: &Id, asset_source: &AssetSource) -> Option<(Self, Self::Upload)>
+    fn load_if_exists(id: &Id, assets: &AssetSource) -> Option<(Self, Self::Upload)>
     where
         Self: Sized;
 
@@ -100,12 +128,68 @@ impl Untyped {
 /// When hot-reloading is enabled all assets are loaded from disk, otherwise all assets are embedded in the binary.
 ///
 /// Improves performance because the types don't need to be boxed inside the vector.
-pub(crate) struct AssetManager<T: Loadable> {
+pub(crate) struct AssetManager<T: Asset> {
     /// All loaded assets.
     assets: HashMap<Id, Rc<T>>,
 }
 
-impl<T: Loadable> AssetManager<T> {
+impl<T: Asset> AssetManager<T> {
+    /// Get an asset or throw an exception.
+    #[inline]
+    #[track_caller]
+    pub(crate) fn get_or_insert(&mut self, id: &Id, assets: &mut AssetsManager) -> Rc<T> {
+        if let Some(asset) = self.get(id) {
+            asset
+        } else {
+            self.insert(id, assets)
+        }
+    }
+
+    /// Return an asset if it exists.
+    #[inline]
+    #[track_caller]
+    pub(crate) fn get(&self, id: &Id) -> Option<Rc<T>> {
+        self.assets.get(id).cloned()
+    }
+
+    /// Upload a new asset.
+    #[inline]
+    #[track_caller]
+    pub(crate) fn insert(&mut self, id: &Id, assets: &mut AssetsManager) -> Rc<T> {
+        log::debug!("Asset '{id}' not loaded yet, loading from source");
+
+        // Load the asset
+        let asset = T::load(id, assets);
+        let asset = Rc::new(asset);
+
+        // Store the asset so it can be accessed later again
+        self.assets.insert(id.to_owned(), asset.clone());
+
+        asset
+    }
+}
+
+impl<T: Asset> Default for AssetManager<T> {
+    fn default() -> Self {
+        let assets = HashMap::new();
+
+        Self { assets }
+    }
+}
+
+/// Global asset manager for a single type known at compile time.
+///
+/// When hot-reloading is enabled all assets are loaded from disk, otherwise all assets are embedded in the binary.
+///
+/// Improves performance because the types don't need to be boxed inside the vector.
+pub(crate) struct LoadableManager<T: Loadable> {
+    /// All loaded assets.
+    assets: HashMap<Id, Rc<T>>,
+    /// Parts that still need to be uploaded.
+    need_uploading: Vec<T::Upload>,
+}
+
+impl<T: Loadable> LoadableManager<T> {
     /// Get an asset or throw an exception.
     #[inline]
     #[track_caller]
@@ -131,81 +215,25 @@ impl<T: Loadable> AssetManager<T> {
         log::debug!("Asset '{id}' not loaded yet, loading from source");
 
         // Load the asset
-        let (asset, _upload) = T::load(id, asset_source);
-        let asset = Rc::new(asset);
-
-        // Store the asset so it can be accessed later again
-        self.assets.insert(id.to_owned(), asset.clone());
-
-        asset
-    }
-}
-
-impl<T: Loadable> Default for AssetManager<T> {
-    fn default() -> Self {
-        let assets = HashMap::new();
-
-        Self { assets }
-    }
-}
-
-/// Global asset manager for a single type known at compile time which stores whether an asset has been uploaded for the first time.
-///
-/// When hot-reloading is enabled all assets are loaded from disk, otherwise all assets are embedded in the binary.
-pub(crate) struct TrackingAssetManager<T: Loadable> {
-    /// Base asset manager.
-    assets: AssetManager<T>,
-    /// Upload parts of assets that have been pushed this frame.
-    needs_uploading: Vec<(Id, T::Upload)>,
-}
-
-impl<T: Loadable> TrackingAssetManager<T> {
-    /// Get an asset or throw an exception.
-    #[inline]
-    #[track_caller]
-    pub(crate) fn get_or_insert(&mut self, id: &Id, asset_source: &AssetSource) -> Rc<T> {
-        if let Some(asset) = self.assets.get(id) {
-            // Asset found, return it
-            asset
-        } else {
-            self.insert(id, asset_source)
-        }
-    }
-
-    /// Take all assets that are pushed but not have been processed yet.
-    #[inline]
-    pub(crate) fn drain(&mut self) -> impl Iterator<Item = (Id, Rc<T>)> + '_ {
-        self.needs_uploading.drain(..)
-    }
-
-    /// Upload a new asset.
-    #[inline]
-    #[track_caller]
-    pub(crate) fn insert(&mut self, id: &Id, asset_source: &AssetSource) -> Rc<T> {
-        log::debug!("Asset '{id}' not loaded yet, loading from source");
-
-        // Load the asset
         let (asset, upload) = T::load(id, asset_source);
         let asset = Rc::new(asset);
 
         // Store the asset so it can be accessed later again
-        self.assets.assets.insert(id.to_owned(), asset.clone());
-
-        // Keep track of the part that we need to upload
-        self.needs_uploading.push((id.to_owned(), upload));
+        self.assets.insert(id.to_owned(), asset.clone());
+        self.need_uploading.push(upload);
 
         asset
     }
 }
 
-impl<T: Loadable> Default for TrackingAssetManager<T> {
+impl<T: Loadable> Default for LoadableManager<T> {
     fn default() -> Self {
-        let assets = AssetManager::default();
-        let pushed = Vec::new();
+        let assets = HashMap::new();
+        let need_uploading = Vec::new();
 
         Self {
             assets,
-            needs_uploading: pushed,
+            need_uploading,
         }
     }
 }
@@ -213,11 +241,15 @@ impl<T: Loadable> Default for TrackingAssetManager<T> {
 /// Assets for all types used in- and outside the engine.
 pub(crate) struct AssetsManager {
     /// Sprite assets.
-    pub(crate) sprites: TrackingAssetManager<Sprite>,
+    pub(crate) sprites: AssetManager<Sprite>,
     /// Font assets.
-    pub(crate) fonts: TrackingAssetManager<Font>,
+    pub(crate) fonts: AssetManager<Font>,
     /// Audio assets.
     pub(crate) audio: AssetManager<Audio>,
+    /// Image loadables.
+    pub(crate) images: LoadableManager<Image>,
+    /// Unuploaded textures.
+    pub(crate) unuploaded_textures: Vec<Image>,
     /// Source for all un-loaded assets.
     pub(crate) source: AssetSource,
 }
@@ -225,15 +257,19 @@ pub(crate) struct AssetsManager {
 impl AssetsManager {
     /// Create from an asset source.
     pub(crate) fn new(source: AssetSource) -> Self {
-        let sprites = TrackingAssetManager::default();
-        let fonts = TrackingAssetManager::default();
+        let sprites = AssetManager::default();
+        let fonts = AssetManager::default();
         let audio = AssetManager::default();
+        let images = LoadableManager::default();
+        let unuploaded_textures = Vec::new();
 
         Self {
             sprites,
             fonts,
             audio,
             source,
+            images,
+            unuploaded_textures,
         }
     }
 
@@ -244,7 +280,7 @@ impl AssetsManager {
     /// - When sprite asset could not be loaded.
     #[inline]
     pub(crate) fn sprite(&mut self, id: impl Into<Id>) -> Rc<Sprite> {
-        self.sprites.get_or_insert(&id.into(), &self.source)
+        self.sprites.get_or_insert(&id.into(), &mut self)
     }
 
     /// Get or load a font.
@@ -254,7 +290,7 @@ impl AssetsManager {
     /// - When font asset could not be loaded.
     #[inline]
     pub(crate) fn font(&mut self, id: impl Into<Id>) -> Rc<Font> {
-        self.fonts.get_or_insert(&id.into(), &self.source)
+        self.fonts.get_or_insert(&id.into(), &mut self)
     }
 
     /// Get or load an audio file.
@@ -264,7 +300,17 @@ impl AssetsManager {
     /// - When audio asset could not be loaded.
     #[inline]
     pub(crate) fn audio(&mut self, id: impl Into<Id>) -> Rc<Audio> {
-        self.audio.get_or_insert(&id.into(), &self.source)
+        self.audio.get_or_insert(&id.into(), &mut self)
+    }
+
+    /// Get or load an image file.
+    ///
+    /// # Panics
+    ///
+    /// - When image asset could not be loaded.
+    #[inline]
+    pub(crate) fn image(&mut self, id: impl Into<Id>) -> Rc<Image> {
+        self.images.get_or_insert(&id.into(), &self.source)
     }
 }
 
