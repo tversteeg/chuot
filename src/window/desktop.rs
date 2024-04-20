@@ -3,7 +3,7 @@
 use miette::{Context, IntoDiagnostic, Result};
 use winit::{event_loop::EventLoop, window::WindowBuilder};
 
-use crate::assets::AssetSource;
+use crate::assets::embedded::EmbeddedAssets;
 
 use super::{GameConfig, TickFn};
 
@@ -15,7 +15,7 @@ pub(crate) async fn window<G, U, R>(
     game_config: GameConfig,
     update: U,
     render: R,
-    assets: AssetSource,
+    assets: EmbeddedAssets,
 ) -> Result<()>
 where
     G: 'static,

@@ -10,11 +10,7 @@ use serde::{
 use serde_untagged::UntaggedEnumVisitor;
 
 use crate::{
-    assets::{
-        image::Image,
-        loader::{png::PngLoader, toml::TomlLoader},
-        AssetSource, AssetsManager, Id, Loadable,
-    },
+    assets::{image::Image, loader::toml::TomlLoader, AssetSource, Id, Loadable},
     graphics::{data::TexturedVertex, instance::Instances, texture::Texture},
 };
 
@@ -32,7 +28,7 @@ impl Sprite {
     /// Draw the sprite if the texture is already uploaded.
     #[inline]
     pub(crate) fn draw(&self, position: Vector2, rotation: Angle, instances: &mut Instances) {
-        instances.push(self.matrix(position, rotation), self.image.id);
+        instances.push(self.matrix(position, rotation), self.image.atlas_id);
     }
 
     /// Draw the sprites if the texture is already uploaded.
@@ -52,7 +48,7 @@ impl Sprite {
             let mut transform = transform;
             transform.translation += *translation.as_raw();
 
-            (transform, self.image.id)
+            (transform, self.image.atlas_id)
         }));
     }
 

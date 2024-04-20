@@ -2,7 +2,6 @@
 
 use std::{borrow::Cow, collections::HashMap};
 
-use assets_manager::{loader::Loader, Asset, BoxedError};
 use miette::{Context, IntoDiagnostic, Result};
 use yarnspinner::{
     compiler::{Compiler, File},
@@ -10,6 +9,8 @@ use yarnspinner::{
     prelude::Dialogue as YarnDialogue,
     runtime::{MemoryVariableStorage, StringTableTextProvider},
 };
+
+use crate::assets::Loadable;
 
 /// Dialogue system based on Yarn Spinner.
 ///
@@ -95,12 +96,16 @@ impl Dialogue {
     }
 }
 
-impl Asset for Dialogue {
-    const EXTENSION: &'static str = "yarn";
-
-    type Loader = DialogueLoader;
+impl Loadable for Dialogue {
+    fn load_if_exists(id: &crate::assets::Id, assets: &crate::assets::AssetSource) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        todo!()
+    }
 }
 
+/*
 /// Yarn Spinner dialogue asset loader.
 ///
 /// Currently only supports loading a single file.
@@ -151,3 +156,4 @@ impl Loader<Dialogue> for DialogueLoader {
         Ok(Dialogue { state, metadata })
     }
 }
+*/

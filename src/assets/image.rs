@@ -14,7 +14,7 @@ use super::{
 /// Core of a sprite loaded from disk.
 pub(crate) struct Image {
     /// Image atlas ID.
-    pub(crate) id: u16,
+    pub(crate) atlas_id: u16,
 
     /// Size of the image in pixels.
     size: Size2<u32>,
@@ -79,6 +79,9 @@ impl Loadable for Image {
     where
         Self: Sized,
     {
-        todo!()
+        let atlas_id = *assets.static_texture_id_to_atlas_id.get(id)?;
+        let size = *assets.static_texture_id_to_size.get(id)?;
+
+        Some(Self { atlas_id, size })
     }
 }

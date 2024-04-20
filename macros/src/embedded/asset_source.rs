@@ -53,7 +53,7 @@ pub fn parse_dir(asset_dir: &Path) -> TokenStream {
 
             // Define the asset
             Some(quote!(
-                pixel_game_lib::assets::StaticRawAsset {
+                pixel_game_lib::assets::embedded::EmbeddedRawAsset {
                     id: #id,
                     extension: #extension,
                     bytes: include_bytes!(#path)
@@ -66,11 +66,11 @@ pub fn parse_dir(asset_dir: &Path) -> TokenStream {
     let atlas = super::atlas::parse_textures(&textures);
 
     quote! {
-        pixel_game_lib::assets::AssetSource {
+        pixel_game_lib::assets::embedded::EmbeddedAssets {
             assets: &[
                 #(#assets),*
             ],
-            atlas: {atlas}
+            atlas: #atlas
         }
     }
     .into()

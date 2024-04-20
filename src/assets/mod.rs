@@ -5,15 +5,18 @@
 //! Asset loading is done through the various calls in [`crate::Context`].
 
 mod audio;
+#[doc(hidden)]
+pub mod embedded;
 pub(crate) mod image;
 pub mod loader;
 
 use std::rc::Rc;
 
 pub use audio::Audio;
+use embedded::EmbeddedRawAsset;
+use glamour::Size2;
 use hashbrown::HashMap;
 use loader::Loader;
-
 use smol_str::SmolStr;
 
 use crate::{font::Font, sprite::Sprite};
@@ -48,46 +51,6 @@ pub trait Loadable {
         }
     }
 }
-
-/*
-/// Type erased storage for any type implementing [`Storable`].
-pub(crate) struct Untyped {
-    /// Value on the heap which can contain anything.
-    ///
-    /// We can't make this `Box<dyn Storable>` because `Storable: Sized`.
-    value: Box<dyn Loadable + 'static>,
-    type_id: TypeId,
-}
-
-impl Untyped {
-    /// Create storage for any type implementing [`Storable`].
-    pub(crate) fn new<T: Loadable>(value: T) -> Self {
-        let value = Box::new(value);
-        let type_id = TypeId::of::<T>();
-
-        Self { value, type_id }
-    }
-
-    /// Get the asset.
-    ///
-    /// # Panics
-    ///
-    /// - When type used to insert item differs from type used to get it.
-    #[inline]
-    #[track_caller]
-    pub(crate) fn get<T: Loadable>(&self) -> &T {
-        if self.type_id != TypeId::of::<T>() {
-            panic!(
-                "Type mismatch in asset storage, got {:?} but requested {:?}",
-                self.type_id,
-                TypeId::of::<T>()
-            );
-        }
-
-        self.value.as_any().downcast_ref::<T>()
-    }
-}
-*/
 
 /// Global asset manager for a single type known at compile time.
 ///
@@ -146,13 +109,13 @@ impl<T: Loadable> Default for AssetManager<T> {
 /// Assets for all types used in- and outside the engine.
 pub(crate) struct AssetsManager {
     /// Sprite assets.
-    pub(crate) sprites: AssetManager<Sprite>,
+    sprites: AssetManager<Sprite>,
     /// Font assets.
-    pub(crate) fonts: AssetManager<Font>,
+    fonts: AssetManager<Font>,
     /// Audio assets.
-    pub(crate) audio: AssetManager<Audio>,
+    audio: AssetManager<Audio>,
     /// Source for all un-loaded assets.
-    pub(crate) source: AssetSource,
+    source: AssetSource,
 }
 
 impl AssetsManager {
@@ -199,19 +162,49 @@ impl AssetsManager {
     pub(crate) fn audio(&mut self, id: impl Into<Id>) -> Rc<Audio> {
         self.audio.get_or_insert(&id.into(), &self.source)
     }
+
+    /// Get the static atlas ID for a texture asset.
+    ///
+    /// # Panics
+    ///
+    /// - When texture asset does not exist.
+    #[inline]
+    pub(crate) fn static_atlas_id(&mut self, id: impl Into<Id>) -> u16 {
+        *self
+            .source
+            .static_texture_id_to_atlas_id
+            .get(&id.into())
+            .expect("Error loading static atlas ID: texture does not exist")
+    }
 }
 
 /// Asset source for all assets embedded in the binary.
-#[doc(hidden)]
-pub struct AssetSource {
+pub(crate) struct AssetSource {
+    /// Static texture ID to atlas ID mapping.
+    pub(crate) static_texture_id_to_atlas_id: HashMap<Id, u16>,
+    /// Static texture ID to size.
+    pub(crate) static_texture_id_to_size: HashMap<Id, Size2<u32>>,
     /// All loaded assets by parsed path.
-    pub assets: &'static [StaticRawAsset],
+    assets: &'static [EmbeddedRawAsset],
 }
 
 impl AssetSource {
+    /// Construct a new source from embedded raw assets.
+    pub(crate) fn new(
+        assets: &'static [EmbeddedRawAsset],
+        static_texture_id_to_atlas_id: HashMap<Id, u16>,
+        static_texture_id_to_size: HashMap<Id, Size2<u32>>,
+    ) -> Self {
+        Self {
+            assets,
+            static_texture_id_to_atlas_id,
+            static_texture_id_to_size,
+        }
+    }
+
     /// Load a new asset based on the loader.
     #[track_caller]
-    pub fn load_if_exists<L, T>(&self, id: &Id) -> Option<T>
+    pub(crate) fn load_if_exists<L, T>(&self, id: &Id) -> Option<T>
     where
         L: Loader<T>,
     {
@@ -223,8 +216,8 @@ impl AssetSource {
         Some(L::load(self.raw_asset(id, L::EXTENSION)?))
     }
 
-    /// Get an asset.
-    pub fn raw_asset(&self, id: &Id, extension: &str) -> Option<&'static [u8]> {
+    /// Get the bytes of an asset that matches the ID and the extension.
+    pub(crate) fn raw_asset(&self, id: &Id, extension: &str) -> Option<&'static [u8]> {
         self.assets.iter().find_map(|raw_asset| {
             if raw_asset.id == id && raw_asset.extension == extension {
                 Some(raw_asset.bytes)
@@ -233,26 +226,4 @@ impl AssetSource {
             }
         })
     }
-}
-
-/// Single embedded asset in the binary.
-#[doc(hidden)]
-pub struct StaticRawAsset {
-    /// Parsed ID, excludes the file extension.
-    pub id: &'static str,
-    /// File extension excluding the first `'.'`.
-    pub extension: &'static str,
-    /// Raw bytes of the asset.
-    pub bytes: &'static [u8],
-}
-
-/// Embedded diced sprite atlas in the binary.
-#[doc(hidden)]
-pub struct StaticRawSpriteAtlas {
-    /// PNG bytes of the diced atlas.
-    diced_atlas_png_bytes: Vec<u8>,
-    /// Rectangle mapping for the textures.
-    ///
-    /// Structure is `[texture_index, diced_u, diced_v, texture_u, texture_v, width, height]`.
-    texture_mappings: Vec<[u16; 7]>,
 }

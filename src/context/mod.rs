@@ -409,14 +409,14 @@ impl Context {
         config: &GameConfig,
         window: Arc<Window>,
         audio_manager: AudioManager<DefaultBackend>,
-        assets: AssetSource,
+        asset_source: AssetSource,
     ) -> Self {
         Self {
             inner: Rc::new(RefCell::new(ContextInner::new(
                 config,
                 window,
                 audio_manager,
-                assets,
+                asset_source,
             ))),
         }
     }
@@ -482,7 +482,7 @@ impl ContextInner {
         config: &GameConfig,
         window: Arc<Window>,
         audio_manager: AudioManager<DefaultBackend>,
-        assets: AssetSource,
+        asset_source: AssetSource,
     ) -> Self {
         let exit = false;
         let mouse = None;
@@ -495,7 +495,7 @@ impl ContextInner {
         let size = config.buffer_size;
         let frames_per_second = 0.0;
         let blending_factor = 0.0;
-        let assets = AssetsManager::new(assets);
+        let assets = AssetsManager::new(asset_source);
 
         Self {
             exit,

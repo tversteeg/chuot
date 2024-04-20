@@ -2,14 +2,10 @@
 
 use std::borrow::Cow;
 
-use glamour::{Rect, Size2, Vector2};
-use packr2::{Packer, PackerConfig, Rectf, SkylinePacker};
+use glamour::{Rect, Size2};
+use packr2::{PackerConfig, SkylinePacker};
 
-use super::{
-    state::PREFERRED_TEXTURE_FORMAT,
-    texture::{Texture, TextureRef},
-    uniform::UniformArrayState,
-};
+use super::{gpu::Gpu, state::PREFERRED_TEXTURE_FORMAT, uniform::UniformArrayState};
 
 /// Virtual packed texture size in pixels for both width and height.
 const ATLAS_TEXTURE_SIZE: u32 = 4096;
@@ -19,10 +15,138 @@ const ATLAS_TEXTURE_SIZE: u32 = 4096;
 /// Will be unpacked and uploaded to the GPU once at the beginning of the game.
 #[doc(hidden)]
 pub struct StaticAtlas {
-    /// Raw bytes of the diced PNG.
-    bytes: Vec<u8>,
-    /// Size of the atlas.
-    size: Size2,
+    /// GPU reference.
+    pub(crate) texture: wgpu::Texture,
+    /// GPU bind group.
+    pub(crate) bind_group: wgpu::BindGroup,
+    /// GPU bind group layout.
+    pub(crate) bind_group_layout: wgpu::BindGroupLayout,
+    /// GPU uniform buffer holding all atlassed texture rectangles.
+    pub(crate) rects: UniformArrayState<Rect<f32>>,
+}
+
+impl StaticAtlas {
+    /// Create and upload the atlas to the GPU.
+    pub(crate) fn new(
+        Size2 { width, height }: Size2<u32>,
+        texture_rects: Vec<Rect<f32>>,
+        gpu: &Gpu,
+    ) -> Self {
+        // Create the texture on the GPU
+        let texture = gpu.device.create_texture(&wgpu::TextureDescriptor {
+            label: Some(&Cow::Borrowed("Static Texture Atlas")),
+            size: wgpu::Extent3d {
+                width,
+                height,
+                // TODO: support multiple layers
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            // Texture is 2D
+            dimension: wgpu::TextureDimension::D2,
+            // Use sRGB format
+            format: PREFERRED_TEXTURE_FORMAT,
+            // We want to use this texture in shaders and we want to copy data to it
+            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            // We only need a single format
+            view_formats: &[PREFERRED_TEXTURE_FORMAT],
+        });
+
+        let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+        let sampler = gpu.device.create_sampler(&wgpu::SamplerDescriptor {
+            label: Some("Static Texture Atlas Sampler"),
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
+            mag_filter: wgpu::FilterMode::Nearest,
+            min_filter: wgpu::FilterMode::Nearest,
+            mipmap_filter: wgpu::FilterMode::Nearest,
+            ..Default::default()
+        });
+
+        let bind_group_layout =
+            gpu.device
+                .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                    label: Some("Static Texture Atlas Bind Group Layout"),
+                    entries: &[
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 0,
+                            visibility: wgpu::ShaderStages::FRAGMENT,
+                            ty: wgpu::BindingType::Texture {
+                                sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                                view_dimension: wgpu::TextureViewDimension::D2,
+                                multisampled: false,
+                            },
+                            count: None,
+                        },
+                        wgpu::BindGroupLayoutEntry {
+                            binding: 1,
+                            visibility: wgpu::ShaderStages::FRAGMENT,
+                            ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                            count: None,
+                        },
+                    ],
+                });
+
+        let bind_group = gpu.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Static Texture Atlas Bind Group"),
+            layout: &bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&texture_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Sampler(&sampler),
+                },
+            ],
+        });
+
+        // Create and upload the uniforms
+        let rects = UniformArrayState::from_static_vec(texture_rects, &gpu.device, &gpu.queue);
+
+        Self {
+            texture,
+            bind_group,
+            bind_group_layout,
+            rects,
+        }
+    }
+
+    /// Update a region of pixels of the texture in the atlas.
+    pub(crate) fn update(&self, target_region: Rect<u32>, pixels: &[u32], queue: &wgpu::Queue) {
+        // Write the new texture section to the GPU
+        queue.write_texture(
+            // Where to copy the pixel data
+            wgpu::ImageCopyTexture {
+                texture: &self.texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d {
+                    x: target_region.origin.x,
+                    y: target_region.origin.y,
+                    z: 0,
+                },
+                aspect: wgpu::TextureAspect::All,
+            },
+            // Actual pixel data
+            bytemuck::cast_slice(pixels),
+            // Layout of the texture
+            wgpu::ImageDataLayout {
+                offset: 0,
+                bytes_per_row: Some(4 * target_region.width()),
+                rows_per_image: Some(target_region.height()),
+            },
+            // Texture size
+            wgpu::Extent3d {
+                width: target_region.width(),
+                height: target_region.height(),
+                depth_or_array_layers: 1,
+            },
+        );
+    }
 }
 
 /// A single packed atlas.

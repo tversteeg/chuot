@@ -5,7 +5,7 @@ use wasm_bindgen::JsCast;
 use web_sys::HtmlCanvasElement;
 use winit::{event_loop::EventLoop, platform::web::WindowBuilderExtWebSys, window::WindowBuilder};
 
-use crate::assets::AssetCacheSource;
+use crate::assets::embedded::EmbeddedAssets;
 
 use super::{GameConfig, TickFn};
 
@@ -17,7 +17,7 @@ pub(crate) async fn window<G, U, R>(
     window_config: GameConfig,
     update: U,
     render: R,
-    assets: AssetCacheSource,
+    assets: EmbeddedAssets,
 ) -> Result<()>
 where
     G: 'static,

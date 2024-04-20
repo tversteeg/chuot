@@ -152,7 +152,7 @@ mod random;
 mod sprite;
 mod window;
 
-use assets::AssetSource;
+use assets::embedded::EmbeddedAssets;
 /// Re-exported vector math type.
 pub use glamour;
 /// Re-exported winit type used in [`Context`].
@@ -290,7 +290,7 @@ where
     /// # Ok(()) }
     /// # try_main().unwrap();
     /// ```
-    fn run(self, assets: AssetSource, game_config: GameConfig) -> Result<()> {
+    fn run(self, assets: EmbeddedAssets, game_config: GameConfig) -> Result<()> {
         // Spawn the window with the game loop
         window::window(
             self,

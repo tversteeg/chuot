@@ -1,17 +1,10 @@
 //! Create a single big texture atlas from all image files in the assets folder.
 
-use std::{
-    fs::File,
-    io::BufWriter,
-    path::{Path, PathBuf},
-    str::FromStr,
-};
+use std::{fs::File, path::PathBuf, str::FromStr};
 
-use packr2::{PackerConfig, RectInput, RectOutput, Size, SplitPacker};
-use png::{
-    BitDepth, ColorType, Decoder, Encoder, ScaledFloat, SourceChromaticities, Transformations,
-};
-use proc_macro::TokenStream;
+use packr2::{PackerConfig, RectInput, Size, SplitPacker};
+use png::{BitDepth, ColorType, Decoder, Encoder, Transformations};
+use proc_macro2::TokenStream;
 use quote::quote;
 use sprite_dicing::{DicedSprite, Pivot, Pixel, Prefs, SourceSprite, Texture};
 
@@ -24,7 +17,7 @@ pub fn parse_textures(textures: &[(String, PathBuf)]) -> TokenStream {
     let source_sprites = textures
         .iter()
         .enumerate()
-        .map(|(index, (id, path))| {
+        .map(|(index, (_id, path))| {
             // Read the PNG
             let mut decoder = Decoder::new(File::open(path).expect("Could not open texture"));
 
@@ -103,8 +96,11 @@ pub fn parse_textures(textures: &[(String, PathBuf)]) -> TokenStream {
         1,
         "Texture didn't fit in diced sprite size"
     );
+    // Get the result texture
+    let diced_atlas = &diced.atlases[0];
+
     // Encode the generated diced atlas as a PNG
-    let png_bytes = encode_png(&diced.atlases[0]);
+    let png_bytes = encode_png(diced_atlas);
 
     // Parse each texture
     let texture_mappings = diced.sprites.into_iter().flat_map(|DicedSprite {
@@ -112,7 +108,6 @@ pub fn parse_textures(textures: &[(String, PathBuf)]) -> TokenStream {
         vertices,
         uvs,
         indices,
-        rect,
         pivot,
         ..
     }| {
@@ -159,24 +154,50 @@ pub fn parse_textures(textures: &[(String, PathBuf)]) -> TokenStream {
                 let height = bottom_right.y as u16 - top_left_v;
 
                 // Get the position on the newly diced map
-                let diced_u = (uv.u * rect.width) as u16;
-                let diced_v = (uv.v * rect.height) as u16;
+                let diced_u = (uv.u * diced_atlas.width as f32).round() as u16;
+                let diced_v = (uv.v * diced_atlas.height as f32).round() as u16;
 
                 // Convert to array to save space
                 quote! {
-                    [#texture_index, #diced_u, #diced_v, #texture_u, #texture_v, #width, #height]
+                    pixel_game_lib::assets::embedded::TextureMapping {
+                        diced: glamour::Point2::new(#diced_u, #diced_v),
+                        texture: glamour::Point2::new(#texture_u, #texture_v),
+                        size: glamour::Size2::new(#width, #height),
+                    }
                 }
             })
     }).collect::<Vec<_>>();
 
+    // Texture IDs mapped to the indices
+    let texture_ids = textures.iter().map(|(id, _)| id).collect::<Vec<_>>();
+
+    // Texture rectangles
+    let texture_rects = source_sprites
+        .iter()
+        .zip(offsets.iter())
+        .map(|(source_sprite, (u, v))| {
+            let u = *u as f32;
+            let v = *v as f32;
+            let width = source_sprite.texture.width as f32;
+            let height = source_sprite.texture.height as f32;
+
+            quote! { 
+                glamour::Rect::new(glamour::Point2::new(#u, #v), glamour::Size2::new(#width, #height))
+            }
+        })
+        .collect::<Vec<_>>();
+
     // Create the object from the tightly packed arrays
     quote! {
-        pixel_game_lib::assets::StaticRawSpriteAtlas {
+        pixel_game_lib::assets::embedded::EmbeddedRawStaticAtlas {
             diced_atlas_png_bytes: vec![#(#png_bytes),*],
             texture_mappings: vec![#(#texture_mappings),*],
+            texture_ids: vec![#(#texture_ids),*],
+            texture_rects: vec![#(#texture_rects),*],
+            width: #atlas_width,
+            height: #atlas_height,
         }
     }
-    .into()
 }
 
 /// Encode a pixel texture to a PNG file.

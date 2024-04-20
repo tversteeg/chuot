@@ -85,8 +85,6 @@ pub(crate) struct UniformArrayState<T: NoUninit> {
     local_buffer: Vec<T>,
     /// Maximum amount of items.
     max_items: usize,
-    /// Store the type information.
-    _phantom: PhantomData<T>,
 }
 
 impl<T: NoUninit> UniformArrayState<T> {
@@ -143,8 +141,23 @@ impl<T: NoUninit> UniformArrayState<T> {
             bind_group_layout,
             max_items,
             local_buffer,
-            _phantom: PhantomData,
         }
+    }
+
+    /// Create from a static vector that won't change.
+    pub(crate) fn from_static_vec(
+        items: Vec<T>,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) -> UniformArrayState<T> {
+        // Construct the new uniform
+        let mut this = Self::new(device, items.len());
+        this.local_buffer = items;
+
+        // Push all values
+        queue.write_buffer(&this.buffer, 0, bytemuck::cast_slice(&this.local_buffer));
+
+        this
     }
 
     /// Push a value to the array of the uniform.

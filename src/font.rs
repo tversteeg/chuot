@@ -62,8 +62,6 @@ impl Loadable for Font {
     where
         Self: Sized,
     {
-        todo!()
-
         /*
         // Load the image
         let image = Image::load_if_exists(id, asset_source)?;
@@ -100,6 +98,12 @@ impl Loadable for Font {
             first_char,
         })
         */
+        Some(Self {
+            sprites: Vec::new(),
+            glyph_size: Size2::ZERO,
+            first_char: 0,
+            last_char: 0,
+        })
     }
 }
 

@@ -1,14 +1,21 @@
 //! Main rendering state.
 
 use glamour::{Contains, Rect, Size2, Vector2};
-use miette::Result;
+use miette::{Result, WrapErr};
 use winit::window::Window;
 
-use crate::{graphics::Texture, window::InGameProfiler, Context, GameConfig};
+use crate::{
+    assets::embedded::EmbeddedRawStaticAtlas, graphics::Texture, window::InGameProfiler, Context,
+    GameConfig,
+};
 
 use super::{
-    atlas::Atlas, component::SpriteRenderState, data::ScreenInfo, gpu::Gpu,
-    post_processing::PostProcessingState, uniform::UniformState,
+    atlas::{Atlas, StaticAtlas},
+    component::SpriteRenderState,
+    data::ScreenInfo,
+    gpu::Gpu,
+    post_processing::PostProcessingState,
+    uniform::UniformState,
 };
 
 /// Texture format we prefer to use for everything.
@@ -27,6 +34,8 @@ pub(crate) struct MainRenderState<'window> {
     sprite_render_state: SpriteRenderState,
     /// Texture atlas.
     atlas: Atlas,
+    /// Static texture atlas.
+    static_atlas: StaticAtlas,
     /// Size of the final buffer to draw.
     ///
     /// Will be scaled with integer scaling and letterboxing to fit the screen.
@@ -43,7 +52,11 @@ pub(crate) struct MainRenderState<'window> {
 
 impl<'window> MainRenderState<'window> {
     /// Create a GPU surface on the window.
-    pub(crate) async fn new<W>(game_config: &GameConfig, window: W) -> Result<Self>
+    pub(crate) async fn new<W>(
+        game_config: &GameConfig,
+        embedded_atlas: EmbeddedRawStaticAtlas,
+        window: W,
+    ) -> Result<Self>
     where
         W: wgpu::WindowHandle + 'window,
     {
@@ -69,6 +82,9 @@ impl<'window> MainRenderState<'window> {
 
         // Create a new texture atlas
         let atlas = Atlas::new(&gpu.device);
+
+        // Create the static atlas
+        let static_atlas = embedded_atlas.parse_and_upload(&gpu);
 
         // Create a custom pipeline for each component
         let sprite_render_state = SpriteRenderState::new(
@@ -97,6 +113,7 @@ impl<'window> MainRenderState<'window> {
             background_color,
             viewport_color,
             atlas,
+            static_atlas,
         })
     }
 
@@ -148,7 +165,7 @@ impl<'window> MainRenderState<'window> {
                 &mut frame,
                 target_texture_view,
                 &self.screen_info.bind_group,
-                &self.atlas,
+                &self.static_atlas,
                 self.background_color,
             );
         });
