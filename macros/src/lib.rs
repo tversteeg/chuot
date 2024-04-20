@@ -1,6 +1,12 @@
 //! This crate provides the `assets!` macro for [`pixel_game_lib`](https://docs.rs/pixel_game_lib).
 
 mod asset_source;
+#[cfg(any(
+    target_arch = "wasm32",
+    not(feature = "hot-reloading-assets"),
+    not(doctest)
+))]
+mod embedded;
 
 use asset_source::Input;
 use proc_macro::TokenStream;

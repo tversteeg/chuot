@@ -22,3 +22,7 @@ hot-reloading-assets = []
 litrs = "0.4.1"
 quote = "1.0"
 walkdir = "2"
+png = "0.17.13"
+sprite_dicing = "0.1.2"
+bytemuck = "1.15.0"
+packr2 = "0.3.3"

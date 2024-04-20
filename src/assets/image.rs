@@ -12,9 +12,9 @@ use super::{
 };
 
 /// Core of a sprite loaded from disk.
-pub struct Image {
-    /// PNG raw data.
-    png: PngReader,
+pub(crate) struct Image {
+    /// Image atlas ID.
+    pub(crate) id: u16,
 
     /// Size of the image in pixels.
     size: Size2<u32>,
@@ -75,18 +75,10 @@ impl Texture for Image {
 }
 
 impl Loadable for Image {
-    type Upload = PngReader;
-
-    fn load_if_exists(id: &Id, asset_source: &AssetSource) -> Option<(Self, Self::Upload)>
+    fn load_if_exists(id: &Id, assets: &AssetSource) -> Option<Self>
     where
         Self: Sized,
     {
-        let reader = asset_source.load_if_exists::<PngLoader, _>(id)?;
-        let (width, height) = reader.info().size();
-
-        let size = Size2::new(width, height);
-        let id = id.to_owned();
-
-        Some((Self { size, png }, reader))
+        todo!()
     }
 }

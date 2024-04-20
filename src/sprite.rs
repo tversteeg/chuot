@@ -11,22 +11,21 @@ use serde_untagged::UntaggedEnumVisitor;
 
 use crate::{
     assets::{
+        image::Image,
         loader::{png::PngLoader, toml::TomlLoader},
-        Asset, AssetSource, AssetsManager, Id, Image, Loadable,
+        AssetSource, AssetsManager, Id, Loadable,
     },
-    graphics::{
-        data::TexturedVertex,
-        instance::Instances,
-        texture::{PendingOrUploaded, Texture},
-    },
+    graphics::{data::TexturedVertex, instance::Instances, texture::Texture},
 };
 
 /// Sprite that can be drawn on the  canvas.
 pub(crate) struct Sprite {
     /// Reference of the texture to render.
-    pub(crate) image: Id,
+    pub(crate) image: Image,
     /// Sprite metadata.
     metadata: SpriteMetadata,
+    /// Size in pixels.
+    size: Size2,
 }
 
 impl Sprite {
@@ -53,7 +52,7 @@ impl Sprite {
             let mut transform = transform;
             transform.translation += *translation.as_raw();
 
-            (transform, self.image)
+            (transform, self.image.id)
         }));
     }
 
@@ -99,17 +98,18 @@ impl Sprite {
     }
 }
 
-impl Asset for Sprite {
-    fn load_if_exists(id: &Id, assets: &mut AssetsManager) -> Option<Self>
+impl Loadable for Sprite {
+    fn load_if_exists(id: &Id, asset_source: &AssetSource) -> Option<Self>
     where
         Self: Sized,
     {
         // Load the image
-        let image = assets.image(id);
+        let image = Image::load(id, asset_source);
+        let size = Size2::new(image.size().width as f32, image.size().height as f32);
 
         // Load the metadata
-        let metadata = match SpriteMetadata::load_if_exists(id, &assets.source) {
-            Some((metadata, _)) => metadata,
+        let metadata = match SpriteMetadata::load_if_exists(id, asset_source) {
+            Some(metadata) => metadata,
             None => {
                 log::warn!("Sprite metadata for '{id}' not found, using default");
 
@@ -117,7 +117,11 @@ impl Asset for Sprite {
             }
         };
 
-        Some(Self::from_image(image, metadata))
+        Some(Self {
+            image,
+            metadata,
+            size,
+        })
     }
 }
 
@@ -179,14 +183,10 @@ pub(crate) struct SpriteMetadata {
 }
 
 impl Loadable for SpriteMetadata {
-    type Upload = ();
-
-    fn load_if_exists(id: &Id, asset_source: &AssetSource) -> Option<(Self, Self::Upload)>
+    fn load_if_exists(id: &Id, asset_source: &AssetSource) -> Option<Self>
     where
         Self: Sized,
     {
-        asset_source
-            .load_if_exists::<TomlLoader, _>(id)
-            .map(|asset| (asset, ()))
+        asset_source.load_if_exists::<TomlLoader, _>(id)
     }
 }

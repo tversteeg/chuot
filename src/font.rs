@@ -4,7 +4,7 @@ use glamour::{Angle, Size2, Vector2};
 use serde::Deserialize;
 
 use crate::{
-    assets::{loader::toml::TomlLoader, AssetSource, Id, Image, Loadable},
+    assets::{loader::toml::TomlLoader, AssetSource, Id, Loadable},
     graphics::instance::Instances,
     sprite::{Sprite, SpriteMetadata},
 };
@@ -62,6 +62,9 @@ impl Loadable for Font {
     where
         Self: Sized,
     {
+        todo!()
+
+        /*
         // Load the image
         let image = Image::load_if_exists(id, asset_source)?;
 
@@ -96,6 +99,7 @@ impl Loadable for Font {
             last_char,
             first_char,
         })
+        */
     }
 }
 

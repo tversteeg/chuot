@@ -1,3 +1,5 @@
+//! Create an embedded asset source.
+
 use std::path::Path;
 
 use proc_macro::TokenStream;
@@ -6,6 +8,9 @@ use walkdir::WalkDir;
 
 /// Walk through the directory and generate code for each asset.
 pub fn parse_dir(asset_dir: &Path) -> TokenStream {
+    // Keep a separate entry for all textures
+    let mut textures = Vec::new();
+
     // Walk over each file in each subdirectory
     let assets = WalkDir::new(asset_dir)
         // Make it deterministic
@@ -36,6 +41,13 @@ pub fn parse_dir(asset_dir: &Path) -> TokenStream {
             // Remove the extension
             let id = id.strip_suffix(&format!(".{}", extension))?;
 
+            // Parse images separately
+            if extension == "png" {
+                textures.push((id.to_owned(), path.to_path_buf()));
+
+                return None;
+            }
+
             // Convert the path to a string so it can be passed to `include_bytes!()`
             let path = path.display().to_string();
 
@@ -50,11 +62,15 @@ pub fn parse_dir(asset_dir: &Path) -> TokenStream {
         })
         .collect::<Vec<_>>();
 
+    // Create a diced texture atlas
+    let atlas = super::atlas::parse_textures(&textures);
+
     quote! {
         pixel_game_lib::assets::AssetSource {
             assets: &[
                 #(#assets),*
             ],
+            atlas: {atlas}
         }
     }
     .into()

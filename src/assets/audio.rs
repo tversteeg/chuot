@@ -9,12 +9,10 @@ use super::{loader::ogg::OggLoader, AssetSource, Id, Loadable};
 pub struct Audio(pub(crate) StaticSoundData);
 
 impl Loadable for Audio {
-    type Upload = ();
-
-    fn load_if_exists(id: &Id, asset_source: &AssetSource) -> Option<((), Self)>
+    fn load_if_exists(id: &Id, asset_source: &AssetSource) -> Option<Self>
     where
         Self: Sized,
     {
-        Some(((), Self(asset_source.load_if_exists::<OggLoader, _>(id)?)))
+        Some(Self(asset_source.load_if_exists::<OggLoader, _>(id)?))
     }
 }

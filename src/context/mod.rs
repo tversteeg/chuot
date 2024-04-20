@@ -515,13 +515,6 @@ impl ContextInner {
         }
     }
 
-    /// Get all sprites from any container with sprites.
-    pub(crate) fn unuploaded_textures_iter(
-        &mut self,
-    ) -> impl Iterator<Item = (Id, Rc<Sprite>)> + '_ {
-        self.assets.sprites.drain()
-    }
-
     /*
     /// Get all sprites that need to be reuploaded to the GPU.
     pub(crate) fn sprites_needing_reupload_iter(&self) -> impl Iterator<Item = (&Sprite, Sprite)> {

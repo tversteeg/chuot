@@ -293,10 +293,14 @@ impl<'window> MainRenderState<'window> {
             profiling::scope!("Upload pending textures");
 
             // Upload the un-uploaded sprites
+            // TODO
+            /*
             ctx.unuploaded_sprites_iter().for_each(|(id, sprite)| {
                 sprite.image.upload(&mut self.atlas, &self.gpu.queue);
             });
+            */
 
+            // TODO
             /*
             // Re-upload updated sprites
             ctx.sprites_needing_reupload_iter()
@@ -313,12 +317,15 @@ impl<'window> MainRenderState<'window> {
             profiling::scope!("Apply texture updates");
 
             // Apply texture updates
+            // TODO
+            /*
             ctx.take_texture_updates()
                 .for_each(|(sprite, sub_rect, pixels)| {
                     sprite
                         .image
                         .update_pixels(sub_rect, &pixels, &mut self.atlas, &self.gpu.queue);
                 });
+                */
         });
     }
 }

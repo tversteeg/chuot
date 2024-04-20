@@ -14,6 +14,17 @@ use super::{
 /// Virtual packed texture size in pixels for both width and height.
 const ATLAS_TEXTURE_SIZE: u32 = 4096;
 
+/// A static packed atlas at compile time by the proc macro.
+///
+/// Will be unpacked and uploaded to the GPU once at the beginning of the game.
+#[doc(hidden)]
+pub struct StaticAtlas {
+    /// Raw bytes of the diced PNG.
+    bytes: Vec<u8>,
+    /// Size of the atlas.
+    size: Size2,
+}
+
 /// A single packed atlas.
 ///
 /// When the atlas is full another texture layer should be added.
@@ -123,6 +134,8 @@ impl Atlas {
         }
     }
 
+    // TODO
+    /*
     /// Add a texture to the atlas.
     ///
     /// # Returns
@@ -180,6 +193,7 @@ impl Atlas {
 
         uniform_index as TextureRef
     }
+    */
 
     /// Update a region of pixels of the texture in the atlas.
     pub(crate) fn update(
