@@ -44,19 +44,19 @@ pub struct TextureMapping {
 /// Embedded diced sprite atlas in the binary.
 pub struct EmbeddedRawStaticAtlas {
     /// PNG bytes of the diced atlas.
-    pub diced_atlas_png_bytes: Vec<u8>,
+    pub diced_atlas_png_bytes: &'static [u8],
     /// Rectangle mapping for the textures.
     ///
     /// Structure is `[texture_index, diced_u, diced_v, texture_u, texture_v, width, height]`.
-    pub texture_mappings: Vec<TextureMapping>,
+    pub texture_mappings: &'static [TextureMapping],
     /// All IDS of the textures.
     ///
     /// Index determines the position.
-    pub texture_ids: Vec<&'static str>,
+    pub texture_ids: &'static [&'static str],
     /// Full items on the atlas.
     ///
     /// Index determines the position.
-    pub texture_rects: Vec<Rect<f32>>,
+    pub texture_rects: &'static [Rect],
     /// Fitted width of the atlas.
     pub width: u16,
     /// Fitted height of the atlas.
@@ -93,7 +93,7 @@ impl EmbeddedRawStaticAtlas {
         let size = Size2::new(4096, 4096);
 
         // Create the atlas
-        let atlas = StaticAtlas::new(size, self.texture_rects, gpu);
+        let atlas = StaticAtlas::new(size, self.texture_rects.to_vec(), gpu);
 
         // Upload all sections
         for mapping in self.texture_mappings {

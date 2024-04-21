@@ -67,9 +67,7 @@ pub fn parse_dir(asset_dir: &Path) -> TokenStream {
 
     quote! {
         pixel_game_lib::assets::embedded::EmbeddedAssets {
-            assets: &[
-                #(#assets),*
-            ],
+            assets: &[#(#assets),*],
             atlas: #atlas
         }
     }

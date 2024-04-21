@@ -160,9 +160,9 @@ pub fn parse_textures(textures: &[(String, PathBuf)]) -> TokenStream {
                 // Convert to array to save space
                 quote! {
                     pixel_game_lib::assets::embedded::TextureMapping {
-                        diced: glamour::Point2::new(#diced_u, #diced_v),
-                        texture: glamour::Point2::new(#texture_u, #texture_v),
-                        size: glamour::Size2::new(#width, #height),
+                        diced: glamour::Point2 { x: #diced_u, y: #diced_v },
+                        texture: glamour::Point2 { x: #texture_u, y: #texture_v },
+                        size: glamour::Size2 { width: #width, height: #height },
                     }
                 }
             })
@@ -181,8 +181,11 @@ pub fn parse_textures(textures: &[(String, PathBuf)]) -> TokenStream {
             let width = source_sprite.texture.width as f32;
             let height = source_sprite.texture.height as f32;
 
-            quote! { 
-                glamour::Rect::new(glamour::Point2::new(#u, #v), glamour::Size2::new(#width, #height))
+            quote! {
+                glamour::Rect {
+                    origin: glamour::Point2 { x: #u, y: #v },
+                    size: glamour::Size2 { width: #width, height: #height }
+                }
             }
         })
         .collect::<Vec<_>>();
@@ -190,10 +193,26 @@ pub fn parse_textures(textures: &[(String, PathBuf)]) -> TokenStream {
     // Create the object from the tightly packed arrays
     quote! {
         pixel_game_lib::assets::embedded::EmbeddedRawStaticAtlas {
-            diced_atlas_png_bytes: vec![#(#png_bytes),*],
-            texture_mappings: vec![#(#texture_mappings),*],
-            texture_ids: vec![#(#texture_ids),*],
-            texture_rects: vec![#(#texture_rects),*],
+            diced_atlas_png_bytes: {
+                static BYTES: &[u8] = &[#(#png_bytes),*];
+
+                BYTES
+            },
+            texture_mappings: {
+                static MAPPINGS: &[pixel_game_lib::assets::embedded::TextureMapping] = &[#(#texture_mappings),*];
+
+                MAPPINGS
+            },
+            texture_ids: {
+                static IDS: &[&'static str] = &[#(#texture_ids),*];
+
+                IDS
+            },
+            texture_rects: {
+                static RECTS: &[glamour::Rect<f32>] = &[#(#texture_rects),*];
+
+                RECTS
+            },
             width: #atlas_width,
             height: #atlas_height,
         }
