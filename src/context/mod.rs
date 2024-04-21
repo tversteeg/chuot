@@ -7,17 +7,15 @@ pub mod text;
 use std::{cell::RefCell, rc::Rc, sync::Arc};
 
 use glamour::{Angle, Rect, Size2, Vector2};
-use hashbrown::HashMap;
+
 use kira::manager::{backend::DefaultBackend, AudioManager};
 use smol_str::SmolStr;
 use winit::{event::MouseButton, keyboard::KeyCode, window::Window};
 use winit_input_helper::WinitInputHelper;
 
 use crate::{
-    assets::{AssetSource, AssetsManager, Id},
-    font::Font,
+    assets::{AssetSource, AssetsManager},
     graphics::instance::Instances,
-    sprite::Sprite,
     GameConfig,
 };
 

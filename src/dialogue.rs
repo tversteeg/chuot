@@ -4,10 +4,8 @@ use std::{borrow::Cow, collections::HashMap};
 
 use miette::{Context, IntoDiagnostic, Result};
 use yarnspinner::{
-    compiler::{Compiler, File},
     core::{IntoYarnValueFromNonYarnValue, LineId, YarnFn, YarnValue},
     prelude::Dialogue as YarnDialogue,
-    runtime::{MemoryVariableStorage, StringTableTextProvider},
 };
 
 use crate::assets::Loadable;
@@ -97,7 +95,7 @@ impl Dialogue {
 }
 
 impl Loadable for Dialogue {
-    fn load_if_exists(id: &crate::assets::Id, assets: &crate::assets::AssetSource) -> Option<Self>
+    fn load_if_exists(_id: &crate::assets::Id, _assets: &crate::assets::AssetSource) -> Option<Self>
     where
         Self: Sized,
     {

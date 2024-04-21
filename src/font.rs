@@ -62,9 +62,8 @@ impl Loadable for Font {
     where
         Self: Sized,
     {
-        /*
-        // Load the image
-        let image = Image::load_if_exists(id, asset_source)?;
+        // Load the base sprite
+        let base = Sprite::load_if_exists(id, asset_source)?;
 
         // Load the metadata
         let FontMetadata {
@@ -78,12 +77,8 @@ impl Loadable for Font {
         let first_char = first_char as usize;
         let last_char = last_char as usize;
 
-        // Split the image into multiple sub-images
-        let sprites = image
-            .into_horizontal_parts(glyph_size.width as u32)
-            .into_iter()
-            .map(|image| Sprite::from_image(image, SpriteMetadata::default()))
-            .collect::<Vec<_>>();
+        // Split the sprite into multiple sub-sprites for each character
+        let sprites = base.horizontal_parts(glyph_size.width as i16);
 
         assert_eq!(
             last_char - first_char,
@@ -96,13 +91,6 @@ impl Loadable for Font {
             glyph_size,
             last_char,
             first_char,
-        })
-        */
-        Some(Self {
-            sprites: Vec::new(),
-            glyph_size: Size2::ZERO,
-            first_char: 0,
-            last_char: 0,
         })
     }
 }

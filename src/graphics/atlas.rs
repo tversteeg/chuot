@@ -2,7 +2,7 @@
 
 use std::borrow::Cow;
 
-use glamour::{Rect, Size2, Vector2};
+use glamour::{Point2, Rect, Size2, Vector2};
 use packr2::{Packer, PackerConfig, Rectf, SkylinePacker};
 
 use super::{gpu::Gpu, state::PREFERRED_TEXTURE_FORMAT, uniform::UniformArrayState};
@@ -187,34 +187,11 @@ impl Atlas {
         uniform_index as AtlasRef
     }
 
-    /// Add a sub-region of an existing texture.
-    ///
-    /// # Returns
-    ///
-    /// - An unique identification number for sub-region of the texture.
-    pub(crate) fn add_sub_region(
-        &mut self,
-        base_texture: AtlasRef,
-        rect: Rect,
-        queue: &wgpu::Queue,
-    ) -> AtlasRef {
-        // Get the original rect
-        let ref_rect = self.rects.get(base_texture as usize);
-
-        // Offset the rectangle
-        let atlas_rect = rect.translate(ref_rect.origin.to_vector());
-
-        // Push the new dimensions to the uniform buffer, returning the reference to it
-        let uniform_index = self.rects.push(&atlas_rect, queue);
-
-        uniform_index as AtlasRef
-    }
-
     /// Update a region of pixels of the texture in the atlas.
     pub(crate) fn update_pixels(
         &self,
         texture_ref: u16,
-        sub_rectangle: Rect,
+        mut sub_rectangle: Rect,
         pixels: &[u32],
         queue: &wgpu::Queue,
     ) {
@@ -222,37 +199,21 @@ impl Atlas {
         let sprite_region = self.rects[texture_ref as usize];
 
         // Offset the sub rectangle to atlas space
-        let Rect { mut origin, size } = sub_rectangle;
-        origin += sprite_region.origin.to_vector();
+        sub_rectangle.origin += sprite_region.origin.to_vector();
 
-        // Write the new texture section to the GPU
-        queue.write_texture(
-            // Where to copy the pixel data
-            wgpu::ImageCopyTexture {
-                texture: &self.texture,
-                mip_level: 0,
-                origin: wgpu::Origin3d {
-                    x: origin.x as u32,
-                    y: origin.y as u32,
-                    z: 0,
-                },
-                aspect: wgpu::TextureAspect::All,
-            },
-            // Actual pixel data
-            bytemuck::cast_slice(pixels),
-            // Layout of the texture
-            wgpu::ImageDataLayout {
-                offset: 0,
-                bytes_per_row: Some(4 * size.width as u32),
-                rows_per_image: Some(size.height as u32),
-            },
-            // Texture size
-            wgpu::Extent3d {
-                width: size.width as u32,
-                height: size.height as u32,
-                depth_or_array_layers: 1,
-            },
-        );
+        // Convert to u32 with proper rounding
+        let region = Rect {
+            origin: Point2::new(
+                sub_rectangle.origin.x.round() as u32,
+                sub_rectangle.origin.y.round() as u32,
+            ),
+            size: Size2::new(
+                sub_rectangle.width().round() as u32,
+                sub_rectangle.height().round() as u32,
+            ),
+        };
+
+        self.update_pixels_raw_offset(region, pixels, queue);
     }
 
     /// Update a region of pixels of the texture in the atlas.

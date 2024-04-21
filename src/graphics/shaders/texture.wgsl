@@ -14,6 +14,7 @@ var s_diffuse: sampler;
 
 struct TextureInfo {
     @location(0) offset: vec2<f32>,
+    // Not used
     @location(1) size: vec2<f32>,
 }
 
@@ -39,9 +40,12 @@ struct InstanceInput {
     // The last row of the matrix is always 0 0 1 so we can save some bytes by constructing that ourselves
     @location(2) mat_0: vec2<f32>,
     @location(3) mat_1: vec2<f32>,
-    @location(4) mat_2: vec2<f32>,
+    // X and Y position used in the transformation matrix
+    @location(4) translation: vec2<i32>,
+    // Sub rectangle of the texture to render, offset of the texture will be determined by the texture info uniform
+    @location(5) sub_rectangle: vec4<i32>,
     // Which texture to render, dimensions are stored in the uniform buffer
-    @location(5) tex_index: u32,
+    @location(6) tex_index: u32,
 }
 
 struct VertexOutput {
@@ -60,27 +64,31 @@ fn vs_main(
     let instance_matrix = mat3x3<f32>(
         vec3<f32>(instance.mat_0, 0.0),
         vec3<f32>(instance.mat_1, 0.0),
-        vec3<f32>(instance.mat_2, 1.0),
+        vec3<f32>(vec2<f32>(instance.translation), 1.0),
     );
 
+    // Convert the instance sub rectangle to floats
+    let sub_rectangle = vec4<f32>(instance.sub_rectangle);
+
     // Get the texture rectangle from the atlas
-    let subrect = tex_info[instance.tex_index];
+    let offset = tex_info[instance.tex_index].offset;
 
     // Resize the quad to the size of the texture
-    let model_position = model.position.xy * subrect.size;
+    let model_position = model.position.xy * sub_rectangle.zw;
 
     // Translate, rotate and skew with the instance matrix
     let projected_position = instance_matrix * vec3<f32>(model_position, 1.0);
 
     // Move from 0..width to -1..1
     let screen_size_half = screen_info.size / 2.0;
-    let offset = 1.0 - projected_position.xy / screen_size_half;
+    let screen_offset = 1.0 - projected_position.xy / screen_size_half;
     // Move the 0..1 texture coordinates to relative coordinates within the 4096x4096 atlas texture for the specified texture
-    let tex_coords = (subrect.offset + subrect.size * model.tex_coords) / ATLAS_TEXTURE_SIZE;
+    // Also apply the sub rectangle offset from the instance
+    let tex_coords = (offset + sub_rectangle.xy + sub_rectangle.zw * model.tex_coords) / ATLAS_TEXTURE_SIZE;
 
     var out: VertexOutput;
     out.tex_coords = tex_coords;
-    out.clip_position = vec4<f32>(vec3<f32>(-offset.x, offset.y, model.position.z), 1.0);
+    out.clip_position = vec4<f32>(vec3<f32>(-screen_offset.x, screen_offset.y, model.position.z), 1.0);
 
     // Check if we have any skewing, scaling or rotation
     out.only_translated_or_reflected = f32( 
