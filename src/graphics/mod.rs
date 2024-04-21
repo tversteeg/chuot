@@ -7,10 +7,7 @@ pub(crate) mod gpu;
 pub(crate) mod instance;
 pub(crate) mod post_processing;
 pub(crate) mod state;
-pub(crate) mod texture;
 pub(crate) mod uniform;
-
-pub use texture::Texture;
 
 use state::PREFERRED_TEXTURE_FORMAT;
 use wgpu::Color;

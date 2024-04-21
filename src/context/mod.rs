@@ -6,19 +6,16 @@ pub mod text;
 
 use std::{cell::RefCell, rc::Rc, sync::Arc};
 
-use assets_manager::{Compound, LocalAssetCache};
 use glamour::{Angle, Rect, Size2, Vector2};
-use hashbrown::HashMap;
+
 use kira::manager::{backend::DefaultBackend, AudioManager};
 use smol_str::SmolStr;
 use winit::{event::MouseButton, keyboard::KeyCode, window::Window};
 use winit_input_helper::WinitInputHelper;
 
 use crate::{
-    assets::{AssetCacheSource, AssetRef},
-    font::Font,
+    assets::{AssetSource, AssetsManager},
     graphics::instance::Instances,
-    sprite::Sprite,
     GameConfig,
 };
 
@@ -379,6 +376,7 @@ impl Context {
     }
 }
 
+/*
 /// Generic asset loading.
 impl Context {
     /// Load a clone of a custom defined asset.
@@ -399,6 +397,7 @@ impl Context {
         self.read(|ctx| ctx.asset_owned(path.as_ref()))
     }
 }
+*/
 
 /// Internally used methods.
 impl Context {
@@ -408,14 +407,14 @@ impl Context {
         config: &GameConfig,
         window: Arc<Window>,
         audio_manager: AudioManager<DefaultBackend>,
-        assets: AssetCacheSource,
+        asset_source: AssetSource,
     ) -> Self {
         Self {
             inner: Rc::new(RefCell::new(ContextInner::new(
                 config,
                 window,
                 audio_manager,
-                assets,
+                asset_source,
             ))),
         }
     }
@@ -453,10 +452,6 @@ pub(crate) struct ContextInner {
     pub(crate) input: WinitInputHelper,
     /// Instances of all sprites drawn this tick, also includes sprites from the fonts.
     pub(crate) instances: Instances,
-    /// All sprite textures to render.
-    pub(crate) sprites: HashMap<SmolStr, Sprite>,
-    /// All font textures to render.
-    pub(crate) fonts: HashMap<SmolStr, Font>,
     /// Portions of textures that need to be re-written.
     pub(crate) texture_update_queue: Vec<(SmolStr, Rect, Vec<u32>)>,
     /// Time in seconds between every update tick.
@@ -471,8 +466,8 @@ pub(crate) struct ContextInner {
     pub(crate) window: Arc<Window>,
     /// Audio manager for playing audio.
     pub(crate) audio_manager: AudioManager<DefaultBackend>,
-    /// Place where all assets are stored.
-    pub(crate) asset_cache: LocalAssetCache<AssetCacheSource>,
+    /// Where all assets live.
+    pub(crate) assets: AssetsManager,
 }
 
 impl ContextInner {
@@ -481,28 +476,24 @@ impl ContextInner {
         config: &GameConfig,
         window: Arc<Window>,
         audio_manager: AudioManager<DefaultBackend>,
-        assets: AssetCacheSource,
+        asset_source: AssetSource,
     ) -> Self {
         let exit = false;
         let mouse = None;
         let input = WinitInputHelper::default();
         let instances = Instances::default();
-        let sprites = HashMap::new();
-        let fonts = HashMap::new();
         let texture_update_queue = Vec::new();
         let delta_time = config.update_delta_time;
         let size = config.buffer_size;
         let frames_per_second = 0.0;
         let blending_factor = 0.0;
-        let asset_cache = LocalAssetCache::with_source(assets);
+        let assets = AssetsManager::new(asset_source);
 
         Self {
             exit,
             mouse,
             input,
             instances,
-            sprites,
-            fonts,
             texture_update_queue,
             delta_time,
             frames_per_second,
@@ -510,110 +501,7 @@ impl ContextInner {
             size,
             window,
             audio_manager,
-            asset_cache,
+            assets,
         }
-    }
-
-    /// Get all sprites from any container with sprites.
-    pub(crate) fn sprites_iter_mut(&mut self) -> impl Iterator<Item = &mut Sprite> {
-        profiling::scope!("Sprite iterator");
-        // PERF: improve performance by removing chain
-
-        self.sprites.values_mut().chain(
-            self.fonts
-                .values_mut()
-                .flat_map(|font| font.sprites.iter_mut()),
-        )
-    }
-
-    /// Get all sprites that need to be reuploaded to the GPU.
-    pub(crate) fn sprites_needing_reupload_iter(&self) -> impl Iterator<Item = (&Sprite, Sprite)> {
-        // Get all reloaded sprites
-        self.sprites.iter().filter_map(|(id, sprite)| {
-            // Check if the sprite has been reuploaded this frame
-            if self
-                .asset_cache
-                .get_cached::<Sprite>(id)
-                .is_some_and(|handle| handle.reloaded_global())
-            {
-                log::debug!("Reuploading hot-reloaded sprite {id}");
-
-                let new_sprite = self
-                    .asset_cache
-                    .load_owned::<Sprite>(id)
-                    .expect("Reuploading sprite that does not exist");
-
-                Some((sprite, new_sprite))
-            } else {
-                None
-            }
-        })
-    }
-
-    /// Take all updates to textures that need to be done.
-    pub(crate) fn take_texture_updates(
-        &mut self,
-    ) -> impl Iterator<Item = (&'_ Sprite, Rect, Vec<u32>)> + '_ {
-        self.texture_update_queue
-            .drain(..)
-            .map(|(path, rect, pixels)| {
-                (
-                    self.sprites
-                        .get(path.as_str())
-                        .expect("Sprite update did't yield proper sprite path in 'sprites'"),
-                    rect,
-                    pixels,
-                )
-            })
-    }
-
-    /// Load the sprite asset if it doesn't exist yet.
-    pub(crate) fn load_sprite_if_not_loaded(&mut self, path: &str) {
-        if !self.sprites.contains_key(path) {
-            profiling::scope!("Load sprite");
-
-            // Load the sprite from disk
-            let sprite = self.asset_owned(path);
-
-            // Keep track of it, to see if it needs to be updated or not
-            self.sprites.insert(path.into(), sprite);
-        }
-    }
-
-    /// Load the font asset if it doesn't exist yet.
-    pub(crate) fn load_font_if_not_loaded(&mut self, path: &str) {
-        if !self.fonts.contains_key(path) {
-            profiling::scope!("Load font");
-
-            // Load the font from disk
-            let font = self.asset_owned(path);
-
-            // Keep track of it, to see if it needs to be updated or not
-            self.fonts.insert(path.into(), font);
-        }
-    }
-
-    /// Load an asset.
-    #[inline]
-    pub(crate) fn asset<T>(&self, path: &str) -> AssetRef<T>
-    where
-        T: Compound,
-    {
-        profiling::scope!("Load asset");
-
-        self.asset_cache.load_expect(path).read()
-    }
-
-    /// Load a clone of an asset.
-    #[inline]
-    pub(crate) fn asset_owned<T>(&self, path: &str) -> T
-    where
-        T: Compound,
-    {
-        profiling::scope!("Load owned asset");
-
-        self.asset_cache
-            .load_owned(path)
-            .expect("Could not load owned asset")
     }
 }

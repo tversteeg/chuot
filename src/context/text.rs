@@ -44,11 +44,8 @@ impl<'path, 'text, 'ctx> DrawTextContext<'path, 'text, 'ctx> {
     #[inline(always)]
     pub fn draw(self) {
         self.ctx.write(|ctx| {
-            ctx.load_font_if_not_loaded(self.path);
-
-            ctx.fonts
-                .get_mut(self.path)
-                .expect("Error accessing font in context")
+            ctx.assets
+                .font(self.path)
                 .draw(self.position, self.text, &mut ctx.instances)
         });
     }

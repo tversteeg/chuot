@@ -1,8 +1,7 @@
 //! Blittable sprite definitions.
 
-use assets_manager::{loader::TomlLoader, AnyCache, Asset, BoxedError, Compound, SharedString};
 use glam::Affine2;
-use glamour::{Angle, AsRaw, Size2, Transform2, Vector2};
+use glamour::{Angle, AsRaw, Point2, Rect, Size2, Transform2, Vector2};
 use miette::Result;
 use serde::{
     de::{Error, Unexpected},
@@ -11,63 +10,75 @@ use serde::{
 use serde_untagged::UntaggedEnumVisitor;
 
 use crate::{
-    assets::Image,
-    graphics::{
-        data::TexturedVertex,
-        instance::Instances,
-        texture::{PendingOrUploaded, Texture},
-    },
+    assets::{image::Image, loader::toml::TomlLoader, AssetSource, Id, Loadable},
+    graphics::{data::TexturedVertex, instance::Instances},
 };
 
 /// Sprite that can be drawn on the  canvas.
 pub(crate) struct Sprite {
     /// Reference of the texture to render.
-    pub(crate) image: PendingOrUploaded<Image>,
-    /// Size of the image in a form we can calculate with without casting.
-    size: Size2,
+    pub(crate) image: Image,
+    /// Sub rectangle of the sprite to draw, can be used to split a sprite sheet.
+    sub_rectangle: Rect<i16>,
     /// Sprite metadata.
     metadata: SpriteMetadata,
+    /// Full original sprite size in pixels.
+    size: Size2,
 }
 
 impl Sprite {
-    /// Create from an image.
-    pub(crate) fn from_image(image: Image, metadata: SpriteMetadata) -> Self {
-        // Mark the image as a texture not being uploaded yet
-        let image = PendingOrUploaded::new(image);
+    /// Split into equal horizontal parts.
+    pub(crate) fn horizontal_parts(&self, part_width: i16) -> Vec<Sprite> {
+        // Ensure that the image can be split into equal parts
+        assert!(
+            self.sub_rectangle.width() % part_width == 0,
+            "Cannot split image into equal horizontal parts of {part_width} pixels"
+        );
 
-        let size = image.size();
-        let size = Size2::new(size.width as f32, size.height as f32);
+        // How many images we need to make
+        let sub_images = self.sub_rectangle.width() / part_width;
 
-        Self {
-            image,
-            size,
-            metadata,
-        }
+        (0..sub_images)
+            .map(|index| {
+                let image = self.image.clone();
+
+                // Use the same sub rectangle only changing the position and size
+                let mut sub_rectangle = self.sub_rectangle;
+                sub_rectangle.origin.x += part_width * index;
+                sub_rectangle.size.width = part_width;
+
+                let metadata = self.metadata.clone();
+                let size = self.size;
+
+                Self {
+                    image,
+                    sub_rectangle,
+                    metadata,
+                    size,
+                }
+            })
+            .collect()
     }
 
     /// Draw the sprite if the texture is already uploaded.
     #[inline]
-    pub(crate) fn draw(&mut self, position: Vector2, rotation: Angle, instances: &mut Instances) {
-        let Some(texture_ref) = self.image.try_as_ref() else {
-            return;
-        };
-
-        instances.push(self.matrix(position, rotation), texture_ref);
+    pub(crate) fn draw(&self, position: Vector2, rotation: Angle, instances: &mut Instances) {
+        instances.push(
+            self.matrix(position, rotation),
+            self.sub_rectangle,
+            self.image.atlas_id,
+        );
     }
 
     /// Draw the sprites if the texture is already uploaded.
     #[inline]
     pub(crate) fn draw_multiple(
-        &mut self,
+        &self,
         base_translation: Vector2,
         base_rotation: Angle,
         translations: impl Iterator<Item = Vector2>,
         instances: &mut Instances,
     ) {
-        let Some(texture_ref) = self.image.try_as_ref() else {
-            return;
-        };
-
         // Calculate the base transformation
         let transform = self.matrix(base_translation, base_rotation);
 
@@ -76,7 +87,7 @@ impl Sprite {
             let mut transform = transform;
             transform.translation += *translation.as_raw();
 
-            (transform, texture_ref)
+            (transform, self.sub_rectangle, self.image.atlas_id)
         }));
     }
 
@@ -122,22 +133,37 @@ impl Sprite {
     }
 }
 
-impl Compound for Sprite {
-    fn load(cache: AnyCache, id: &SharedString) -> Result<Self, BoxedError> {
+impl Loadable for Sprite {
+    fn load_if_exists(id: &Id, asset_source: &AssetSource) -> Option<Self>
+    where
+        Self: Sized,
+    {
         // Load the image
-        let image = cache.load_owned::<Image>(id)?;
+        let image = Image::load(id, asset_source);
+        let size = Size2::new(image.size.width as f32, image.size.height as f32);
+
+        // Draw the full sprite
+        let sub_rectangle = Rect::new(
+            Point2::ZERO,
+            Size2::new(image.size.width as i16, image.size.height as i16),
+        );
 
         // Load the metadata
-        let metadata = match cache.load::<SpriteMetadata>(id) {
-            Ok(metadata) => metadata.read().clone(),
-            Err(err) => {
-                log::warn!("Error loading sprite metadata, using default: {err}");
+        let metadata = match SpriteMetadata::load_if_exists(id, asset_source) {
+            Some(metadata) => metadata,
+            None => {
+                log::warn!("Sprite metadata for '{id}' not found, using default");
 
                 SpriteMetadata::default()
             }
         };
 
-        Ok(Self::from_image(image, metadata))
+        Some(Self {
+            image,
+            metadata,
+            sub_rectangle,
+            size,
+        })
     }
 }
 
@@ -198,8 +224,11 @@ pub(crate) struct SpriteMetadata {
     pub(crate) offset: SpriteOffset,
 }
 
-impl Asset for SpriteMetadata {
-    const EXTENSION: &'static str = "toml";
-
-    type Loader = TomlLoader;
+impl Loadable for SpriteMetadata {
+    fn load_if_exists(id: &Id, asset_source: &AssetSource) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        asset_source.load_if_exists::<TomlLoader, _>(id)
+    }
 }

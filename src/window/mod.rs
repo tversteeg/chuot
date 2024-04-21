@@ -26,7 +26,11 @@ use winit::{
     window::{Window, WindowBuilder},
 };
 
-use crate::{assets::AssetCacheSource, graphics::state::MainRenderState, Context, GameConfig};
+use crate::{
+    assets::{embedded::EmbeddedAssets, AssetSource},
+    graphics::state::MainRenderState,
+    Context, GameConfig,
+};
 
 /// How fast old FPS values decay in the smoothed average.
 const FPS_SMOOTHED_AVERAGE_ALPHA: f32 = 0.8;
@@ -57,7 +61,7 @@ pub(crate) fn window<G, U, R>(
     window_config: GameConfig,
     update: U,
     render: R,
-    assets: AssetCacheSource,
+    assets: EmbeddedAssets,
 ) -> Result<()>
 where
     G: 'static,
@@ -129,7 +133,7 @@ async fn winit_start<G, U, R>(
     mut update: U,
     mut render: R,
     game_config: GameConfig,
-    assets: AssetCacheSource,
+    assets: EmbeddedAssets,
 ) -> Result<()>
 where
     G: 'static,
@@ -145,8 +149,13 @@ where
         game_config.buffer_size.height * game_config.scaling,
     ));
 
+    // Get the static atlas texture mapping and sizes
+    // Needed to be called here because the render state will consume the atlas
+    let static_texture_id_to_atlas_id = assets.atlas.texture_id_to_atlas_id_map();
+    let static_texture_id_to_size = assets.atlas.texture_id_to_size_map();
+
     // Create a surface on the window and setup the render state to it
-    let mut render_state = MainRenderState::new(&game_config, window.clone())
+    let mut render_state = MainRenderState::new(&game_config, assets.atlas, window.clone())
         .await
         .wrap_err("Error setting up the rendering pipeline")?;
 
@@ -156,7 +165,16 @@ where
         .wrap_err("Error setting up audio manager")?;
 
     // Setup the context passed to the tick function implemented by the user
-    let mut ctx = Context::new(&game_config, window.clone(), audio_manager, assets);
+    let mut ctx = Context::new(
+        &game_config,
+        window.clone(),
+        audio_manager,
+        AssetSource::new(
+            assets.assets,
+            static_texture_id_to_atlas_id,
+            static_texture_id_to_size,
+        ),
+    );
 
     // Setup the in-game profiler
     #[cfg(feature = "in-game-profiler")]

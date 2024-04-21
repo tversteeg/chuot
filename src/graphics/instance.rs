@@ -2,9 +2,9 @@
 
 use bytemuck::{Pod, Zeroable};
 use glam::Affine2;
-use glamour::{Matrix2, Vector2};
+use glamour::{Matrix2, Rect, Vector2};
 
-use super::texture::TextureRef;
+use super::atlas::AtlasRef;
 
 /// WGPU attributes.
 const ATTRIBUTES: &[wgpu::VertexAttribute] = &[
@@ -20,14 +20,19 @@ const ATTRIBUTES: &[wgpu::VertexAttribute] = &[
         shader_location: 3,
     },
     wgpu::VertexAttribute {
-        format: wgpu::VertexFormat::Float32x2,
+        format: wgpu::VertexFormat::Sint16x2,
         offset: std::mem::offset_of!(Instance, translation) as u64,
         shader_location: 4,
     },
     wgpu::VertexAttribute {
+        format: wgpu::VertexFormat::Sint16x4,
+        offset: std::mem::offset_of!(Instance, sub_rectangle) as u64,
+        shader_location: 5,
+    },
+    wgpu::VertexAttribute {
         format: wgpu::VertexFormat::Uint32,
         offset: std::mem::offset_of!(Instance, texture_ref) as u64,
-        shader_location: 5,
+        shader_location: 6,
     },
 ];
 
@@ -38,19 +43,27 @@ struct Instance {
     /// Rotation and skewing.
     matrix: Matrix2<f32>,
     /// Translation.
-    translation: Vector2,
+    translation: Vector2<i16>,
+    /// Rectangle within the texture to render.
+    sub_rectangle: Rect<i16>,
     /// Texture to render.
-    texture_ref: u32,
-    /// Alignment padding.
-    _padding: u32,
+    texture_ref: u16,
+    /// Empty padding.
+    _padding: u16,
 }
 
-impl From<(Affine2, TextureRef)> for Instance {
-    fn from((transformation, texture_ref): (Affine2, TextureRef)) -> Self {
+impl From<(Affine2, Rect<i16>, AtlasRef)> for Instance {
+    fn from((transformation, sub_rectangle, texture_ref): (Affine2, Rect<i16>, AtlasRef)) -> Self {
+        let translation = Vector2::new(
+            transformation.translation.x.round() as i16,
+            transformation.translation.y.round() as i16,
+        );
+
         Self {
+            translation,
+            sub_rectangle,
             matrix: transformation.matrix2.into(),
-            translation: transformation.translation.into(),
-            texture_ref: texture_ref as u32,
+            texture_ref,
             ..Default::default()
         }
     }
@@ -65,12 +78,18 @@ pub(crate) struct Instances(Vec<Instance>);
 
 impl Instances {
     /// Push an instance to draw this frame.
-    pub(crate) fn push(&mut self, transformation: Affine2, texture_ref: TextureRef) {
-        self.0.push((transformation, texture_ref).into());
+    pub(crate) fn push(
+        &mut self,
+        transformation: Affine2,
+        sub_rectangle: Rect<i16>,
+        atlas_ref: AtlasRef,
+    ) {
+        self.0
+            .push((transformation, sub_rectangle, atlas_ref).into());
     }
 
     /// Push an iterator of instances to draw this frame.
-    pub(crate) fn extend(&mut self, items: impl Iterator<Item = (Affine2, TextureRef)>) {
+    pub(crate) fn extend(&mut self, items: impl Iterator<Item = (Affine2, Rect<i16>, AtlasRef)>) {
         self.0.extend(items.map(Into::<Instance>::into));
     }
 

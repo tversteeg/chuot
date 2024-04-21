@@ -1,12 +1,5 @@
 //! Asset source for loading assets.
 
-#[cfg(any(
-    target_arch = "wasm32",
-    not(feature = "hot-reloading-assets"),
-    not(doctest)
-))]
-mod embedded;
-
 use litrs::Literal;
 use proc_macro::TokenStream;
 use std::path::{Path, PathBuf};
@@ -52,7 +45,7 @@ impl Input {
         not(doctest)
     ))]
     pub fn expand_dir(&self) -> TokenStream {
-        embedded::expand_dir(&self.0)
+        crate::embedded::asset_source::parse_dir(&self.0)
     }
 
     /// Create the Rust code to load from the directory.
