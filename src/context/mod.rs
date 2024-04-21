@@ -454,10 +454,6 @@ pub(crate) struct ContextInner {
     pub(crate) input: WinitInputHelper,
     /// Instances of all sprites drawn this tick, also includes sprites from the fonts.
     pub(crate) instances: Instances,
-    /// All sprite textures to render.
-    pub(crate) sprites: HashMap<SmolStr, Sprite>,
-    /// All font textures to render.
-    pub(crate) fonts: HashMap<SmolStr, Font>,
     /// Portions of textures that need to be re-written.
     pub(crate) texture_update_queue: Vec<(SmolStr, Rect, Vec<u32>)>,
     /// Time in seconds between every update tick.
@@ -488,8 +484,6 @@ impl ContextInner {
         let mouse = None;
         let input = WinitInputHelper::default();
         let instances = Instances::default();
-        let sprites = HashMap::new();
-        let fonts = HashMap::new();
         let texture_update_queue = Vec::new();
         let delta_time = config.update_delta_time;
         let size = config.buffer_size;
@@ -502,8 +496,6 @@ impl ContextInner {
             mouse,
             input,
             instances,
-            sprites,
-            fonts,
             texture_update_queue,
             delta_time,
             frames_per_second,
@@ -513,48 +505,5 @@ impl ContextInner {
             audio_manager,
             assets,
         }
-    }
-
-    /*
-    /// Get all sprites that need to be reuploaded to the GPU.
-    pub(crate) fn sprites_needing_reupload_iter(&self) -> impl Iterator<Item = (&Sprite, Sprite)> {
-        // Get all reloaded sprites
-        self.sprites.iter().filter_map(|(id, sprite)| {
-            // Check if the sprite has been reuploaded this frame
-            if self
-                .assets
-                .sprite(id)
-                .is_some_and(|handle| handle.reloaded_global())
-            {
-                log::debug!("Reuploading hot-reloaded sprite {id}");
-
-                let new_sprite = self
-                    .assets
-                    .sprite(id)
-                    .expect("Reuploading sprite that does not exist");
-
-                Some((sprite, new_sprite))
-            } else {
-                None
-            }
-        })
-    }
-    */
-
-    /// Take all updates to textures that need to be done.
-    pub(crate) fn take_texture_updates(
-        &mut self,
-    ) -> impl Iterator<Item = (&'_ Sprite, Rect, Vec<u32>)> + '_ {
-        self.texture_update_queue
-            .drain(..)
-            .map(|(path, rect, pixels)| {
-                (
-                    self.sprites
-                        .get(path.as_str())
-                        .expect("Sprite update did't yield proper sprite path in 'sprites'"),
-                    rect,
-                    pixels,
-                )
-            })
     }
 }

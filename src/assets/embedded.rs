@@ -9,7 +9,7 @@ use png::Decoder;
 
 use crate::{
     assets::Id,
-    graphics::{atlas::StaticAtlas, gpu::Gpu},
+    graphics::{atlas::Atlas, gpu::Gpu},
 };
 
 /// Compile time assets that haven't been parsed yet.
@@ -65,7 +65,7 @@ pub struct EmbeddedRawStaticAtlas {
 
 impl EmbeddedRawStaticAtlas {
     /// Parse into a static sprite atlas.
-    pub(crate) fn parse_and_upload(self, gpu: &Gpu) -> StaticAtlas {
+    pub(crate) fn parse_and_upload(self, gpu: &Gpu) -> Atlas {
         // First decode the PNG bytes
 
         // Create a consuming cursor from the bytes
@@ -93,7 +93,7 @@ impl EmbeddedRawStaticAtlas {
         let size = Size2::new(4096, 4096);
 
         // Create the atlas
-        let atlas = StaticAtlas::new(size, self.texture_rects.to_vec(), gpu);
+        let atlas = Atlas::new(size, self.texture_rects.to_vec(), gpu);
 
         // Upload all sections
         for mapping in self.texture_mappings {
@@ -107,7 +107,7 @@ impl EmbeddedRawStaticAtlas {
             let diced_texture_pixels = diced_texture.pixels().collect::<Vec<_>>();
 
             // Push the slice
-            atlas.update(
+            atlas.update_pixels_raw_offset(
                 Rect::new(
                     Point2::new(mapping.texture.x as u32, mapping.texture.y as u32),
                     Size2::new(mapping.size.width as u32, mapping.size.height as u32),

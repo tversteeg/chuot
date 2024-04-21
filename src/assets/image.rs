@@ -4,20 +4,17 @@
 
 use glamour::Size2;
 
-use crate::graphics::texture::{Texture, TextureRef};
+use crate::graphics::atlas::AtlasRef;
 
-use super::{
-    loader::png::{PngLoader, PngReader},
-    AssetSource, Id, Loadable,
-};
+use super::{AssetSource, Id, Loadable};
 
 /// Core of a sprite loaded from disk.
 pub(crate) struct Image {
     /// Image atlas ID.
-    pub(crate) atlas_id: u16,
+    pub(crate) atlas_id: AtlasRef,
 
     /// Size of the image in pixels.
-    size: Size2<u32>,
+    pub(crate) size: Size2<u32>,
 }
 
 /*
@@ -67,12 +64,6 @@ impl Image {
     }
 }
 */
-
-impl Texture for Image {
-    fn size(&self) -> Size2<u32> {
-        self.size
-    }
-}
 
 impl Loadable for Image {
     fn load_if_exists(id: &Id, assets: &AssetSource) -> Option<Self>

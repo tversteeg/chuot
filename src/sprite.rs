@@ -11,7 +11,7 @@ use serde_untagged::UntaggedEnumVisitor;
 
 use crate::{
     assets::{image::Image, loader::toml::TomlLoader, AssetSource, Id, Loadable},
-    graphics::{data::TexturedVertex, instance::Instances, texture::Texture},
+    graphics::{data::TexturedVertex, instance::Instances},
 };
 
 /// Sprite that can be drawn on the  canvas.
@@ -101,7 +101,7 @@ impl Loadable for Sprite {
     {
         // Load the image
         let image = Image::load(id, asset_source);
-        let size = Size2::new(image.size().width as f32, image.size().height as f32);
+        let size = Size2::new(image.size.width as f32, image.size.height as f32);
 
         // Load the metadata
         let metadata = match SpriteMetadata::load_if_exists(id, asset_source) {

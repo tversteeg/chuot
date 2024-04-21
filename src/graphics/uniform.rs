@@ -160,6 +160,14 @@ impl<T: NoUninit> UniformArrayState<T> {
         this
     }
 
+    /// Get the value for a rectangle.
+    #[inline]
+    pub(crate) fn get(&mut self, index: usize) -> &T {
+        self.local_buffer
+            .get(index)
+            .expect("Index not found in uniform buffer")
+    }
+
     /// Push a value to the array of the uniform.
     ///
     /// # Returns

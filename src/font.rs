@@ -6,7 +6,7 @@ use serde::Deserialize;
 use crate::{
     assets::{loader::toml::TomlLoader, AssetSource, Id, Loadable},
     graphics::instance::Instances,
-    sprite::{Sprite, SpriteMetadata},
+    sprite::Sprite,
 };
 
 /// A font is just a collection of sprites.
@@ -123,17 +123,20 @@ pub(crate) struct FontMetadata {
 
 impl FontMetadata {
     /// Default for the `first_char` field.
+    #[inline]
     fn default_first_char() -> char {
         '!'
     }
 
     /// Default for the `last_char` field.
+    #[inline]
     fn default_last_char() -> char {
         '~'
     }
 }
 
 impl Loadable for FontMetadata {
+    #[inline]
     fn load_if_exists(id: &Id, asset_source: &AssetSource) -> Option<Self>
     where
         Self: Sized,

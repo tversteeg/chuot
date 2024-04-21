@@ -1,21 +1,16 @@
 //! Main rendering state.
 
 use glamour::{Contains, Rect, Size2, Vector2};
-use miette::{Result, WrapErr};
+use miette::Result;
 use winit::window::Window;
 
 use crate::{
-    assets::embedded::EmbeddedRawStaticAtlas, graphics::Texture, window::InGameProfiler, Context,
-    GameConfig,
+    assets::embedded::EmbeddedRawStaticAtlas, window::InGameProfiler, Context, GameConfig,
 };
 
 use super::{
-    atlas::{Atlas, StaticAtlas},
-    component::SpriteRenderState,
-    data::ScreenInfo,
-    gpu::Gpu,
-    post_processing::PostProcessingState,
-    uniform::UniformState,
+    atlas::Atlas, component::SpriteRenderState, data::ScreenInfo, gpu::Gpu,
+    post_processing::PostProcessingState, uniform::UniformState,
 };
 
 /// Texture format we prefer to use for everything.
@@ -34,8 +29,6 @@ pub(crate) struct MainRenderState<'window> {
     sprite_render_state: SpriteRenderState,
     /// Texture atlas.
     atlas: Atlas,
-    /// Static texture atlas.
-    static_atlas: StaticAtlas,
     /// Size of the final buffer to draw.
     ///
     /// Will be scaled with integer scaling and letterboxing to fit the screen.
@@ -80,11 +73,8 @@ impl<'window> MainRenderState<'window> {
             include_str!("./shaders/downscale.wgsl"),
         );
 
-        // Create a new texture atlas
-        let atlas = Atlas::new(&gpu.device);
-
-        // Create the static atlas
-        let static_atlas = embedded_atlas.parse_and_upload(&gpu);
+        // Create the texture atlas
+        let atlas = embedded_atlas.parse_and_upload(&gpu);
 
         // Create a custom pipeline for each component
         let sprite_render_state = SpriteRenderState::new(
@@ -113,7 +103,6 @@ impl<'window> MainRenderState<'window> {
             background_color,
             viewport_color,
             atlas,
-            static_atlas,
         })
     }
 
@@ -128,9 +117,6 @@ impl<'window> MainRenderState<'window> {
         // Profile the allocations
         #[cfg(feature = "in-game-profiler")]
         let profile_region = InGameProfiler::start_profile_heap();
-
-        // Upload the pending textures
-        self.upload_textures(ctx);
 
         #[cfg(feature = "in-game-profiler")]
         in_game_profiler.finish_profile_heap("Texture upload", profile_region);
@@ -165,7 +151,7 @@ impl<'window> MainRenderState<'window> {
                 &mut frame,
                 target_texture_view,
                 &self.screen_info.bind_group,
-                &self.static_atlas,
+                &self.atlas,
                 self.background_color,
             );
         });
@@ -302,47 +288,5 @@ impl<'window> MainRenderState<'window> {
             self.letterbox.width() > 0.0 && self.letterbox.height() > 0.0,
             "Error with invalid letterbox size dimensions"
         );
-    }
-
-    /// Upload all pending textures.
-    fn upload_textures(&mut self, ctx: &mut Context) {
-        ctx.write(|ctx| {
-            profiling::scope!("Upload pending textures");
-
-            // Upload the un-uploaded sprites
-            // TODO
-            /*
-            ctx.unuploaded_sprites_iter().for_each(|(id, sprite)| {
-                sprite.image.upload(&mut self.atlas, &self.gpu.queue);
-            });
-            */
-
-            // TODO
-            /*
-            // Re-upload updated sprites
-            ctx.sprites_needing_reupload_iter()
-                .for_each(|(old_sprite, new_sprite)| {
-                    old_sprite.image.update_pixels(
-                        Rect::from_size(new_sprite.size()),
-                        &new_sprite.image.into_rgba_image(),
-                        &mut self.atlas,
-                        &self.gpu.queue,
-                    );
-                });
-                */
-
-            profiling::scope!("Apply texture updates");
-
-            // Apply texture updates
-            // TODO
-            /*
-            ctx.take_texture_updates()
-                .for_each(|(sprite, sub_rect, pixels)| {
-                    sprite
-                        .image
-                        .update_pixels(sub_rect, &pixels, &mut self.atlas, &self.gpu.queue);
-                });
-                */
-        });
     }
 }

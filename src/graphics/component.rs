@@ -6,12 +6,7 @@ use wgpu::util::{BufferInitDescriptor, DeviceExt};
 
 use crate::{config::RotationAlgorithm, graphics::state::PREFERRED_TEXTURE_FORMAT, sprite::Sprite};
 
-use super::{
-    atlas::{Atlas, StaticAtlas},
-    data::TexturedVertex,
-    gpu::Frame,
-    instance::Instances,
-};
+use super::{atlas::Atlas, data::TexturedVertex, gpu::Frame, instance::Instances};
 
 /// Simple render state holding buffers and instances required for rendering somethging.
 pub(crate) struct SpriteRenderState {
@@ -143,7 +138,7 @@ impl SpriteRenderState {
         frame: &mut Frame,
         view: Option<&wgpu::TextureView>,
         screen_size_bind_group: &wgpu::BindGroup,
-        texture_atlas: &StaticAtlas,
+        texture_atlas: &Atlas,
         background_color: wgpu::Color,
     ) {
         if instances.is_empty() {

@@ -2,19 +2,21 @@
 
 use std::borrow::Cow;
 
-use glamour::{Rect, Size2};
-use packr2::{PackerConfig, SkylinePacker};
+use glamour::{Rect, Size2, Vector2};
+use packr2::{Packer, PackerConfig, Rectf, SkylinePacker};
 
 use super::{gpu::Gpu, state::PREFERRED_TEXTURE_FORMAT, uniform::UniformArrayState};
 
 /// Virtual packed texture size in pixels for both width and height.
 const ATLAS_TEXTURE_SIZE: u32 = 4096;
 
+/// Index into the atlas rectangles.
+pub(crate) type AtlasRef = u16;
+
 /// A static packed atlas at compile time by the proc macro.
 ///
 /// Will be unpacked and uploaded to the GPU once at the beginning of the game.
-#[doc(hidden)]
-pub struct StaticAtlas {
+pub struct Atlas {
     /// GPU reference.
     pub(crate) texture: wgpu::Texture,
     /// GPU bind group.
@@ -23,9 +25,11 @@ pub struct StaticAtlas {
     pub(crate) bind_group_layout: wgpu::BindGroupLayout,
     /// GPU uniform buffer holding all atlassed texture rectangles.
     pub(crate) rects: UniformArrayState<Rect<f32>>,
+    /// Packer algorithm used.
+    packer: SkylinePacker,
 }
 
-impl StaticAtlas {
+impl Atlas {
     /// Create and upload the atlas to the GPU.
     pub(crate) fn new(
         Size2 { width, height }: Size2<u32>,
@@ -108,169 +112,34 @@ impl StaticAtlas {
         // Create and upload the uniforms
         let rects = UniformArrayState::from_static_vec(texture_rects, &gpu.device, &gpu.queue);
 
-        Self {
-            texture,
-            bind_group,
-            bind_group_layout,
-            rects,
-        }
-    }
-
-    /// Update a region of pixels of the texture in the atlas.
-    pub(crate) fn update(&self, target_region: Rect<u32>, pixels: &[u32], queue: &wgpu::Queue) {
-        // Write the new texture section to the GPU
-        queue.write_texture(
-            // Where to copy the pixel data
-            wgpu::ImageCopyTexture {
-                texture: &self.texture,
-                mip_level: 0,
-                origin: wgpu::Origin3d {
-                    x: target_region.origin.x,
-                    y: target_region.origin.y,
-                    z: 0,
-                },
-                aspect: wgpu::TextureAspect::All,
-            },
-            // Actual pixel data
-            bytemuck::cast_slice(pixels),
-            // Layout of the texture
-            wgpu::ImageDataLayout {
-                offset: 0,
-                bytes_per_row: Some(4 * target_region.width()),
-                rows_per_image: Some(target_region.height()),
-            },
-            // Texture size
-            wgpu::Extent3d {
-                width: target_region.width(),
-                height: target_region.height(),
-                depth_or_array_layers: 1,
-            },
-        );
-    }
-}
-
-/// A single packed atlas.
-///
-/// When the atlas is full another texture layer should be added.
-pub(crate) struct Atlas {
-    /// GPU reference.
-    pub(crate) texture: wgpu::Texture,
-    /// GPU bind group.
-    pub(crate) bind_group: wgpu::BindGroup,
-    /// GPU bind group layout.
-    pub(crate) bind_group_layout: wgpu::BindGroupLayout,
-    /// GPU uniform buffer holding all atlassed texture rectangles.
-    pub(crate) rects: UniformArrayState<Rect<f32>>,
-    /// Packer algorithm used.
-    packer: SkylinePacker,
-}
-
-impl Atlas {
-    /// Create and upload the empty atlas to the GPU.
-    pub(super) fn new(device: &wgpu::Device) -> Self {
-        // Setup the texture packer state
+        // Setup a new atlas packer
         let packer = SkylinePacker::new(PackerConfig {
             max_width: ATLAS_TEXTURE_SIZE,
             max_height: ATLAS_TEXTURE_SIZE,
             allow_flipping: false,
         });
 
-        // Create the texture on the GPU
-        let texture = device.create_texture(&wgpu::TextureDescriptor {
-            label: Some(&Cow::Borrowed("Texture Atlas")),
-            size: wgpu::Extent3d {
-                width: ATLAS_TEXTURE_SIZE,
-                height: ATLAS_TEXTURE_SIZE,
-                // TODO: support multiple layers
-                depth_or_array_layers: 1,
-            },
-            mip_level_count: 1,
-            sample_count: 1,
-            // Texture is 2D
-            dimension: wgpu::TextureDimension::D2,
-            // Use sRGB format
-            format: PREFERRED_TEXTURE_FORMAT,
-            // We want to use this texture in shaders and we want to copy data to it
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-            // We only need a single format
-            view_formats: &[PREFERRED_TEXTURE_FORMAT],
-        });
-
-        let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-
-        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            label: Some("Texture Atlas Sampler"),
-            address_mode_u: wgpu::AddressMode::ClampToEdge,
-            address_mode_v: wgpu::AddressMode::ClampToEdge,
-            address_mode_w: wgpu::AddressMode::ClampToEdge,
-            mag_filter: wgpu::FilterMode::Nearest,
-            min_filter: wgpu::FilterMode::Nearest,
-            mipmap_filter: wgpu::FilterMode::Nearest,
-            ..Default::default()
-        });
-
-        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("Texture Atlas Bind Group Layout"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        multisampled: false,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                    count: None,
-                },
-            ],
-        });
-
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("Texture Atlas Bind Group"),
-            layout: &bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&texture_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&sampler),
-                },
-            ],
-        });
-
-        // Create the buffer for the sizes
-        let rects = UniformArrayState::new(device, 1024);
-
         Self {
-            packer,
             texture,
-            rects,
             bind_group,
             bind_group_layout,
+            rects,
+            packer,
         }
     }
 
-    // TODO
-    /*
     /// Add a texture to the atlas.
     ///
     /// # Returns
     ///
     /// - An unique identification number for the texture to be passed along with the vertices.
-    pub(crate) fn add<T>(&mut self, texture: T, queue: &wgpu::Queue) -> TextureRef
-    where
-        T: Texture,
-    {
+    pub(crate) fn add_texture(
+        &mut self,
+        size: Size2<u32>,
+        pixels: &[u32],
+        queue: &wgpu::Queue,
+    ) -> AtlasRef {
         // Pack the rectangle
-        let size = texture.size();
         let Rectf { x, y, w, h, .. } = self
             .packer
             .insert(size.width, size.height)
@@ -291,7 +160,7 @@ impl Atlas {
                 aspect: wgpu::TextureAspect::All,
             },
             // Actual pixel data
-            bytemuck::cast_slice(&texture.into_rgba_image()),
+            bytemuck::cast_slice(pixels),
             // Layout of the texture
             wgpu::ImageDataLayout {
                 offset: 0,
@@ -315,12 +184,34 @@ impl Atlas {
             queue,
         );
 
-        uniform_index as TextureRef
+        uniform_index as AtlasRef
     }
-    */
+
+    /// Add a sub-region of an existing texture.
+    ///
+    /// # Returns
+    ///
+    /// - An unique identification number for sub-region of the texture.
+    pub(crate) fn add_sub_region(
+        &mut self,
+        base_texture: AtlasRef,
+        rect: Rect,
+        queue: &wgpu::Queue,
+    ) -> AtlasRef {
+        // Get the original rect
+        let ref_rect = self.rects.get(base_texture as usize);
+
+        // Offset the rectangle
+        let atlas_rect = rect.translate(ref_rect.origin.to_vector());
+
+        // Push the new dimensions to the uniform buffer, returning the reference to it
+        let uniform_index = self.rects.push(&atlas_rect, queue);
+
+        uniform_index as AtlasRef
+    }
 
     /// Update a region of pixels of the texture in the atlas.
-    pub(crate) fn update(
+    pub(crate) fn update_pixels(
         &self,
         texture_ref: u16,
         sub_rectangle: Rect,
@@ -359,6 +250,43 @@ impl Atlas {
             wgpu::Extent3d {
                 width: size.width as u32,
                 height: size.height as u32,
+                depth_or_array_layers: 1,
+            },
+        );
+    }
+
+    /// Update a region of pixels of the texture in the atlas.
+    pub(crate) fn update_pixels_raw_offset(
+        &self,
+        target_region: Rect<u32>,
+        pixels: &[u32],
+        queue: &wgpu::Queue,
+    ) {
+        // Write the new texture section to the GPU
+        queue.write_texture(
+            // Where to copy the pixel data
+            wgpu::ImageCopyTexture {
+                texture: &self.texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d {
+                    x: target_region.origin.x,
+                    y: target_region.origin.y,
+                    z: 0,
+                },
+                aspect: wgpu::TextureAspect::All,
+            },
+            // Actual pixel data
+            bytemuck::cast_slice(pixels),
+            // Layout of the texture
+            wgpu::ImageDataLayout {
+                offset: 0,
+                bytes_per_row: Some(4 * target_region.width()),
+                rows_per_image: Some(target_region.height()),
+            },
+            // Texture size
+            wgpu::Extent3d {
+                width: target_region.width(),
+                height: target_region.height(),
                 depth_or_array_layers: 1,
             },
         );
