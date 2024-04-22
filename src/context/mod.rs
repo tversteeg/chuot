@@ -14,7 +14,7 @@ use winit::{event::MouseButton, keyboard::KeyCode, window::Window};
 use winit_input_helper::WinitInputHelper;
 
 use crate::{
-    assets::{AssetSource, AssetsManager},
+    assets::{AssetSource, AssetsManager, Loadable},
     graphics::instance::Instances,
     GameConfig,
 };
@@ -376,9 +376,26 @@ impl Context {
     }
 }
 
-/*
 /// Generic asset loading.
 impl Context {
+    /// Load a read-only reference to a custom defined asset.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Asset path of the custom asset, see [`Self`] for more information about asset loading and storing.
+    ///
+    /// # Panics
+    ///
+    /// - When asset with path does not exist.
+    /// - When asset could not be loaded due to an invalid format.
+    #[inline]
+    pub fn asset<T>(&self, path: impl AsRef<str>) -> Rc<T>
+    where
+        T: Loadable,
+    {
+        self.write(|ctx| ctx.assets.custom(path.as_ref()))
+    }
+
     /// Load a clone of a custom defined asset.
     ///
     /// # Arguments
@@ -392,12 +409,11 @@ impl Context {
     #[inline]
     pub fn asset_owned<T>(&self, path: impl AsRef<str>) -> T
     where
-        T: Compound,
+        T: Loadable + Clone,
     {
-        self.read(|ctx| ctx.asset_owned(path.as_ref()))
+        self.write(|ctx| ctx.assets.custom_owned(path.as_ref()))
     }
 }
-*/
 
 /// Internally used methods.
 impl Context {
