@@ -5,7 +5,7 @@
 //! - Pixel-perfect pixel art rendering with built-in rotsprite rotation shader.
 //! - Window creation with independent update and render game loop.
 //! - Hot-reloadable assets, seeing your assets update live in the game when you save them is a great boost in productivity for quickly iterating on ideas.
-//! - Single-binary, all assets should be embedded in the binary when deploying.
+//! - Single-binary, all non-texture assets should be embedded directly, and textures should be diced into a single atlas map embedded in the binary when deploying.
 //! - Simple bitmap font drawing.
 //! - Dialogue scripting system.
 //! - OGG audio playback.

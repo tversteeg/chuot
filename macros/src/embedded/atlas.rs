@@ -1,7 +1,8 @@
 //! Create a single big texture atlas from all image files in the assets folder.
 
-use std::{fs::File, path::PathBuf, str::FromStr};
+use std::{fs::File, path::PathBuf, str::FromStr, time::Duration};
 
+use oxipng::Options;
 use packr2::{PackerConfig, RectInput, Size, SplitPacker};
 use png::{BitDepth, ColorType, Decoder, Encoder, Transformations};
 use proc_macro2::TokenStream;
@@ -19,7 +20,7 @@ pub fn parse_textures(textures: &[(String, PathBuf)]) -> TokenStream {
         .enumerate()
         .map(|(index, (_id, path))| {
             // Read the PNG
-            let mut decoder = Decoder::new(File::open(path).expect("Could not open texture"));
+            let mut decoder = Decoder::new(File::open(path).expect("Error opening texture"));
 
             // Discard text chunks
             decoder.set_ignore_text_chunk(true);
@@ -31,12 +32,29 @@ pub fn parse_textures(textures: &[(String, PathBuf)]) -> TokenStream {
                 Transformations::normalize_to_color8() | Transformations::ALPHA,
             );
 
-            let mut reader = decoder.read_info().expect("Could not read PNG info");
+            let mut reader = decoder.read_info().expect("Error reading PNG info");
 
             // Ensure we can use the PNG colors
             let (color_type, bits) = reader.output_color_type();
             if color_type != ColorType::Rgba || bits != BitDepth::Eight {
-                panic!("PNG is not 8 bit RGB with an alpha channel");
+                panic!(
+                    "Error reading PNG: image is not 8 bit RGBA but {} bit {}: {}",
+                    match bits {
+                        BitDepth::One => 1,
+                        BitDepth::Two => 2,
+                        BitDepth::Four => 4,
+                        BitDepth::Eight => 8,
+                        BitDepth::Sixteen => 16,
+                    },
+                    match color_type {
+                        ColorType::Grayscale => "grayscale",
+                        ColorType::Rgb => "RGB",
+                        ColorType::Indexed => "indexed",
+                        ColorType::GrayscaleAlpha => "grayscale+alpha",
+                        ColorType::Rgba => "RGBA",
+                    },
+                    path.display(),
+                );
             }
 
             // Resize the texture buffer so it fits the output
@@ -82,7 +100,7 @@ pub fn parse_textures(textures: &[(String, PathBuf)]) -> TokenStream {
     // Dice the textures
     let prefs = Prefs {
         // Smallest block size, smaller sizes result in smaller resulting images but with more fragments and longer compile time
-        unit_size: 8,
+        unit_size: 16,
         // Tightly pack the image
         padding: 0,
         // Keep all units in pixels, required for us to properly parse vertex positions
@@ -190,6 +208,8 @@ pub fn parse_textures(textures: &[(String, PathBuf)]) -> TokenStream {
         })
         .collect::<Vec<_>>();
 
+    std::fs::write("/tmp/image.png", png_bytes.clone()).unwrap();
+
     // Create the object from the tightly packed arrays
     quote! {
         pixel_game_lib::assets::embedded::EmbeddedRawStaticAtlas {
@@ -245,7 +265,24 @@ fn encode_png(texture: &Texture) -> Vec<u8> {
             .expect("Error writing PNG file to disk");
     }
 
-    bytes
+    // Optimize the PNG
+    oxipng::optimize_from_memory(
+        &bytes,
+        &Options {
+            // Always write to output
+            force: true,
+            // Also simplify the alpha channel, removes color info for transparent pixels
+            optimize_alpha: true,
+            // Never make it grayscale
+            grayscale_reduction: false,
+            // Reducing the color type makes the PNG loader not work for some reason
+            color_type_reduction: false,
+            // Don't optimize for more than a minute
+            timeout: Some(Duration::from_secs(60)),
+            ..Default::default()
+        },
+    )
+    .expect("Error optimizing PNG")
 }
 
 /// Pack all rectangles into a single atlas.
