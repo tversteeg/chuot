@@ -48,7 +48,6 @@ miette = "7.2.0"
 serde = { version = "1.0.197", features = ["derive"] }
 serde-untagged = "0.1.5"
 bytemuck = { version = "1.15.0", features = ["derive"] }
-bitvec = "1.0.1"
 log = "0.4.21"
 hashbrown = "0.14.3"
 png = "0.17.13"
@@ -58,13 +57,12 @@ winit_input_helper = "0.16.0"
 glam = { version = "0.27", features = ["bytemuck", "fast-math"] }
 glamour = { version = "0.11.1", features = ["serde"] }
 packr2 = "0.3.3"
-parking_lot = "0.12.1"
 smol_str = "0.2.1"
 fastrand = "2.0.2"
 web-time = "1.1.0"
 kira = { version = "0.8.7", default-features = false, features = ["cpal", "ogg", "serde"] }
-nanoserde = "0.1.37"
 imgref = "1.10.1"
+toml = "0.8.12"
 
 # `dialogue` feature
 
@@ -77,7 +75,6 @@ egui-wgpu = { version = "0.27.2", optional = true }
 egui-winit = { version = "0.27.2", default-features = false, features = ["wayland"], optional = true }
 puffin_egui = { version = "0.27.0", optional = true }
 stats_alloc = { version = "0.1.10", optional = true }
-toml = "0.8.12"
 
 # Dependencies specifically for desktop
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
@@ -119,7 +116,7 @@ members = ["macros", "run-wasm"]
 
 # Ensure audio performance is not too poor when running in dev mode
 [profile.dev.package]
-png = { opt-level = 3 }
+png.opt-level = 3
 kira.opt-level = 3
 cpal.opt-level = 3
 symphonia.opt-level = 3

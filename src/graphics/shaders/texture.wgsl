@@ -38,14 +38,13 @@ struct VertexInput {
 struct InstanceInput {
     // Matrix type is not supported in vertex input, construct it from 3 vec3's
     // The last row of the matrix is always 0 0 1 so we can save some bytes by constructing that ourselves
-    @location(2) mat_0: vec2<f32>,
-    @location(3) mat_1: vec2<f32>,
+    @location(2) matrix: vec4<f32>,
     // X and Y position used in the transformation matrix
-    @location(4) translation: vec2<i32>,
+    @location(3) translation: vec2<f32>,
     // Sub rectangle of the texture to render, offset of the texture will be determined by the texture info uniform
-    @location(5) sub_rectangle: vec4<i32>,
+    @location(4) sub_rectangle: vec4<f32>,
     // Which texture to render, dimensions are stored in the uniform buffer
-    @location(6) tex_index: u32,
+    @location(5) tex_index: u32,
 }
 
 struct VertexOutput {
@@ -62,19 +61,16 @@ fn vs_main(
 ) -> VertexOutput {
     // Create the 2D affine transformation matrix for each instance
     let instance_matrix = mat3x3<f32>(
-        vec3<f32>(instance.mat_0, 0.0),
-        vec3<f32>(instance.mat_1, 0.0),
-        vec3<f32>(vec2<f32>(instance.translation), 1.0),
+        vec3<f32>(instance.matrix.xy, 0.0),
+        vec3<f32>(instance.matrix.zw, 0.0),
+        vec3<f32>(instance.translation, 1.0),
     );
-
-    // Convert the instance sub rectangle to floats
-    let sub_rectangle = vec4<f32>(instance.sub_rectangle);
 
     // Get the texture rectangle from the atlas
     let offset = tex_info[instance.tex_index].offset;
 
     // Resize the quad to the size of the texture
-    let model_position = model.position.xy * sub_rectangle.zw;
+    let model_position = model.position.xy * instance.sub_rectangle.zw;
 
     // Translate, rotate and skew with the instance matrix
     let projected_position = instance_matrix * vec3<f32>(model_position, 1.0);
@@ -84,18 +80,18 @@ fn vs_main(
     let screen_offset = 1.0 - projected_position.xy / screen_size_half;
     // Move the 0..1 texture coordinates to relative coordinates within the 4096x4096 atlas texture for the specified texture
     // Also apply the sub rectangle offset from the instance
-    let tex_coords = (offset + sub_rectangle.xy + sub_rectangle.zw * model.tex_coords) / ATLAS_TEXTURE_SIZE;
+    let tex_coords = (offset + instance.sub_rectangle.xy + instance.sub_rectangle.zw * model.tex_coords) / ATLAS_TEXTURE_SIZE;
 
     var out: VertexOutput;
     out.tex_coords = tex_coords;
-    out.clip_position = vec4<f32>(vec3<f32>(-screen_offset.x, screen_offset.y, model.position.z), 1.0);
+    out.clip_position = vec4<f32>(-screen_offset.x, screen_offset.y, model.position.z, 1.0);
 
     // Check if we have any skewing, scaling or rotation
     out.only_translated_or_reflected = f32( 
-        abs(instance.mat_0.x) == 1.0 &&
-        instance.mat_0.y == 0.0 &&
-        instance.mat_1.x == 0.0 &&
-        abs(instance.mat_1.y) == 1.0
+        abs(instance.matrix.x) == 1.0 &&
+        instance.matrix.y == 0.0 &&
+        instance.matrix.z == 0.0 &&
+        abs(instance.matrix.w) == 1.0
     );
 
     return out;

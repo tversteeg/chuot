@@ -162,24 +162,10 @@ impl AssetsManager {
     pub(crate) fn audio(&mut self, id: impl Into<Id>) -> Rc<Audio> {
         self.audio.get_or_insert(&id.into(), &self.source)
     }
-
-    /// Get the static atlas ID for a texture asset.
-    ///
-    /// # Panics
-    ///
-    /// - When texture asset does not exist.
-    #[inline]
-    pub(crate) fn static_atlas_id(&mut self, id: impl Into<Id>) -> u16 {
-        *self
-            .source
-            .static_texture_id_to_atlas_id
-            .get(&id.into())
-            .expect("Error loading static atlas ID: texture does not exist")
-    }
 }
 
 /// Asset source for all assets embedded in the binary.
-pub(crate) struct AssetSource {
+pub struct AssetSource {
     /// Static texture ID to atlas ID mapping.
     pub(crate) static_texture_id_to_atlas_id: HashMap<Id, u16>,
     /// Static texture ID to size.

@@ -19,7 +19,7 @@ pub(crate) struct Sprite {
     /// Reference of the texture to render.
     pub(crate) image: Image,
     /// Sub rectangle of the sprite to draw, can be used to split a sprite sheet.
-    sub_rectangle: Rect<i16>,
+    sub_rectangle: Rect,
     /// Sprite metadata.
     metadata: SpriteMetadata,
     /// Full original sprite size in pixels.
@@ -28,15 +28,15 @@ pub(crate) struct Sprite {
 
 impl Sprite {
     /// Split into equal horizontal parts.
-    pub(crate) fn horizontal_parts(&self, part_width: i16) -> Vec<Sprite> {
+    pub(crate) fn horizontal_parts(&self, part_width: f32) -> Vec<Sprite> {
         // Ensure that the image can be split into equal parts
         assert!(
-            self.sub_rectangle.width() % part_width == 0,
+            self.sub_rectangle.width() % part_width == 0.0,
             "Cannot split image into equal horizontal parts of {part_width} pixels"
         );
 
         // How many images we need to make
-        let sub_images = self.sub_rectangle.width() / part_width;
+        let sub_images = (self.sub_rectangle.width() / part_width) as usize;
 
         (0..sub_images)
             .map(|index| {
@@ -44,7 +44,7 @@ impl Sprite {
 
                 // Use the same sub rectangle only changing the position and size
                 let mut sub_rectangle = self.sub_rectangle;
-                sub_rectangle.origin.x += part_width * index;
+                sub_rectangle.origin.x += part_width * index as f32;
                 sub_rectangle.size.width = part_width;
 
                 let metadata = self.metadata.clone();
@@ -143,10 +143,7 @@ impl Loadable for Sprite {
         let size = Size2::new(image.size.width as f32, image.size.height as f32);
 
         // Draw the full sprite
-        let sub_rectangle = Rect::new(
-            Point2::ZERO,
-            Size2::new(image.size.width as i16, image.size.height as i16),
-        );
+        let sub_rectangle = Rect::new(Point2::ZERO, size);
 
         // Load the metadata
         let metadata = match SpriteMetadata::load_if_exists(id, asset_source) {
