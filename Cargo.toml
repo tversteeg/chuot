@@ -20,11 +20,16 @@ include = ["/src"]
 [features]
 default = ["hot-reloading-assets", "dialogue", "in-game-profiler"]
 
+# Embed all assets into the binary.
+#
+# If disabled loads all assets from disk.
+# Mutually exclusive from `hot-reloading-assets`.
+embedded-assets = ["pixel-game-lib-macros/embedded-assets"]
+
 # Enable assets and hot-reload assets from disk when they are saved.
 #
 # Has no effect when building for the web.
-#
-# If disabled all assets will be embedded in the binary.
+# Mutually exclusive from `embedded-assets`.
 hot-reloading-assets = ["pixel-game-lib-macros/hot-reloading-assets"]
 
 # Integrate [Yarn Spinner](https://www.yarnspinner.dev/), a friendly DSL for writing dialogue.

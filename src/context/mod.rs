@@ -9,12 +9,11 @@ use std::{cell::RefCell, rc::Rc, sync::Arc};
 use glamour::{Angle, Rect, Size2, Vector2};
 
 use kira::manager::{backend::DefaultBackend, AudioManager};
-use smol_str::SmolStr;
 use winit::{event::MouseButton, keyboard::KeyCode, window::Window};
 use winit_input_helper::WinitInputHelper;
 
 use crate::{
-    assets::{AssetSource, AssetsManager, Loadable},
+    assets::{AssetSource, AssetsManager, Id, Loadable},
     graphics::instance::Instances,
     GameConfig,
 };
@@ -85,7 +84,7 @@ impl Context {
     /// # Panics
     ///
     /// - When asset failed loading.
-    #[inline]
+    #[inline(always)]
     pub fn text<'path, 'text>(
         &self,
         path: &'path str,
@@ -469,7 +468,7 @@ pub(crate) struct ContextInner {
     /// Instances of all sprites drawn this tick, also includes sprites from the fonts.
     pub(crate) instances: Instances,
     /// Portions of textures that need to be re-written.
-    pub(crate) texture_update_queue: Vec<(SmolStr, Rect, Vec<u32>)>,
+    pub(crate) texture_update_queue: Vec<(Id, Rect, Vec<u32>)>,
     /// Time in seconds between every update tick.
     pub(crate) delta_time: f32,
     /// Frames per second for the render tick.

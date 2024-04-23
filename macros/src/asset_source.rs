@@ -39,26 +39,23 @@ impl Input {
     }
 
     /// Read the directory and create the Rust code to load everything for it.
-    #[cfg(any(
-        target_arch = "wasm32",
-        not(feature = "hot-reloading-assets"),
-        not(doctest)
-    ))]
+    #[cfg(all(feature = "embedded-assets", not(feature = "hot-reloading-assets")))]
     pub fn expand_dir(&self) -> TokenStream {
         crate::embedded::asset_source::parse_dir(&self.0)
     }
 
     /// Create the Rust code to load from the directory.
-    #[cfg(not(any(
-        target_arch = "wasm32",
-        not(feature = "hot-reloading-assets"),
-        not(doctest)
-    )))]
+    #[cfg(all(feature = "hot-reloading-assets", not(feature = "embedded-assets")))]
     pub fn expand_dir(&self) -> TokenStream {
-        let path = self.0.display().to_string();
-        quote::quote! {
-            pixel_game_lib::assets::source::FileSystem::new(#path).expect("Error setting up asset filesystem from path")
-        }
-        .into()
+        todo!()
+    }
+
+    /// Create the Rust code to load from the directory.
+    #[cfg(all(
+        not(feature = "hot-reloading-assets"),
+        not(feature = "embedded-assets")
+    ))]
+    pub fn expand_dir(&self) -> TokenStream {
+        todo!()
     }
 }

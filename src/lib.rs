@@ -62,6 +62,16 @@
 //! cargo add pixel_game_lib --no-default-features
 //! ```
 //!
+//! ## `embedded-assets`
+//!
+//! Embed all assets into the binary when building.
+//!
+//! _Must_ be enabled when building for the web.
+//! If disabled all assets will be loaded from disk.
+//!
+//! This will dice all PNG assets into a single tiny optimized PNG atlas.
+//! On startup this diced atlas will be efficiently uploaded to the GPU as a single bigger atlas, which will be used for all static sprites.
+//!
 //! ## `hot-reloading-assets` (default)
 //!
 //! Hot-reload assets from disk when they are saved.
@@ -140,6 +150,12 @@
 //! [^left-mouse]: [`Context::mouse_pressed`]
 //! [^text]: [`Context::text`]
 //! [^escape-key]: [`Context::key_pressed`]
+
+// Check for various illegal target and feature combinations
+#[cfg(all(feature = "embedded-assets", feature = "hot-reloading-assets"))]
+compile_error!("Features `embedded-assets` and `hot-reloading-assets` are mutually exclusive and can't be enabled at the same time!");
+#[cfg(all(not(feature = "embedded-assets"), target_arch = "wasm32"))]
+compile_error!("Feature `embedded-assets` must be enabled when building for the web!");
 
 pub mod assets;
 pub mod config;
