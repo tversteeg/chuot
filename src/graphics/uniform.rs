@@ -45,7 +45,7 @@ impl<T: NoUninit> UniformState<T> {
             label: Some("Uniform Bind Group Layout"),
             entries: &[BindGroupLayoutEntry {
                 binding: 0,
-                visibility: ShaderStages::VERTEX_FRAGMENT,
+                visibility: ShaderStages::VERTEX,
                 ty: BindingType::Buffer {
                     ty: BufferBindingType::Uniform,
                     has_dynamic_offset: false,
@@ -83,13 +83,17 @@ pub(crate) struct UniformArrayState<T: NoUninit> {
     buffer: wgpu::Buffer,
     /// Buffer on CPU.
     local_buffer: Vec<T>,
-    /// Maximum amount of items.
-    max_items: usize,
 }
 
 impl<T: NoUninit> UniformArrayState<T> {
-    /// Upload a new uniform.
-    pub(crate) fn new(device: &wgpu::Device, max_items: usize) -> Self {
+    /// Maximum bytes allowed by WebGL2.
+    const MAX_BYTES: usize = 16384;
+
+    /// Maximum items in array based on the maximum amount of bytes.
+    const MAX_ITEMS: usize = Self::MAX_BYTES / std::mem::size_of::<T>();
+
+    /// Upload a new empty uniform array.
+    pub(crate) fn new(device: &wgpu::Device) -> Self {
         // Ensure that the data has an alignment of 16 bytes, which is needed by WASM
         assert!(
             std::mem::size_of::<T>() % 16 == 0,
@@ -98,13 +102,12 @@ impl<T: NoUninit> UniformArrayState<T> {
         );
 
         // Create the empty buffer
-        let max_bytes = (max_items * std::mem::size_of::<T>()) as u64;
         let buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Uniform Array Buffer"),
             // Allow us to update this buffer
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
-            size: max_bytes,
+            size: Self::MAX_BYTES as u64,
         });
 
         // Create the bind group layout for passing the screen size
@@ -112,7 +115,7 @@ impl<T: NoUninit> UniformArrayState<T> {
             label: Some("Uniform Bind Group Layout"),
             entries: &[BindGroupLayoutEntry {
                 binding: 0,
-                visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                visibility: wgpu::ShaderStages::VERTEX,
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: false,
@@ -139,25 +142,28 @@ impl<T: NoUninit> UniformArrayState<T> {
             bind_group,
             buffer,
             bind_group_layout,
-            max_items,
             local_buffer,
         }
     }
 
-    /// Create from a static vector that won't change.
-    pub(crate) fn from_static_vec(
-        items: Vec<T>,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-    ) -> UniformArrayState<T> {
-        // Construct the new uniform
-        let mut this = Self::new(device, items.len());
+    /// Create from a vector.
+    ///
+    /// Still needs to be uploaded.
+    pub(crate) fn from_vec(items: Vec<T>, device: &wgpu::Device) -> UniformArrayState<T> {
+        // Construct a new empty array
+        let mut this = Self::new(device);
+
+        // Upload the whole array
         this.local_buffer = items;
 
-        // Push all values
-        queue.write_buffer(&this.buffer, 0, bytemuck::cast_slice(&this.local_buffer));
-
         this
+    }
+
+    /// Push the complete current buffer.
+    #[inline]
+    pub(crate) fn upload(&mut self, queue: &wgpu::Queue) {
+        // Push all values
+        queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&self.local_buffer));
     }
 
     /// Get the value for a rectangle.
@@ -175,7 +181,7 @@ impl<T: NoUninit> UniformArrayState<T> {
     /// - The index of the pushed item.
     pub(crate) fn push(&mut self, value: &T, queue: &Queue) -> u64 {
         assert!(
-            self.local_buffer.len() < self.max_items,
+            self.local_buffer.len() < Self::MAX_ITEMS,
             "Uniform value out ouf range"
         );
 

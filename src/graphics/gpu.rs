@@ -52,7 +52,7 @@ impl<'window> Gpu<'window> {
         let swapchain_capabilities = surface.get_capabilities(&adapter);
 
         // Create the logical device and command queue
-        let adapter_result = adapter
+        let (device, queue) = adapter
             .request_device(
                 &wgpu::DeviceDescriptor {
                     label: None,
@@ -64,13 +64,7 @@ impl<'window> Gpu<'window> {
                 },
                 None,
             )
-            .await;
-
-        // For some reason `into_diagnostic` doesn't work for this call on WASM
-        #[cfg(target_arch = "wasm32")]
-        let (device, queue) = adapter_result.expect("Error getting logical GPU device for surface");
-        #[cfg(not(target_arch = "wasm32"))]
-        let (device, queue) = adapter_result
+            .await
             .into_diagnostic()
             .wrap_err("Error getting logical GPU device for surface")?;
 

@@ -110,7 +110,7 @@ impl Atlas {
         });
 
         // Create and upload the uniforms
-        let rects = UniformArrayState::from_static_vec(texture_rects, &gpu.device, &gpu.queue);
+        let rects = UniformArrayState::from_vec(texture_rects, &gpu.device);
 
         // Setup a new atlas packer
         let packer = SkylinePacker::new(PackerConfig {

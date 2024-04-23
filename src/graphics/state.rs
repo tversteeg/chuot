@@ -41,6 +41,10 @@ pub(crate) struct MainRenderState<'window> {
     background_color: wgpu::Color,
     /// Viewport color
     viewport_color: wgpu::Color,
+    /// Whether this is the first tick.
+    ///
+    /// Needed for WASM to upload the buffers, which can't be done on initialization for some reason.
+    first_tick: bool,
 }
 
 impl<'window> MainRenderState<'window> {
@@ -92,6 +96,7 @@ impl<'window> MainRenderState<'window> {
         let viewport_color = super::u32_to_wgpu_color(game_config.viewport_color);
 
         let buffer_size = game_config.buffer_size;
+        let first_tick = true;
 
         Ok(Self {
             gpu,
@@ -103,6 +108,7 @@ impl<'window> MainRenderState<'window> {
             background_color,
             viewport_color,
             atlas,
+            first_tick,
         })
     }
 
@@ -129,6 +135,12 @@ impl<'window> MainRenderState<'window> {
 
         // Render on the GPU
         let mut frame = self.gpu.start();
+
+        // Upload the uniform buffer again on WASM, needed because of some weird bug
+        if self.first_tick {
+            self.atlas.rects.upload(frame.queue);
+            self.first_tick = false;
+        }
 
         // Determine whether we need a downscale pass, we know this if the letterbox is at position zero it fits exactly
         let needs_downscale_pass = !cfg!(target_arch = "wasm32")
