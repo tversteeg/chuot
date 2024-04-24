@@ -74,7 +74,7 @@ impl<'window> MainRenderState<'window> {
             game_config.buffer_size,
             &gpu.device,
             &screen_info,
-            include_str!("./shaders/downscale.wgsl"),
+            include_str!(concat!(env!("OUT_DIR"), "/downscale.wgsl")),
         );
 
         // Create the texture atlas

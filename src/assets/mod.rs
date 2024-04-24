@@ -20,6 +20,15 @@ use hashbrown::HashMap;
 use loader::Loader;
 use smol_str::SmolStr;
 
+#[cfg(feature = "embed-assets")]
+pub use embedded::AssetSource;
+#[cfg(feature = "embed-assets")]
+pub(crate) use embedded::{EmbeddedAssets, EmbeddedRawStaticAtlas};
+#[cfg(not(feature = "embed-assets"))]
+pub use runtime::AssetSource;
+#[cfg(not(feature = "embed-assets"))]
+pub(crate) use runtime::{EmbeddedAssets, EmbeddedRawStaticAtlas};
+
 use crate::{font::Font, sprite::Sprite};
 
 /// Asset ID.

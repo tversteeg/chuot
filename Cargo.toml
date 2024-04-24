@@ -16,21 +16,22 @@ categories = [
 ]
 rust-version = "1.77.0"
 include = ["/src"]
+build-script = "build.rs"
 
 [features]
-default = ["hot-reloading-assets", "dialogue", "in-game-profiler"]
+default = ["hot-reload-assets", "dialogue", "in-game-profiler"]
 
 # Embed all assets into the binary.
 #
 # If disabled loads all assets from disk.
-# Mutually exclusive from `hot-reloading-assets`.
-embedded-assets = ["pixel-game-lib-macros/embedded-assets"]
+# Mutually exclusive from `hot-reload-assets`.
+embed-assets = ["pixel-game-lib-macros/embed-assets"]
 
 # Enable assets and hot-reload assets from disk when they are saved.
 #
 # Has no effect when building for the web.
-# Mutually exclusive from `embedded-assets`.
-hot-reloading-assets = ["pixel-game-lib-macros/hot-reloading-assets"]
+# Mutually exclusive from `embed-assets`.
+hot-reload-assets = ["pixel-game-lib-macros/hot-reload-assets"]
 
 # Integrate [Yarn Spinner](https://www.yarnspinner.dev/), a friendly DSL for writing dialogue.
 dialogue = ["dep:yarnspinner"]

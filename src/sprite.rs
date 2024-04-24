@@ -98,7 +98,6 @@ impl Sprite {
     }
 
     /// Calculate the transformation matrix.
-    #[inline]
     fn matrix(&self, translation: Vector2, rotation: Angle) -> Affine2 {
         let sprite_offset = self.metadata.offset.offset(self.size);
 
@@ -222,6 +221,7 @@ pub(crate) struct SpriteMetadata {
 }
 
 impl Loadable for SpriteMetadata {
+    #[inline]
     fn load_if_exists(id: &Id, asset_source: &AssetSource) -> Option<Self>
     where
         Self: Sized,

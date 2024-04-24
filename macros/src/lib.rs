@@ -1,7 +1,7 @@
 //! This crate provides the `assets!` macro for [`pixel_game_lib`](https://docs.rs/pixel_game_lib).
 
 mod asset_source;
-#[cfg(all(feature = "embedded-assets", not(feature = "hot-reloading-assets")))]
+#[cfg(feature = "embed-assets")]
 mod embedded;
 
 use asset_source::Input;

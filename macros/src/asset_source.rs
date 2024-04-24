@@ -39,13 +39,13 @@ impl Input {
     }
 
     /// Read the directory and create the Rust code to load everything for it.
-    #[cfg(all(feature = "embedded-assets", not(feature = "hot-reloading-assets")))]
+    #[cfg(feature = "embed-assets")]
     pub fn expand_dir(&self) -> TokenStream {
         crate::embedded::asset_source::parse_dir(&self.0)
     }
 
     /// Create the Rust code to load from the directory.
-    #[cfg(all(feature = "hot-reloading-assets", not(feature = "embedded-assets")))]
+    #[cfg(not(feature = "embed-assets"))]
     pub fn expand_dir(&self) -> TokenStream {
         todo!()
     }

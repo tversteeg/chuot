@@ -96,7 +96,7 @@ jobs:
 
       # Build the WASM 
       - name: Build
-        run: cargo run --package run-wasm -- --example sprite --release --no-default-features --features embedded-assets --build-only
+        run: cargo run --package run-wasm -- --example sprite --release --no-default-features --features embed-assets --build-only
 
       # Deploy to GitHub pages
       - name: Deploy to GitHub Pages

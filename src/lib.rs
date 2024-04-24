@@ -62,7 +62,7 @@
 //! cargo add pixel_game_lib --no-default-features
 //! ```
 //!
-//! ## `embedded-assets`
+//! ## `embed-assets`
 //!
 //! Embed all assets into the binary when building.
 //!
@@ -72,7 +72,7 @@
 //! This will dice all PNG assets into a single tiny optimized PNG atlas.
 //! On startup this diced atlas will be efficiently uploaded to the GPU as a single bigger atlas, which will be used for all static sprites.
 //!
-//! ## `hot-reloading-assets` (default)
+//! ## `hot-reload-assets` (default)
 //!
 //! Hot-reload assets from disk when they are saved.
 //! Has no effect on the web target.
@@ -152,10 +152,10 @@
 //! [^escape-key]: [`Context::key_pressed`]
 
 // Check for various illegal target and feature combinations
-#[cfg(all(feature = "embedded-assets", feature = "hot-reloading-assets"))]
-compile_error!("Features `embedded-assets` and `hot-reloading-assets` are mutually exclusive and can't be enabled at the same time!");
-#[cfg(all(not(feature = "embedded-assets"), target_arch = "wasm32"))]
-compile_error!("Feature `embedded-assets` must be enabled when building for the web!");
+#[cfg(all(feature = "embed-assets", feature = "hot-reload-assets"))]
+compile_error!("Features `embed-assets` and `hot-reload-assets` are mutually exclusive and can't be enabled at the same time!");
+#[cfg(all(not(feature = "embed-assets"), target_arch = "wasm32"))]
+compile_error!("Feature `embed-assets` must be enabled when building for the web!");
 
 pub mod assets;
 pub mod config;
@@ -182,7 +182,7 @@ pub use winit::{
 ///
 /// *MUST* be passed as first argument to [`PixelGame::run`].
 ///
-/// The assets will be embedded in the binary when not using the `hot-reloading-assets` feature flag.
+/// The assets will be embedded in the binary when not using the `hot-reload-assets` feature flag.
 ///
 /// # Arguments
 ///

@@ -16,8 +16,8 @@ include = ["/src"]
 proc-macro = true
 
 [features]
-embedded-assets = ["dep:png", "dep:sprite_dicing", "dep:bytemuck", "dep:packr2", "dep:oxipng"]
-hot-reloading-assets = []
+embed-assets = ["dep:png", "dep:sprite_dicing", "dep:bytemuck", "dep:packr2", "dep:oxipng"]
+hot-reload-assets = []
 
 [dependencies]
 litrs = "0.4.1"

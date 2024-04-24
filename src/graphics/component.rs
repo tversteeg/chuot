@@ -47,7 +47,10 @@ impl SpriteRenderState {
         // Load the shaders from disk
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Diffuse Texture Shader"),
-            source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("./shaders/texture.wgsl"))),
+            source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!(concat!(
+                env!("OUT_DIR"),
+                "/texture.wgsl"
+            )))),
         });
 
         let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
