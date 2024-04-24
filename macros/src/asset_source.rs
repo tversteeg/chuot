@@ -47,15 +47,12 @@ impl Input {
     /// Create the Rust code to load from the directory.
     #[cfg(not(feature = "embed-assets"))]
     pub fn expand_dir(&self) -> TokenStream {
-        todo!()
-    }
+        let asset_path = self.0.to_string_lossy();
 
-    /// Create the Rust code to load from the directory.
-    #[cfg(all(
-        not(feature = "hot-reloading-assets"),
-        not(feature = "embedded-assets")
-    ))]
-    pub fn expand_dir(&self) -> TokenStream {
-        todo!()
+        // Just return the asset directory, all files will be loaded from there during runtime
+        quote::quote! {
+            pixel_game_lib::assets::runtime::EmbeddedAssets(#asset_path)
+        }
+        .into()
     }
 }

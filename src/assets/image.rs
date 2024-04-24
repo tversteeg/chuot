@@ -23,8 +23,8 @@ impl Loadable for Image {
     where
         Self: Sized,
     {
-        let atlas_id = *assets.static_texture_id_to_atlas_id.get(id)?;
-        let size = *assets.static_texture_id_to_size.get(id)?;
+        let atlas_id = assets.atlas_id(id)?;
+        let size = assets.texture_size(id)?;
 
         Some(Self { atlas_id, size })
     }

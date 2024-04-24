@@ -27,7 +27,7 @@ use winit::{
 };
 
 use crate::{
-    assets::{embedded::EmbeddedAssets, AssetSource},
+    assets::{AssetSource, EmbeddedAssets},
     graphics::state::MainRenderState,
     Context, GameConfig,
 };
@@ -149,13 +149,19 @@ where
         game_config.buffer_size.height * game_config.scaling,
     ));
 
-    // Get the static atlas texture mapping and sizes
+    // Construct the asset source based on where it comes from
     // Needed to be called here because the render state will consume the atlas
-    let static_texture_id_to_atlas_id = assets.atlas.texture_id_to_atlas_id_map();
-    let static_texture_id_to_size = assets.atlas.texture_id_to_size_map();
+    #[cfg(feature = "embed-assets")]
+    let asset_source = AssetSource::new(
+        assets.assets,
+        assets.atlas.texture_id_to_atlas_id_map(),
+        assets.atlas.texture_id_to_size_map(),
+    );
+    #[cfg(not(feature = "embed-assets"))]
+    let asset_source = AssetSource::new(assets.0);
 
     // Create a surface on the window and setup the render state to it
-    let mut render_state = MainRenderState::new(&game_config, assets.atlas, window.clone())
+    let mut render_state = MainRenderState::new(&game_config, assets.atlas(), window.clone())
         .await
         .wrap_err("Error setting up the rendering pipeline")?;
 
@@ -165,16 +171,7 @@ where
         .wrap_err("Error setting up audio manager")?;
 
     // Setup the context passed to the tick function implemented by the user
-    let mut ctx = Context::new(
-        &game_config,
-        window.clone(),
-        audio_manager,
-        AssetSource::new(
-            assets.assets,
-            static_texture_id_to_atlas_id,
-            static_texture_id_to_size,
-        ),
-    );
+    let mut ctx = Context::new(&game_config, window.clone(), audio_manager, asset_source);
 
     // Setup the in-game profiler
     #[cfg(feature = "in-game-profiler")]

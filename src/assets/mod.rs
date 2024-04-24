@@ -5,19 +5,21 @@
 //! Asset loading is done through the various calls in [`crate::Context`].
 
 mod audio;
+#[cfg(feature = "embed-assets")]
 #[doc(hidden)]
 pub mod embedded;
 pub(crate) mod image;
 pub mod loader;
+#[cfg(not(feature = "embed-assets"))]
+#[doc(hidden)]
+pub mod runtime;
+
+pub use audio::Audio;
 
 use std::rc::Rc;
 
-pub use audio::Audio;
 use downcast_rs::Downcast;
-use embedded::EmbeddedRawAsset;
-use glamour::Size2;
 use hashbrown::HashMap;
-use loader::Loader;
 use smol_str::SmolStr;
 
 #[cfg(feature = "embed-assets")]
@@ -275,68 +277,5 @@ impl AssetsManager {
     {
         // Create a clone of the asset
         Rc::<T>::unwrap_or_clone(self.custom.get_or_insert::<T>(&id.into(), &self.source))
-    }
-}
-
-/// Asset source for all assets embedded in the binary.
-pub struct AssetSource {
-    /// Static texture ID to atlas ID mapping.
-    pub(crate) static_texture_id_to_atlas_id: HashMap<Id, u16>,
-    /// Static texture ID to size.
-    pub(crate) static_texture_id_to_size: HashMap<Id, Size2<u32>>,
-    /// All loaded assets by parsed path.
-    assets: &'static [EmbeddedRawAsset],
-}
-
-impl AssetSource {
-    /// Construct a new source from embedded raw assets.
-    pub(crate) fn new(
-        assets: &'static [EmbeddedRawAsset],
-        static_texture_id_to_atlas_id: HashMap<Id, u16>,
-        static_texture_id_to_size: HashMap<Id, Size2<u32>>,
-    ) -> Self {
-        Self {
-            assets,
-            static_texture_id_to_atlas_id,
-            static_texture_id_to_size,
-        }
-    }
-
-    /// Load a new asset based on the loader.
-    ///
-    /// # Arguments
-    ///
-    /// * `id` - Asset ID passed to the [`Loadable`] function to load the asset with.
-    ///
-    /// # Returns
-    ///
-    /// - An asset when it's found and has the correct type.
-    /// - `None` if the asset could not be found.
-    ///
-    /// # Panics
-    ///
-    /// - When loading the asset fails.
-    #[track_caller]
-    pub fn load_if_exists<L, T>(&self, id: &Id) -> Option<T>
-    where
-        L: Loader<T>,
-    {
-        log::debug!(
-            "Loading part of asset '{id}' with extension '{}'",
-            L::EXTENSION
-        );
-
-        Some(L::load(self.raw_asset(id, L::EXTENSION)?))
-    }
-
-    /// Get the bytes of an asset that matches the ID and the extension.
-    pub(crate) fn raw_asset(&self, id: &Id, extension: &str) -> Option<&'static [u8]> {
-        self.assets.iter().find_map(|raw_asset| {
-            if raw_asset.id == id && raw_asset.extension == extension {
-                Some(raw_asset.bytes)
-            } else {
-                None
-            }
-        })
     }
 }

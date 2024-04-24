@@ -4,9 +4,7 @@ use glamour::{Contains, Rect, Size2, Vector2};
 use miette::Result;
 use winit::window::Window;
 
-use crate::{
-    assets::embedded::EmbeddedRawStaticAtlas, window::InGameProfiler, Context, GameConfig,
-};
+use crate::{assets::EmbeddedRawStaticAtlas, window::InGameProfiler, Context, GameConfig};
 
 use super::{
     atlas::Atlas, component::SpriteRenderState, data::ScreenInfo, gpu::Gpu,

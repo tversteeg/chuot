@@ -31,17 +31,13 @@ pub struct Atlas {
 
 impl Atlas {
     /// Create and upload the atlas to the GPU.
-    pub(crate) fn new(
-        Size2 { width, height }: Size2<u32>,
-        texture_rects: Vec<Rect<f32>>,
-        gpu: &Gpu,
-    ) -> Self {
+    pub(crate) fn new(texture_rects: Vec<Rect<f32>>, gpu: &Gpu) -> Self {
         // Create the texture on the GPU
         let texture = gpu.device.create_texture(&wgpu::TextureDescriptor {
             label: Some(&Cow::Borrowed("Static Texture Atlas")),
             size: wgpu::Extent3d {
-                width,
-                height,
+                width: ATLAS_TEXTURE_SIZE,
+                height: ATLAS_TEXTURE_SIZE,
                 // TODO: support multiple layers
                 depth_or_array_layers: 1,
             },

@@ -168,7 +168,7 @@ mod random;
 mod sprite;
 mod window;
 
-use assets::embedded::EmbeddedAssets;
+use assets::EmbeddedAssets;
 /// Re-exported vector math type.
 pub use glamour;
 /// Re-exported winit type used in [`Context`].

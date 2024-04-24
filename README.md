@@ -72,7 +72,7 @@ All major feature flags are enabled by default, I would recommend installing `pi
 cargo add pixel_game_lib --no-default-features
 ```
 
-##### `embedded-assets`
+##### `embed-assets`
 
 Embed all assets into the binary when building.
 
@@ -82,7 +82,7 @@ If disabled all assets will be loaded from disk.
 This will dice all PNG assets into a single tiny optimized PNG atlas.
 On startup this diced atlas will be efficiently uploaded to the GPU as a single bigger atlas, which will be used for all static sprites.
 
-##### `hot-reloading-assets` (default)
+##### `hot-reload-assets` (default)
 
 Hot-reload assets from disk when they are saved.
 Has no effect on the web target.

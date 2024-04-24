@@ -5,7 +5,7 @@ use wasm_bindgen::JsCast;
 use web_sys::HtmlCanvasElement;
 use winit::{event_loop::EventLoop, platform::web::WindowBuilderExtWebSys, window::WindowBuilder};
 
-use crate::assets::embedded::EmbeddedAssets;
+use crate::assets::EmbeddedAssets;
 
 use super::{GameConfig, TickFn};
 

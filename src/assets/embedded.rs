@@ -12,12 +12,21 @@ use crate::{
     graphics::{atlas::Atlas, gpu::Gpu},
 };
 
+use super::loader::Loader;
+
 /// Compile time assets that haven't been parsed yet.
 pub struct EmbeddedAssets {
     /// All loaded assets by parsed path.
     pub assets: &'static [EmbeddedRawAsset],
     /// Diced raw texture atlas.
     pub atlas: EmbeddedRawStaticAtlas,
+}
+
+impl EmbeddedAssets {
+    /// Get the raw texture atlas.
+    pub(crate) fn atlas(self) -> EmbeddedRawStaticAtlas {
+        self.atlas
+    }
 }
 
 /// Single embedded asset in the binary.
@@ -89,11 +98,8 @@ impl EmbeddedRawStaticAtlas {
 
         // Lastly create a new GPU atlas texture
 
-        // TODO: use different smaller size
-        let size = Size2::new(4096, 4096);
-
         // Create the atlas
-        let atlas = Atlas::new(size, self.texture_rects.to_vec(), gpu);
+        let atlas = Atlas::new(self.texture_rects.to_vec(), gpu);
 
         // Upload all sections
         for mapping in self.texture_mappings {
@@ -141,5 +147,98 @@ impl EmbeddedRawStaticAtlas {
                 )
             })
             .collect()
+    }
+}
+
+/// Asset source for all assets embedded in the binary.
+pub struct AssetSource {
+    /// Static texture ID to atlas ID mapping.
+    static_texture_id_to_atlas_id: HashMap<Id, u16>,
+    /// Static texture ID to size.
+    static_texture_id_to_size: HashMap<Id, Size2<u32>>,
+    /// All loaded assets by parsed path.
+    assets: &'static [EmbeddedRawAsset],
+}
+
+impl AssetSource {
+    /// Construct a new source from embedded raw assets.
+    pub(crate) fn new(
+        assets: &'static [EmbeddedRawAsset],
+        static_texture_id_to_atlas_id: HashMap<Id, u16>,
+        static_texture_id_to_size: HashMap<Id, Size2<u32>>,
+    ) -> Self {
+        Self {
+            assets,
+            static_texture_id_to_atlas_id,
+            static_texture_id_to_size,
+        }
+    }
+
+    /// Load a new asset based on the loader.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - Asset ID passed to the [`Loadable`] function to load the asset with.
+    ///
+    /// # Returns
+    ///
+    /// - An asset when it's found and has the correct type.
+    /// - `None` if the asset could not be found.
+    ///
+    /// # Panics
+    ///
+    /// - When loading the asset fails.
+    #[track_caller]
+    pub fn load_if_exists<L, T>(&self, id: &Id) -> Option<T>
+    where
+        L: Loader<T>,
+    {
+        log::debug!(
+            "Loading part of asset '{id}' with extension '{}'",
+            L::EXTENSION
+        );
+
+        Some(L::load(self.raw_asset(id, L::EXTENSION)?))
+    }
+
+    /// Get the atlas ID based on a texture asset ID.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - Asset ID passed to the [`Loadable`] function to get the atlas ID from.
+    ///
+    /// # Returns
+    ///
+    /// - An atlas ID when the asset is found and has the correct type.
+    /// - `None` if the asset could not be found.
+    #[track_caller]
+    pub fn atlas_id(&self, id: &Id) -> Option<u16> {
+        self.static_texture_id_to_atlas_id.get(id).cloned()
+    }
+
+    /// Get the size of a texture based on a texture asset ID.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - Asset ID passed to the [`Loadable`] function to get the size from.
+    ///
+    /// # Returns
+    ///
+    /// - A size when the asset is found and has the correct type.
+    /// - `None` if the asset could not be found.
+    #[track_caller]
+    pub fn texture_size(&self, id: &Id) -> Option<Size2<u32>> {
+        self.static_texture_id_to_size.get(id).cloned()
+    }
+
+    /// Get the bytes of an asset that matches the ID and the extension.
+    pub(crate) fn raw_asset(&self, id: &Id, extension: &str) -> Option<&'static [u8]> {
+        self.assets.iter().find_map(|raw_asset| {
+            if raw_asset.id == id && raw_asset.extension == extension {
+                Some(raw_asset.bytes)
+            } else {
+                None
+            }
+        })
     }
 }
