@@ -85,7 +85,6 @@ stats_alloc = { version = "0.1.10", optional = true }
 # Dependencies specifically for desktop
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 wgpu = "0.19.4"
-
 pollster = "0.3.0"
 env_logger = "0.11.3"
 
@@ -97,7 +96,6 @@ puffin = { version = "0.19.0", optional = true }
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 # Not used directly but the JS feature is required by the 'ahash' feature in `assets_manager`
 getrandom = { version = "0.2", features = ["js"] }
-
 wgpu = { version = "0.19.4", default-features = false, features = ["webgl", "wgsl", "fragile-send-sync-non-atomic-wasm"] }
 console_log = "1.0.0"
 web-sys = { version = "0.3.69", features = ["Document", "Window", "Element"] }
@@ -116,6 +114,10 @@ miette = { version = "7.2.0", features = ["fancy"] }
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
 # Show nice output for the examples
 miette = { version = "7.2.0", features = ["fancy-no-syscall"] }
+
+[build-dependencies]
+naga = { version = "0.19.2", features = ["wgsl-in", "wgsl-out"] }
+wgsl-minifier = "0.4.1"
 
 [workspace]
 members = ["macros", "run-wasm"]
