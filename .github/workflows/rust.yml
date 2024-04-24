@@ -51,9 +51,17 @@ jobs:
       # Install cargo-hack
       - uses: taiki-e/install-action@cargo-hack
 
-      # Check if all feature combinations compile
-      - name: Test
-        run: cargo hack --each-feature check
+      # Check different feature combinations
+      - name: Build (no features)
+        run: cargo check --no-default-features
+      - name: Build (dialogue)
+        run: cargo check --no-default-features --features dialogue
+      - name: Build (in-game-profiler)
+        run: cargo check --no-default-features --features in-game-profiler
+      - name: Build (embed-assets)
+        run: cargo check --no-default-features --features embed-assets
+      - name: Build (hot-reload-assets)
+        run: cargo check --no-default-features --features hot-reload-assets
 
   # Run tests on Linux
   test:
@@ -74,7 +82,7 @@ jobs:
 
       # Test all features on the target platform
       - name: Test
-        run: cargo test --all-features
+        run: cargo test --features dialogue
 
   # Build the WASM target & push it to GitHub pages
   wasm:

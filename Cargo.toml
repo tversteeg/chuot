@@ -32,6 +32,7 @@ targets = [
 	# MacOS
 	"x86_64-apple-darwin",
 ]
+rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
 default = ["hot-reload-assets", "dialogue", "in-game-profiler"]
@@ -78,7 +79,7 @@ log = "0.4.21"
 hashbrown = "0.14.3"
 png = "0.17.13"
 profiling = "1.0.15"
-winit = { version = "0.29.15", default-features = false, features = ["rwh_06", "wayland-dlopen"] }
+winit = { version = "0.29.15", default-features = false, features = ["rwh_06", "wayland", "wayland-dlopen"] }
 winit_input_helper = "0.16.0"
 glam = { version = "0.27", features = ["bytemuck", "fast-math"] }
 glamour = { version = "0.11.1", features = ["serde"] }
