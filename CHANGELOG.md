@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.2](https://github.com/tversteeg/chuot/compare/chuot-v0.0.1...chuot-v0.0.2) - 2024-04-25
+
+### Other
+- release ([#53](https://github.com/tversteeg/chuot/pull/53))
+
 ## [0.0.1](https://github.com/tversteeg/chuot/releases/tag/chuot-v0.0.1) - 2024-04-25
 
 ### Added
