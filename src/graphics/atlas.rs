@@ -2,8 +2,8 @@
 
 use std::borrow::Cow;
 
+use chuot_packer::Packer;
 use glamour::{Point2, Rect, Size2, Vector2};
-use packr2::{Packer, PackerConfig, Rectf, SkylinePacker};
 
 use super::{gpu::Gpu, state::PREFERRED_TEXTURE_FORMAT, uniform::UniformArrayState};
 
@@ -26,7 +26,7 @@ pub struct Atlas {
     /// GPU uniform buffer holding all atlassed texture rectangles.
     pub(crate) rects: UniformArrayState<Rect<f32>>,
     /// Packer algorithm used.
-    packer: SkylinePacker,
+    packer: Packer,
 }
 
 impl Atlas {
@@ -109,11 +109,7 @@ impl Atlas {
         let rects = UniformArrayState::from_vec(texture_rects, &gpu.device);
 
         // Setup a new atlas packer
-        let packer = SkylinePacker::new(PackerConfig {
-            max_width: ATLAS_TEXTURE_SIZE,
-            max_height: ATLAS_TEXTURE_SIZE,
-            allow_flipping: false,
-        });
+        let packer = Packer::new(Size2::splat(ATLAS_TEXTURE_SIZE as u16));
 
         Self {
             texture,
@@ -136,15 +132,18 @@ impl Atlas {
         queue: &wgpu::Queue,
     ) -> AtlasRef {
         // Pack the rectangle
-        let Rectf { x, y, w, h, .. } = self
+        let Point2 { x, y } = self
             .packer
-            .insert(size.width, size.height)
+            .insert(Size2::new(size.width as u16, size.height as u16))
             .expect("New texture could not be packed, not enough space");
+        let x = x as u32;
+        let y = y as u32;
 
-        log::debug!("Added texture to atlas at ({x},{y}) with size {w}x{h}");
-
-        assert_eq!(size.width, w);
-        assert_eq!(size.height, h);
+        log::debug!(
+            "Added texture to atlas at ({x},{y}) with size {}x{}",
+            size.width,
+            size.height
+        );
 
         // Write the sub-texture to the atlas location
         queue.write_texture(
@@ -165,8 +164,8 @@ impl Atlas {
             },
             // Texture size
             wgpu::Extent3d {
-                width: w,
-                height: h,
+                width: size.width,
+                height: size.height,
                 depth_or_array_layers: 1,
             },
         );
@@ -175,7 +174,7 @@ impl Atlas {
         let uniform_index = self.rects.push(
             &Rect::new(
                 Vector2::new(x as f32, y as f32),
-                Size2::new(w as f32, h as f32),
+                Size2::new(size.width as f32, size.height as f32),
             ),
             queue,
         );

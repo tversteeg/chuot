@@ -69,7 +69,8 @@ in-game-profiler = [
 ]
 
 [dependencies]
-chuot-macros = { path = "macros", version = "0.1.0" }
+chuot-macros = { path = "crates/macros", version = "0.1.0" }
+chuot-packer = { path = "crates/packer", version = "0.1.0" }
 
 miette = "7.2.0"
 serde = { version = "1.0.198", features = ["derive"] }
@@ -83,7 +84,6 @@ winit = { version = "0.29.15", default-features = false, features = ["rwh_06", "
 winit_input_helper = "0.16.0"
 glam = { version = "0.27", features = ["bytemuck", "fast-math"] }
 glamour = { version = "0.11.1", features = ["serde"] }
-packr2 = "0.3.3"
 smol_str = "0.2.1"
 fastrand = "2.0.2"
 web-time = "1.1.0"
@@ -142,7 +142,7 @@ naga = { version = "0.19.2", features = ["wgsl-in", "wgsl-out"] }
 wgsl-minifier = "0.4.1"
 
 [workspace]
-members = ["macros", "run-wasm"]
+members = ["crates/macros", "crates/packer", "run-wasm"]
 
 # Ensure audio performance is not too poor when running in dev mode
 [profile.dev.package]

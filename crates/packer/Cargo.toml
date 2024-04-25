@@ -1,0 +1,17 @@
+[package]
+name = "chuot-packer"
+version = "0.1.0"
+edition = "2021"
+authors = ["Thomas Versteeg <t@versteeg.email>"]
+license = "AGPL-3.0"
+homepage = "https://github.com/tversteeg/chuot"
+readme = "README.md"
+description = "2D texture packing for the Chuột game engine"
+documentation = "https://docs.rs/chuot"
+repository = "https://github.com/tversteeg/chuot.git"
+rust-version = "1.77.0"
+include = ["/src"]
+
+[dependencies]
+glam = { version = "0.27", features = ["fast-math"] }
+glamour = { version = "0.11.1", features = ["serde"] }
