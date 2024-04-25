@@ -4,7 +4,7 @@ use litrs::Literal;
 use proc_macro::TokenStream;
 use std::path::{Path, PathBuf};
 
-/// Asset source for [`pixel_game_lib::load_assets`].
+/// Asset source for [`chuot::load_assets`].
 pub struct Input(pub PathBuf);
 
 impl Input {
@@ -51,7 +51,7 @@ impl Input {
 
         // Just return the asset directory, all files will be loaded from there during runtime
         quote::quote! {
-            pixel_game_lib::assets::runtime::EmbeddedAssets(#asset_path)
+            chuot::assets::runtime::EmbeddedAssets(#asset_path)
         }
         .into()
     }

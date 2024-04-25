@@ -1,7 +1,7 @@
 //! Show how to interpolate a sprite in the render loop by keeping a previous state in the update loop.
 
 use glamour::Vector2;
-use pixel_game_lib::{Context, GameConfig, KeyCode, MouseButton, PixelGame};
+use chuot::{Context, GameConfig, KeyCode, MouseButton, PixelGame};
 
 /// Define a game state for our example.
 #[derive(Default)]
@@ -81,6 +81,6 @@ fn main() {
 
     // Spawn the window and run the 'game'
     GameState::default()
-        .run(pixel_game_lib::load_assets!(), config)
+        .run(chuot::load_assets!(), config)
         .expect("Error running game");
 }

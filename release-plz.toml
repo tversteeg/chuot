@@ -1,8 +1,8 @@
 [[package]]
-name = "pixel-game-lib"
+name = "chuot"
 
 [[package]]
-name = "pixel-game-lib-macros"
+name = "chuot-macros"
 
 # Ignore run-wasm
 [[package]]

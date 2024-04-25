@@ -1,14 +1,14 @@
 [package]
-name = "pixel-game-lib-macros"
+name = "chuot-macros"
 version = "0.1.0"
 edition = "2021"
 authors = ["Thomas Versteeg <t@versteeg.email>"]
 license = "AGPL-3.0"
-homepage = "https://github.com/tversteeg/pixel-game-lib"
+homepage = "https://github.com/tversteeg/chuot"
 readme = "README.md"
-description = "Procedural macros for pixel-game-lib"
-documentation = "https://docs.rs/pixel-game-lib"
-repository = "https://github.com/tversteeg/pixel-game-lib.git"
+description = "Procedural macros for chuot"
+documentation = "https://docs.rs/chuot"
+repository = "https://github.com/tversteeg/chuot.git"
 rust-version = "1.77.0"
 include = ["/src"]
 

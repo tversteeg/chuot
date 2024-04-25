@@ -34,7 +34,7 @@ use self::{audio::AudioContext, sprite::DrawSpriteContext, text::DrawTextContext
 /// | `ctx.sprite("gui.widgets.button")` | `assets/gui/widgets/button.png` & `assets/gui/widgets/button.toml` (optional) |
 /// | `ctx.audio("song")` | `assets/song.ogg` |
 ///
-/// It's assumed for this table that [`crate::load_assets`] in [`crate::PixelGame`] is called without any arguments or with `pixel_game_lib::load_assets!("assets/")`.
+/// It's assumed for this table that [`crate::load_assets`] in [`crate::PixelGame`] is called without any arguments or with `chuot::load_assets!("assets/")`.
 #[derive(Clone)]
 pub struct Context {
     /// Implementation of all non-primitive parts.
@@ -117,7 +117,7 @@ impl Context {
     /// # Example
     ///
     /// ```no_run
-    /// use pixel_game_lib::Context;
+    /// use chuot::Context;
     ///
     /// # struct Empty; impl Empty {
     /// // In `PixelGame::update` trait implementation
@@ -152,7 +152,7 @@ impl Context {
     /// # Example
     ///
     /// ```no_run
-    /// use pixel_game_lib::{Context, KeyCode};
+    /// use chuot::{Context, KeyCode};
     ///
     /// # struct Empty; impl Empty {
     /// // In `PixelGame::update` trait implementation
@@ -192,7 +192,7 @@ impl Context {
     /// # Example
     ///
     /// ```no_run
-    /// use pixel_game_lib::{Context, KeyCode, glamour::Vector2};
+    /// use chuot::{Context, KeyCode, glamour::Vector2};
     ///
     /// # struct Empty; impl Empty {
     /// // In `PixelGame::render` trait implementation
@@ -223,7 +223,7 @@ impl Context {
     /// # Example
     ///
     /// ```no_run
-    /// use pixel_game_lib::{Context, KeyCode, glamour::Vector2};
+    /// use chuot::{Context, KeyCode, glamour::Vector2};
     ///
     /// # #[derive(Default)] struct S{position: Vector2, previous_position: Vector2}
     /// # struct Empty; impl Empty {

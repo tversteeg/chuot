@@ -177,7 +177,7 @@ pub fn parse_textures(textures: &[(String, PathBuf)]) -> TokenStream {
 
                 // Convert to array to save space
                 quote! {
-                    pixel_game_lib::assets::embedded::TextureMapping {
+                    chuot::assets::embedded::TextureMapping {
                         diced: glamour::Point2 { x: #diced_u, y: #diced_v },
                         texture: glamour::Point2 { x: #texture_u, y: #texture_v },
                         size: glamour::Size2 { width: #width, height: #height },
@@ -212,14 +212,14 @@ pub fn parse_textures(textures: &[(String, PathBuf)]) -> TokenStream {
 
     // Create the object from the tightly packed arrays
     quote! {
-        pixel_game_lib::assets::embedded::EmbeddedRawStaticAtlas {
+        chuot::assets::embedded::EmbeddedRawStaticAtlas {
             diced_atlas_png_bytes: {
                 static BYTES: &[u8] = &[#(#png_bytes),*];
 
                 BYTES
             },
             texture_mappings: {
-                static MAPPINGS: &[pixel_game_lib::assets::embedded::TextureMapping] = &[#(#texture_mappings),*];
+                static MAPPINGS: &[chuot::assets::embedded::TextureMapping] = &[#(#texture_mappings),*];
 
                 MAPPINGS
             },

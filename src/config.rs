@@ -9,7 +9,7 @@ use glamour::Size2;
 /// # Example
 ///
 /// ```rust
-/// # use pixel_game_lib::GameConfig;
+/// # use chuot::GameConfig;
 /// GameConfig {
 ///   title: "My Game".to_owned(),
 ///   ..Default::default()
@@ -19,7 +19,7 @@ use glamour::Size2;
 /// # Example
 ///
 /// ```rust
-/// # use pixel_game_lib::GameConfig;
+/// # use chuot::GameConfig;
 /// GameConfig::default().with_title("My Game");
 /// ```
 #[derive(Debug, Clone)]

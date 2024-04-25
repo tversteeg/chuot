@@ -1,3 +1,3 @@
-# pixel_game_lib_macros
+# chuot_macros
 
-Macro support for [pixel_game_lib](https://github.com/tversteeg/pixel_game_lib).
+Macro support for [chuot](https://github.com/tversteeg/chuot).

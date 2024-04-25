@@ -1,7 +1,7 @@
 //! Show how a sprite can be loaded from disk and rendered multiple times.
 
 use glamour::{Rect, Size2, Vector2};
-use pixel_game_lib::{Context, GameConfig, KeyCode, MouseButton, PixelGame};
+use chuot::{Context, GameConfig, KeyCode, MouseButton, PixelGame};
 
 /// A single sprite instance to draw.
 struct Sprite {
@@ -92,6 +92,6 @@ fn main() {
 
     // Spawn the window and run the 'game'
     GameState::default()
-        .run(pixel_game_lib::load_assets!(), config)
+        .run(chuot::load_assets!(), config)
         .expect("Error running game");
 }
