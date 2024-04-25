@@ -6,6 +6,240 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.1](https://github.com/tversteeg/chuot/releases/tag/chuot-v0.0.1) - 2024-04-25
+
+### Added
+- *(assets)* partially re-implement loading assets from disk
+- *(assets)* partially re-implement loading assets from disk
+- *(atlas)* optimize generated embedded diced PNG
+- *(assets)* [**breaking**] embed all assets into a single diced atlas texture ([#62](https://github.com/tversteeg/chuot/pull/62))
+- *(audio)* allow setting volume, panning, loop, loop region and playback region
+- *(audio)* [**breaking**] remove as optional feature, move to context with better ergonomics and performance
+- *(context)* add `set_cursor_visible` for showing and hiding the OS cursor
+- *(loop)* [**breaking**] split game loop into a separate render and update call, allowing both to run at different tick rates
+- *(random)* add `crate::random` and `crate::random_range` functions
+- *(sprite)* add `SpriteContext::draw_multiple_translated` for a performant way of drawing an iterator of offsets
+- *(profiler)* profile heap allocations for rendering and tick call
+- *(context)* [**breaking**] use ergonomic zero cost abstraction for text drawing similar to sprite refactor
+- *(assets)* export different types that can be used for loading assets
+- *(config)* allow setting vsync in `GameConfig`
+- *(config)* add builder methods for `GameConfig` fields
+- *(context)* add `Context::sprite_raw_pixels`
+- *(context)* add `Context::sprite_size`
+- *(graphics)* add `Context::update_sprite_pixels` for updating regions of pixels on an already uploaded sprites
+- *(graphics)* allow configuring `RotationAlgorithm` in config
+- *(font)* [**breaking**] add `Context::draw_text` which loads a bitmap font
+- *(profile)* Allow `in-game-profiler` feature flag for showing a profiler overlay, use proper color space for background and viewport colors
+- *(window)* [**breaking**] add `background_color` and `viewport_color` options to `WindowConfig`
+- *(graphics)* update Scale2X to Scale3X with proper sampling
+- *(graphics)* use Scale2X for upscaling the sprites
+- *(graphics)* create letterbox with in the future integer scaling for the buffer
+- *(graphics)* expose `RenderContext::draw_sprite_rotated` which also allows future 2D scaling and skewing
+- *(graphics)* make `Sprite` a GPU instanced rendering pipeline
+- *(bitmap)* add `from_bitvec` and `clone_with_padding` to `BitMap`
+- *(bitmap)* implement floodfill
+- *(bitmap)* allow toggling a single value
+- *(bitmap)* add `BitMap` for 2D masking operations on buffers
+- *(physics)* add square, triangle and circle collider shapes
+- *(audio)* `audio` crate feature for playing audio, based on the Kira crate
+- *(state)* create a `PixelGame` trait which simplifies setting up a new game with a window
+- *(gui)* [**breaking**] embed default GUI elements behind feature flag `default-gui`
+- *(dialogue)* implement dialogue feature based on Yarn Spinner
+- *(canvas)* add `draw_circle`, `draw_scanline` and improve `draw_circle_outline` to/on `Canvas`
+- *(canvas)* add `draw_circle_outline` to `Canvas`
+- *(canvas)* add `draw_quad` and `draw_triangle` to `Canvas`
+- *(canvas)* add unoptimized 'draw_line' method
+- *(physics)* add XPBD-based physics engine
+- *(gui)* add label widget
+- *(gui)* implement layout system
+- *(sprite)* metadata in TOML
+- *(assets)* add type that owns an asset or uses a ref
+- base structure for gui feature
+- implement font & sprite asset loading
+- assets features
+- default-font feature loading image from memory
+- *(window)* expose winit input
+- [**breaking**] implement WASM window
+- *(window)* hide async implementation
+- font feature
+
+### Fixed
+- *(ci)* manually specify which features to check
+- *(web)* draw sprites again on web by delaying upload of uniform buffer
+- *(deps)* update rust crate serde to 1.0.198
+- *(deps)* update rust crate oxipng to 9.1.1
+- *(deps)* update rust crate wgpu to 0.19.4
+- *(assets)* re-implement custom asset loading, now with reference counted types
+- *(sprite)* render sprites properly when rotating
+- *(hot-reloading)* setup base for sprite hot reloading
+- *(assets)* [**breaking**] properly allow asset embedding and use a local version, temporarily remove keeping a shared asset reference
+- *(sprite)* use proper serde representation for sprite offset
+- *(web)* fix weird stuttering issue, draw with proper scaling
+- *(deps)* update egui related rust crates
+- *(deps)* update rust crates glam and glamour
+- *(deps)* update rust crate egui to 0.27.0
+- *(deps)* downgrade 'glam' so 'glamour' can upgrade
+- *(deps)* update rust crate glam to 0.27.0
+- *(graphics)* repair RotSprite shader
+- *(graphics)* properly embed texture atlas info in shader
+- *(build)* fix compilation for WASM target
+- *(window)* handle exit event
+- *(graphics)* [**breaking**] Use `Into<Rotation>` as argument for `draw_sprite_rotated`
+- *(wasm)* build again on WASM with WebGL2 and cleanup
+- *(project)* use proper relative mouse coordinates and cleanup small pieces of code and examples
+- *(graphics)* use proper alpha blending for components
+- *(graphics)* properly render output buffer in viewport
+- *(graphics)* render pixel graphics to proper buffer size with upscaling and downscaling preparing for rotsprite like algorithms
+- *(deps)* update rust crate winit to 0.29.15
+- *(deps)* update rust crate bytemuck to 1.15.0
+- *(deps)* update rust crate miette to 7.2.0
+- *(deps)* update rust crate blit to 0.8.5
+- *(deps)* update rust crate winit to 0.29.14
+- *(deps)* update rust-wasm-bindgen monorepo
+- *(ci)* install audio dependency in CI
+- *(window)* [**breaking**] re-export proper window types for the input helper
+- *(deps)* update rust crate winit_input_helper to 0.16.0
+- *(audio)* hide module definition behind feature flag
+- *(canvas)* ensure line drawing doesn't go out of bounds
+- *(state)* use proper aliased input type
+- *(deps)* update rust crate winit to 0.29.13
+- *(assets)* [**breaking**] improve ergonomics of `asset` and `asset_owned` by making the path an anonymous generic
+- *(deps)* update rust crate assets_manager to 0.11.3
+- *(deps)* update rust crate winit to 0.29.11
+- *(sprite)* take offset into account when drawing
+- *(deps)* update rust crate image to 0.24.9
+- *(deps)* update rust crate serde to 1.0.197
+- *(deps)* update rust crate miette to 7.1.0
+- *(deps)* update rust crate game-loop to 1.1.0
+- *(deps)* update rust-wasm-bindgen monorepo
+- *(deps)* update rust crate miette to v7
+- *(deps)* update rust crate miette to v6
+- *(deps)* update rust crate tokio to 1.36.0
+- *(deps)* update rust crate serde to 1.0.196
+- *(deps)* update rust crate assets_manager to 0.11.2
+- *(deps)* update rust crate parry2d-f64 to 0.13.6
+- *(deps)* update rust crate puffin to 0.19.0
+- *(deps)* update rust crate winit_input_helper to 0.15.3
+- *(deps)* update rust crate game-loop to 1.0.1
+- *(deps)* update rust crate winit to 0.29.10
+- *(deps)* update rust crate image to 0.24.8
+- *(deps)* update rust crate winit_input_helper to 0.15.2
+- *(deps)* update rust-wasm-bindgen monorepo
+- *(deps)* update rust crate serde to 1.0.195
+- *(deps)* update rust crate winit to 0.29.9
+- *(deps)* update rust crate serde to 1.0.194
+- *(deps)* update rust crate winit to 0.29.8
+- *(deps)* update rust crate winit to 0.29.7
+- *(deps)* update rust crate winit to 0.29.6
+- *(deps)* update rust crate winit to 0.29.5
+- *(deps)* update rust crate tokio to 1.35.1
+- *(deps)* update rust crate derive-where to 1.2.7
+- *(deps)* update rust crate puffin to 0.18.1
+- *(deps)* update rust crate tokio to 1.35.0
+- *(deps)* update rust crate derive-where to 1.2.6
+- *(deps)* update rust-wasm-bindgen monorepo
+- *(deps)* update rust crate winit to 0.29.4
+- *(deps)* update rust crate puffin to 0.18.0
+- *(deps)* update rust crate serde to 1.0.193
+- *(deps)* update rust crate winit_input_helper to 0.15.1
+- *(deps)* update rust crate hecs to 0.10.4
+- *(deps)* update rust crate tokio to 1.34.0
+- *(deps)* update rust crate serde to 1.0.192
+- *(assets)* always embed on web
+- *(deps)* update rust-wasm-bindgen monorepo
+- *(deps)* update rust crate serde to 1.0.190
+- *(math)* conditionally implement From<Isometry2> for Iso
+- *(canvas)* set_pixel coordinate calculation
+- *(gui)* enforce type soundness with a reference type for each widget
+- *(window)* WASM build
+- *(deps)* update rust crate serde to 1.0.189
+- *(assets)* feature flags
+
+### Other
+- *(project)* rename to 'chuot'
+- *(features)* only show usable APIs and list supported targets
+- *(features)* [**breaking**] rename `embedded-assets` feature to `embed-assets` and `hot-reloading-assets` to `hot-reload-assets`
+- *(shader)* optimize shaders in build step
+- *(compile-time)* [**breaking**] improve debug compile time by adding `embedded-assets` as a feature flag (again)
+- *(images)* optimize images ([#58](https://github.com/tversteeg/chuot/pull/58))
+- *(audio)* fix doc-comment example for audio
+- release
+- *(readme)* add dependency status badge to README.md
+- *(example)* add example drawing and moving thousands of particles
+- *(project)* document goals and non-goals
+- *(examples)* exclude examples from distribution on crates.io
+- release
+- *(context)* [**breaking**] move `Context::draw_sprite` and `Context::draw_text` to `Context::sprite|text::draw`
+- *(cargo)* only include 'src/' folder for a smaller crate size
+- *(sprite)* [**breaking**] use zero-cast abstraction with helper structs for more ergonic sprite drawing
+- *(assets)* [**breaking**] move `crate::asset` and `crate::asset_owned` to `Context` as methods
+- release
+- *(graphics)* refactor structure of communicating with the GPU for future addition of GPU profiler
+- release
+- *(readme)* show different RotSprite upscale options in README.md
+- *(project)* [**breaking**] rename `WindowConfig` to `GameConfig`
+- *(web)* [**breaking**] improve performance on Web builds by using canvas scaling
+- *(graphics)* [**breaking**] skip downscale render pass when buffer fits inside window
+- *(project)* [**breaking**] make some internal public items private, improve documentation
+- release
+- *(context)* improve performance by switching from `Arc<Mutex<..>>` to `Rc<RefCell<..>>`
+- *(graphics)* pack all sprites into a single texture atlas
+- *(ci)* install missing requirements for release
+- release
+- *(project)* [**breaking**] replace `PixelGame::update` & `PixelGame::render` with singular `PixelGame::tick`, change vek library to glam and glamour
+- release
+- *(project)* cleanup and prepare for beta release
+- *(ci)* fix test and wasm-build step
+- *(project)* [**breaking**] make `window` function private, batch render calls in `render` trait method with `RenderContext`
+- *(project)* [**breaking**] remove gui, reorganize most components related to rendering
+- *(window)* [**breaking**] start replacing CPU based pixel renderer with GPU based one
+- release
+- *(ci)* only test on Linux and run check on the other platforms
+- release
+- *(example)* fix 'physics' import
+- release
+- *(window)* perform color conversion on GPU with a custom shader instead of on CPU
+- *(window)* use `Rc` instead of `Arc` for the window handler
+- *(canvas)* improve `draw_line` performance by switching from 'line_drawing' to the 'clipline' crate
+- release
+- *(ci)* fix WASM build and test out of space
+- *(example)* fix dialogue example buttons
+- *(example)* draw options as GUI buttons
+- release
+- *(serde)* [**breaking**] add `deny_unknown_fields` to all items implementing `Deserialize`
+- release
+- *(deps)* update taffy to 0.4
+- release
+- release
+- release
+- *(deps)* update swatinem/rust-cache action to v2.7.3
+- *(deps)* update swatinem/rust-cache action to v2.7.2
+- release
+- release
+- release
+- set MSRV
+- release
+- *(deps)* [**breaking**] update winit to 0.29
+- release
+- *(ci)* test every feature instead of all combinations of features
+- *(example)* spawn objects on mouse click in physics example
+- *(deps)* update swatinem/rust-cache action to v2.7.1
+- *(window)* re-export winit_input_helper::WinitInputHelper as window::Input
+- release
+- fix window example
+- *(lib.rs)* document features
+- *(ci)* fix
+- merge main
+- *(ci)* generate README.md from lib.rs
+- [**breaking**] remove all feature flags
+- [**breaking**] remove `assets` feature flag
+- [**breaking**] overhaul all feature flags
+- [**breaking**] re-export less in the crate root
+- release ([#2](https://github.com/tversteeg/chuot/pull/2))
+- ignore run-wasm in release-plz
+- release-plz CI
+- initial commit
+
 ## [0.9.0-alpha.6](https://github.com/tversteeg/chuot/compare/chuot-v0.9.0-alpha.5...chuot-v0.9.0-alpha.6) - 2024-04-07
 
 ### Added
