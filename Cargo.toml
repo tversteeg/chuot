@@ -1,21 +1,21 @@
 [package]
-name = "pixel-game-lib"
-version = "0.9.0-alpha.6"
+name = "chuot"
+version = "0.0.1"
 edition = "2021"
 authors = ["Thomas Versteeg <t@versteeg.email>"]
 license = "AGPL-3.0"
-homepage = "https://github.com/tversteeg/pixel-game-lib"
+homepage = "https://github.com/tversteeg/chuot"
 readme = "README.md"
 description = "AGPL licensed and opinionated game engine for pixel-art games"
-documentation = "https://docs.rs/pixel-game-lib"
-repository = "https://github.com/tversteeg/pixel-game-lib.git"
+documentation = "https://docs.rs/chuot"
+repository = "https://github.com/tversteeg/chuot.git"
 keywords = ["gamedev", "utility"]
 categories = [
 	"games",
 	"game-engines",
 ]
 rust-version = "1.77.0"
-include = ["/src"]
+include = ["/src", "build.rs", "/shaders"]
 build-script = "build.rs"
 
 [package.metadata.docs.rs]
@@ -41,13 +41,13 @@ default = ["hot-reload-assets", "dialogue", "in-game-profiler"]
 #
 # If disabled loads all assets from disk.
 # Mutually exclusive from `hot-reload-assets`.
-embed-assets = ["pixel-game-lib-macros/embed-assets"]
+embed-assets = ["chuot-macros/embed-assets"]
 
 # Enable assets and hot-reload assets from disk when they are saved.
 #
 # Has no effect when building for the web.
 # Mutually exclusive from `embed-assets`.
-hot-reload-assets = ["pixel-game-lib-macros/hot-reload-assets"]
+hot-reload-assets = ["chuot-macros/hot-reload-assets"]
 
 # Integrate [Yarn Spinner](https://www.yarnspinner.dev/), a friendly DSL for writing dialogue.
 dialogue = ["dep:yarnspinner"]
@@ -69,7 +69,7 @@ in-game-profiler = [
 ]
 
 [dependencies]
-pixel-game-lib-macros = { path = "macros", version = "0.1.0" }
+chuot-macros = { path = "macros", version = "0.1.0" }
 
 miette = "7.2.0"
 serde = { version = "1.0.198", features = ["derive"] }

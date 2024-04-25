@@ -86,8 +86,8 @@ impl<'path, 'ctx> DrawSpriteContext<'path, 'ctx> {
     /// This example runs on my PC with an average FPS of 35 when rendering 100000 sprites.
     ///
     /// ```no_run
-    /// # use pixel_game_lib::glamour::Vector2;
-    /// # fn call(ctx: pixel_game_lib::Context) {
+    /// # use chuot::glamour::Vector2;
+    /// # fn call(ctx: chuot::Context) {
     /// ctx.sprite("some_asset")
     ///   .draw_multiple_translated((0..10).map(|x| Vector2::new(x as f32, 0.0)));
     /// # }
@@ -96,8 +96,8 @@ impl<'path, 'ctx> DrawSpriteContext<'path, 'ctx> {
     /// It's functionally the same as:
     ///
     /// ```no_run
-    /// # use pixel_game_lib::glamour::Vector2;
-    /// # fn call(ctx: pixel_game_lib::Context) {
+    /// # use chuot::glamour::Vector2;
+    /// # fn call(ctx: chuot::Context) {
     /// for x in 0..10 {
     ///   ctx.sprite("some_asset")
     ///     .translate(Vector2::new(x as f32, 0.0))

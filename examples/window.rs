@@ -1,6 +1,6 @@
 //! Show how an window is spawned using the window configuration.
 
-use pixel_game_lib::{Context, GameConfig, KeyCode, PixelGame};
+use chuot::{Context, GameConfig, KeyCode, PixelGame};
 
 /// Define an empty game state, because we don't need any state for our window.
 struct GameState {}
@@ -26,6 +26,6 @@ impl PixelGame for GameState {
 fn main() {
     // Spawn the window with the default configuration
     GameState {}
-        .run(pixel_game_lib::load_assets!(), GameConfig::default())
+        .run(chuot::load_assets!(), GameConfig::default())
         .expect("Error running game");
 }

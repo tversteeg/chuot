@@ -1,13 +1,13 @@
-# pixel-game-lib
+# 🐭 Chuột
 
-[![Build Status](https://github.com/tversteeg/pixel-game-lib/workflows/CI/badge.svg)](https://github.com/tversteeg/pixel-game-lib/actions?workflow=CI)
-[![Crates.io](https://img.shields.io/crates/v/pixel-game-lib.svg)](https://crates.io/crates/pixel-game-lib)
-[![Documentation](https://docs.rs/pixel-game-lib/badge.svg)](https://docs.rs/pixel-game-lib)
-[![License: AGPL-3.0](https://img.shields.io/crates/l/pixel-game-lib.svg)](#license)
-[![Dependency Status](https://deps.rs/repo/github/tversteeg/pixel-game-lib/status.svg)](https://deps.rs/repo/github/tversteeg/pixel-game-lib)
-[![Downloads](https://img.shields.io/crates/d/pixel-game-lib.svg)](#downloads)
+[![Build Status](https://github.com/tversteeg/chuot/workflows/CI/badge.svg)](https://github.com/tversteeg/chuot/actions?workflow=CI)
+[![Crates.io](https://img.shields.io/crates/v/chuot.svg)](https://crates.io/crates/chuot)
+[![Documentation](https://docs.rs/chuot/badge.svg)](https://docs.rs/chuot)
+[![License: AGPL-3.0](https://img.shields.io/crates/l/chuot.svg)](#license)
+[![Dependency Status](https://deps.rs/repo/github/tversteeg/chuot/status.svg)](https://deps.rs/repo/github/tversteeg/chuot)
+[![Downloads](https://img.shields.io/crates/d/chuot.svg)](#downloads)
 
-### [Documentation](https://docs.rs/pixel-game-lib/)
+### [Documentation](https://docs.rs/chuot/)
 
 <!-- cargo-rdme start -->
 
@@ -43,7 +43,7 @@ AGPL licensed and opinionated game engine for 2D pixel-art games.
 Using this crate is quite simple, there is a single trait [`PixelGame`] with two required functions, [`PixelGame::update`] and [`PixelGame::render`], that need to be implemented for a game state object.
 
 ```rust
-use pixel_game_lib::{PixelGame, Context, GameConfig};
+use chuot::{PixelGame, Context, GameConfig};
 
 struct MyGame;
 
@@ -61,15 +61,15 @@ impl PixelGame for MyGame {
 
 let game = MyGame;
 
-game.run(pixel_game_lib::load_assets!(), GameConfig::default())?;
+game.run(chuot::load_assets!(), GameConfig::default())?;
 ```
 
 #### Feature Flags
 
-All major feature flags are enabled by default, I would recommend installing `pixel_game_lib` with `default-features = false` and adding the required features as needed.
+All major feature flags are enabled by default, I would recommend installing `chuot` with `default-features = false` and adding the required features as needed.
 
 ```sh
-cargo add pixel_game_lib --no-default-features
+cargo add chuot --no-default-features
 ```
 
 ##### `embed-assets`
@@ -114,7 +114,7 @@ The counter is rendered as text[^text] loaded from a font in the top-left corner
 When the 'Escape' key is pressed[^escape-key] the game will exit and the window will close.
 
 ```rust
-use pixel_game_lib::{PixelGame, Context, GameConfig, MouseButton, KeyCode, glamour::Vector2};
+use chuot::{PixelGame, Context, GameConfig, MouseButton, KeyCode, glamour::Vector2};
 
 /// Object holding all game state.
 struct MyGame {
@@ -151,7 +151,7 @@ impl PixelGame for MyGame {
 let game = MyGame { counter: 0 };
 
 // Run the game until exit is requested
-game.run(pixel_game_lib::load_assets!(), GameConfig::default().with_title("My Game"))?;
+game.run(chuot::load_assets!(), GameConfig::default().with_title("My Game"))?;
 ```
 
 [^left-mouse]: [`Context::mouse_pressed`]

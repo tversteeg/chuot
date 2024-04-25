@@ -80,7 +80,16 @@ impl AssetSource {
             L::EXTENSION
         );
 
-        Some(L::load(self.raw_asset(id, L::EXTENSION)?))
+        // Convert ID back to file
+        let file_path = self
+            .assets_dir
+            .join(format!("{}.{}", id.replace(".", "/"), L::EXTENSION));
+
+        // Read the file, return None if it failed for whatever reason
+        let bytes = std::fs::read(file_path).ok()?;
+
+        // Create object
+        Some(L::load(&bytes))
     }
 
     /// Get the atlas ID based on a texture asset ID.
@@ -117,21 +126,5 @@ impl AssetSource {
         let info = png.info();
 
         Some(Size2::new(info.width, info.height))
-    }
-
-    /// Get the bytes of an asset that matches the ID and the extension.
-    pub(crate) fn raw_asset(&self, id: &Id, extension: &str) -> Option<&[u8]> {
-        // Convert ID back to file
-        let file_path = self
-            .assets_dir
-            .join(format!("{}.{extension}", id.replace(".", "/")));
-
-        // Read the file, return None if it failed for whatever reason
-        let bytes = std::fs::read(file_path).ok()?;
-
-        // TODO: fix
-        let bytes_ref = Box::leak(Box::new(bytes));
-
-        Some(bytes_ref)
     }
 }

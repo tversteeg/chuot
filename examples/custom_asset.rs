@@ -2,7 +2,7 @@
 //!
 //! When the `hot-reloading-assets` flag is enabled you can update the text live by editing the file.
 
-use pixel_game_lib::{
+use chuot::{
     assets::{loader::Loader, AssetSource, Id, Loadable},
     glamour::Size2,
     Context, GameConfig, KeyCode, PixelGame,
@@ -64,7 +64,7 @@ fn main() {
     // Spawn the window with the default configuration but with a horizontally stretched buffer for displaying longer text
     GameState {}
         .run(
-            pixel_game_lib::load_assets!(),
+            chuot::load_assets!(),
             GameConfig::default().with_buffer_size(Size2::new(400.0, 50.0)),
         )
         .expect("Error running game");

@@ -30,7 +30,7 @@
 //! Using this crate is quite simple, there is a single trait [`PixelGame`] with two required functions, [`PixelGame::update`] and [`PixelGame::render`], that need to be implemented for a game state object.
 //!
 //! ```no_run
-//! use pixel_game_lib::{PixelGame, Context, GameConfig};
+//! use chuot::{PixelGame, Context, GameConfig};
 //!
 //! struct MyGame;
 //!
@@ -49,17 +49,17 @@
 //!
 //! let game = MyGame;
 //!
-//! game.run(pixel_game_lib::load_assets!(), GameConfig::default())?;
+//! game.run(chuot::load_assets!(), GameConfig::default())?;
 //! # Ok(()) }
 //! # try_main().unwrap();
 //! ```
 //!
 //! # Feature Flags
 //!
-//! All major feature flags are enabled by default, I would recommend installing `pixel_game_lib` with `default-features = false` and adding the required features as needed.
+//! All major feature flags are enabled by default, I would recommend installing `chuot` with `default-features = false` and adding the required features as needed.
 //!
 //! ```sh
-//! cargo add pixel_game_lib --no-default-features
+//! cargo add chuot --no-default-features
 //! ```
 //!
 //! ## `embed-assets`
@@ -104,7 +104,7 @@
 //! When the 'Escape' key is pressed[^escape-key] the game will exit and the window will close.
 //!
 //! ```no_run
-//! use pixel_game_lib::{PixelGame, Context, GameConfig, MouseButton, KeyCode, glamour::Vector2};
+//! use chuot::{PixelGame, Context, GameConfig, MouseButton, KeyCode, glamour::Vector2};
 //!
 //! /// Object holding all game state.
 //! struct MyGame {
@@ -142,7 +142,7 @@
 //! let game = MyGame { counter: 0 };
 //!
 //! // Run the game until exit is requested
-//! game.run(pixel_game_lib::load_assets!(), GameConfig::default().with_title("My Game"))?;
+//! game.run(chuot::load_assets!(), GameConfig::default().with_title("My Game"))?;
 //! # Ok(()) }
 //! # try_main().unwrap();
 //! ```
@@ -191,11 +191,11 @@ pub use winit::{
 /// # Example
 ///
 /// ```
-/// pixel_game_lib::load_assets!("assets/");
+/// chuot::load_assets!("assets/");
 /// // Is the same as..
-/// pixel_game_lib::load_assets!();
+/// chuot::load_assets!();
 /// ```
-pub use pixel_game_lib_macros::load_assets;
+pub use chuot_macros::load_assets;
 
 pub use config::GameConfig;
 pub use context::Context;
@@ -222,7 +222,7 @@ where
     /// # Example
     ///
     /// ```
-    /// use pixel_game_lib::{PixelGame, Context, GameConfig, KeyCode};
+    /// use chuot::{PixelGame, Context, GameConfig, KeyCode};
     ///
     /// struct MyGame;
     ///
@@ -254,7 +254,7 @@ where
     /// # Example
     ///
     /// ```
-    /// use pixel_game_lib::{PixelGame, Context, GameConfig, KeyCode};
+    /// use chuot::{PixelGame, Context, GameConfig, KeyCode};
     ///
     /// struct MyGame;
     ///
@@ -275,13 +275,13 @@ where
     ///
     /// # Arguments
     ///
-    /// * `assets` - Source of the assets, needs to be `pixel_game_lib::load_assets!()`.
+    /// * `assets` - Source of the assets, needs to be `chuot::load_assets!()`.
     /// * `game_config` - Configuration for the window, can be used to set the buffer size, the window title and other things.
     ///
     /// # Example
     ///
     /// ```no_run
-    /// use pixel_game_lib::{PixelGame, Context, GameConfig, KeyCode};
+    /// use chuot::{PixelGame, Context, GameConfig, KeyCode};
     ///
     /// struct MyGame;
     ///
@@ -302,7 +302,7 @@ where
     /// // In main
     /// let game = MyGame;
     ///
-    /// game.run(pixel_game_lib::load_assets!(), GameConfig::default())?;
+    /// game.run(chuot::load_assets!(), GameConfig::default())?;
     /// # Ok(()) }
     /// # try_main().unwrap();
     /// ```

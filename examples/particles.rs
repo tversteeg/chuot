@@ -1,9 +1,7 @@
 //! Show how we can efficiently draw thousands of particles.
 
+use chuot::{config::RotationAlgorithm, Context, GameConfig, KeyCode, MouseButton, PixelGame};
 use glamour::{Size2, Vector2};
-use pixel_game_lib::{
-    config::RotationAlgorithm, Context, GameConfig, KeyCode, MouseButton, PixelGame,
-};
 
 /// How long a particle lives in seconds.
 const PARTICLE_LIFE_SECS: f32 = 10.0;
@@ -45,8 +43,8 @@ impl PixelGame for GameState {
                     self.particles.push(Particle {
                         position: mouse,
                         velocity: Vector2::new(
-                            pixel_game_lib::random_range(-100.0, 100.0),
-                            pixel_game_lib::random_range(-100.0, 100.0),
+                            chuot::random_range(-100.0, 100.0),
+                            chuot::random_range(-100.0, 100.0),
                         ),
                         life: PARTICLE_LIFE_SECS,
                     });
@@ -59,8 +57,8 @@ impl PixelGame for GameState {
                     self.particles.push(Particle {
                         position: mouse,
                         velocity: Vector2::new(
-                            pixel_game_lib::random_range(-200.0, 200.0),
-                            pixel_game_lib::random_range(-200.0, 200.0),
+                            chuot::random_range(-200.0, 200.0),
+                            chuot::random_range(-200.0, 200.0),
                         ),
                         life: PARTICLE_LIFE_SECS,
                     });
@@ -73,8 +71,8 @@ impl PixelGame for GameState {
                     self.particles.push(Particle {
                         position: mouse,
                         velocity: Vector2::new(
-                            pixel_game_lib::random_range(-300.0, 300.0),
-                            pixel_game_lib::random_range(-300.0, 300.0),
+                            chuot::random_range(-300.0, 300.0),
+                            chuot::random_range(-300.0, 300.0),
                         ),
                         life: PARTICLE_LIFE_SECS,
                     });
@@ -85,8 +83,8 @@ impl PixelGame for GameState {
             self.particles.push(Particle {
                 position: mouse,
                 velocity: Vector2::new(
-                    pixel_game_lib::random_range(-10.0, 10.0),
-                    pixel_game_lib::random_range(-10.0, 10.0),
+                    chuot::random_range(-10.0, 10.0),
+                    chuot::random_range(-10.0, 10.0),
                 ),
                 life: PARTICLE_LIFE_SECS,
             });
@@ -174,6 +172,6 @@ fn main() {
 
     // Spawn the window and run the 'game'
     GameState::default()
-        .run(pixel_game_lib::load_assets!(), config)
+        .run(chuot::load_assets!(), config)
         .expect("Error running game");
 }

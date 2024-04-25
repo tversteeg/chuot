@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.9.0-alpha.6](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.9.0-alpha.5...pixel-game-lib-v0.9.0-alpha.6) - 2024-04-07
+## [0.9.0-alpha.6](https://github.com/tversteeg/chuot/compare/chuot-v0.9.0-alpha.5...chuot-v0.9.0-alpha.6) - 2024-04-07
 
 ### Added
 - *(random)* add `crate::random` and `crate::random_range` functions
@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - *(example)* add example drawing and moving thousands of particles
 - *(project)* document goals and non-goals
 
-## [0.9.0-alpha.5](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.9.0-alpha.4...pixel-game-lib-v0.9.0-alpha.5) - 2024-04-04
+## [0.9.0-alpha.5](https://github.com/tversteeg/chuot/compare/chuot-v0.9.0-alpha.4...chuot-v0.9.0-alpha.5) - 2024-04-04
 
 ### Added
 - *(sprite)* add `SpriteContext::draw_multiple_translated` for a performant way of drawing an iterator of offsets
@@ -33,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - *(sprite)* [**breaking**] use zero-cast abstraction with helper structs for more ergonic sprite drawing
 - *(assets)* [**breaking**] move `crate::asset` and `crate::asset_owned` to `Context` as methods
 
-## [0.9.0-alpha.4](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.9.0-alpha.3...pixel-game-lib-v0.9.0-alpha.4) - 2024-03-29
+## [0.9.0-alpha.4](https://github.com/tversteeg/chuot/compare/chuot-v0.9.0-alpha.3...chuot-v0.9.0-alpha.4) - 2024-03-29
 
 ### Added
 - *(config)* allow setting vsync in `GameConfig`
@@ -44,7 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Other
 - *(graphics)* refactor structure of communicating with the GPU for future addition of GPU profiler
 
-## [0.9.0-alpha.3](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.9.0-alpha.2...pixel-game-lib-v0.9.0-alpha.3) - 2024-03-27
+## [0.9.0-alpha.3](https://github.com/tversteeg/chuot/compare/chuot-v0.9.0-alpha.2...chuot-v0.9.0-alpha.3) - 2024-03-27
 
 ### Added
 - *(graphics)* add `Context::update_sprite_pixels` for updating regions of pixels on an already uploaded sprites
@@ -62,7 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - *(graphics)* [**breaking**] skip downscale render pass when buffer fits inside window
 - *(project)* [**breaking**] make some internal public items private, improve documentation
 
-## [0.9.0-alpha.2](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.9.0-alpha.1...pixel-game-lib-v0.9.0-alpha.2) - 2024-03-24
+## [0.9.0-alpha.2](https://github.com/tversteeg/chuot/compare/chuot-v0.9.0-alpha.1...chuot-v0.9.0-alpha.2) - 2024-03-24
 
 ### Added
 - *(font)* [**breaking**] add `Context::draw_text` which loads a bitmap font
@@ -76,7 +76,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - *(context)* improve performance by switching from `Arc<Mutex<..>>` to `Rc<RefCell<..>>`
 - *(graphics)* pack all sprites into a single texture atlas
 
-## [0.9.0-alpha.1](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.9.0-alpha...pixel-game-lib-v0.9.0-alpha.1) - 2024-03-21
+## [0.9.0-alpha.1](https://github.com/tversteeg/chuot/compare/chuot-v0.9.0-alpha...chuot-v0.9.0-alpha.1) - 2024-03-21
 
 ### Fixed
 - *(build)* fix compilation for WASM target
@@ -85,7 +85,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Other
 - *(project)* [**breaking**] replace `PixelGame::update` & `PixelGame::render` with singular `PixelGame::tick`, change vek library to glam and glamour
 
-## [0.9.0-alpha](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.8.0...pixel-game-lib-v0.9.0-alpha) - 2024-03-20
+## [0.9.0-alpha](https://github.com/tversteeg/chuot/compare/chuot-v0.8.0...chuot-v0.9.0-alpha) - 2024-03-20
 
 ### Added
 - *(profile)* Allow `in-game-profiler` feature flag for showing a profiler overlay, use proper color space for background and viewport colors
@@ -119,7 +119,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - *(project)* [**breaking**] remove gui, reorganize most components related to rendering
 - *(window)* [**breaking**] start replacing CPU based pixel renderer with GPU based one
 
-## [0.8.0](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.7.0...pixel-game-lib-v0.8.0) - 2024-03-06
+## [0.8.0](https://github.com/tversteeg/chuot/compare/chuot-v0.7.0...chuot-v0.8.0) - 2024-03-06
 
 ### Added
 - *(physics)* add square, triangle and circle collider shapes
@@ -138,7 +138,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Other
 - *(ci)* only test on Linux and run check on the other platforms
 
-## [0.7.0](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.6.1...pixel-game-lib-v0.7.0) - 2024-03-03
+## [0.7.0](https://github.com/tversteeg/chuot/compare/chuot-v0.6.1...chuot-v0.7.0) - 2024-03-03
 
 ### Added
 - *(state)* create a `PixelGame` trait which simplifies setting up a new game with a window
@@ -151,14 +151,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Other
 - *(example)* fix 'physics' import
 
-## [0.6.1](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.6.0...pixel-game-lib-v0.6.1) - 2024-02-28
+## [0.6.1](https://github.com/tversteeg/chuot/compare/chuot-v0.6.0...chuot-v0.6.1) - 2024-02-28
 
 ### Other
 - *(window)* perform color conversion on GPU with a custom shader instead of on CPU
 - *(window)* use `Rc` instead of `Arc` for the window handler
 - *(canvas)* improve `draw_line` performance by switching from 'line_drawing' to the 'clipline' crate
 
-## [0.6.0](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.5.0...pixel-game-lib-v0.6.0) - 2024-02-26
+## [0.6.0](https://github.com/tversteeg/chuot/compare/chuot-v0.5.0...chuot-v0.6.0) - 2024-02-26
 
 ### Added
 - *(gui)* [**breaking**] embed default GUI elements behind feature flag `default-gui`
@@ -172,7 +172,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - *(example)* fix dialogue example buttons
 - *(example)* draw options as GUI buttons
 
-## [0.5.0](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.4.7...pixel-game-lib-v0.5.0) - 2024-02-23
+## [0.5.0](https://github.com/tversteeg/chuot/compare/chuot-v0.4.7...chuot-v0.5.0) - 2024-02-23
 
 ### Fixed
 - *(sprite)* take offset into account when drawing
@@ -181,7 +181,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Other
 - *(serde)* [**breaking**] add `deny_unknown_fields` to all items implementing `Deserialize`
 
-## [0.4.7](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.4.6...pixel-game-lib-v0.4.7) - 2024-02-20
+## [0.4.7](https://github.com/tversteeg/chuot/compare/chuot-v0.4.6...chuot-v0.4.7) - 2024-02-20
 
 ### Added
 - *(canvas)* add `draw_circle`, `draw_scanline` and improve `draw_circle_outline` to/on `Canvas`
@@ -192,13 +192,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Other
 - *(deps)* update taffy to 0.4
 
-## [0.4.6](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.4.5...pixel-game-lib-v0.4.6) - 2024-02-18
+## [0.4.6](https://github.com/tversteeg/chuot/compare/chuot-v0.4.5...chuot-v0.4.6) - 2024-02-18
 
 ### Added
 - *(canvas)* add `draw_circle_outline` to `Canvas`
 - *(canvas)* add `draw_quad` and `draw_triangle` to `Canvas`
 
-## [0.4.5](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.4.4...pixel-game-lib-v0.4.5) - 2024-02-16
+## [0.4.5](https://github.com/tversteeg/chuot/compare/chuot-v0.4.4...chuot-v0.4.5) - 2024-02-16
 
 ### Fixed
 - *(deps)* update rust crate miette to 7.1.0
@@ -209,7 +209,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - *(deps)* update rust crate tokio to 1.36.0
 - *(deps)* update rust crate serde to 1.0.196
 
-## [0.4.4](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.4.3...pixel-game-lib-v0.4.4) - 2024-01-26
+## [0.4.4](https://github.com/tversteeg/chuot/compare/chuot-v0.4.3...chuot-v0.4.4) - 2024-01-26
 
 ### Fixed
 - *(deps)* update rust crate assets_manager to 0.11.2
@@ -232,14 +232,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - *(deps)* update swatinem/rust-cache action to v2.7.3
 - *(deps)* update swatinem/rust-cache action to v2.7.2
 
-## [0.4.3](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.4.2...pixel-game-lib-v0.4.3) - 2023-12-23
+## [0.4.3](https://github.com/tversteeg/chuot/compare/chuot-v0.4.2...chuot-v0.4.3) - 2023-12-23
 
 ### Fixed
 - *(deps)* update rust crate winit to 0.29.5
 - *(deps)* update rust crate tokio to 1.35.1
 - *(deps)* update rust crate derive-where to 1.2.7
 
-## [0.4.2](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.4.1...pixel-game-lib-v0.4.2) - 2023-12-13
+## [0.4.2](https://github.com/tversteeg/chuot/compare/chuot-v0.4.1...chuot-v0.4.2) - 2023-12-13
 
 ### Added
 - *(canvas)* add unoptimized 'draw_line' method
@@ -250,7 +250,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - *(deps)* update rust crate derive-where to 1.2.6
 - *(deps)* update rust-wasm-bindgen monorepo
 
-## [0.4.1](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.4.0...pixel-game-lib-v0.4.1) - 2023-11-26
+## [0.4.1](https://github.com/tversteeg/chuot/compare/chuot-v0.4.0...chuot-v0.4.1) - 2023-11-26
 
 ### Fixed
 - *(deps)* update rust crate winit to 0.29.4
@@ -260,7 +260,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Other
 - set MSRV
 
-## [0.4.0](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.3.1...pixel-game-lib-v0.4.0) - 2023-11-14
+## [0.4.0](https://github.com/tversteeg/chuot/compare/chuot-v0.3.1...chuot-v0.4.0) - 2023-11-14
 
 ### Fixed
 - *(deps)* update rust crate winit_input_helper to 0.15.1
@@ -274,7 +274,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Other
 - *(deps)* [**breaking**] update winit to 0.29
 
-## [0.3.1](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.3.0...pixel-game-lib-v0.3.1) - 2023-10-25
+## [0.3.1](https://github.com/tversteeg/chuot/compare/chuot-v0.3.0...chuot-v0.3.1) - 2023-10-25
 
 ### Added
 - *(physics)* add XPBD-based physics engine
@@ -291,7 +291,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - *(deps)* update swatinem/rust-cache action to v2.7.1
 - *(window)* re-export winit_input_helper::WinitInputHelper as window::Input
 
-## [0.3.0](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.2.0...pixel-game-lib-v0.3.0) - 2023-10-20
+## [0.3.0](https://github.com/tversteeg/chuot/compare/chuot-v0.2.0...chuot-v0.3.0) - 2023-10-20
 
 ### Added
 - *(gui)* implement layout system
@@ -318,7 +318,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [**breaking**] overhaul all feature flags
 - [**breaking**] re-export less in the crate root
 
-## [0.2.0](https://github.com/tversteeg/pixel-game-lib/compare/pixel-game-lib-v0.1.0...pixel-game-lib-v0.2.0) - 2023-10-02
+## [0.2.0](https://github.com/tversteeg/chuot/compare/chuot-v0.1.0...chuot-v0.2.0) - 2023-10-02
 
 ### Added
 - *(window)* expose winit input
