@@ -105,11 +105,17 @@ impl Atlas {
             ],
         });
 
+        // Setup a new atlas packer
+        let packer = Packer::new(Size2::splat(ATLAS_TEXTURE_SIZE as u16))
+            .with_existing_rectangles_iter(texture_rects.iter().map(|rect| {
+                Rect::new(
+                    Point2::new(rect.origin.x as u16, rect.origin.y as u16),
+                    Size2::new(rect.size.width as u16, rect.size.height as u16),
+                )
+            }));
+
         // Create and upload the uniforms
         let rects = UniformArrayState::from_vec(texture_rects, &gpu.device);
-
-        // Setup a new atlas packer
-        let packer = Packer::new(Size2::splat(ATLAS_TEXTURE_SIZE as u16));
 
         Self {
             texture,

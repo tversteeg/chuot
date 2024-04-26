@@ -2,7 +2,7 @@
 //!
 //! Removes all features for actually creating the textures and allows inserting already defined rectangles.
 
-use glamour::{Point2, Size2};
+use glamour::{Point2, Rect, Size2};
 
 /// 2D rectangle packer.
 #[derive(Debug, Clone)]
@@ -14,7 +14,7 @@ pub struct Packer {
 }
 
 impl Packer {
-    /// Setup a new packer with a size.
+    /// Setup a new empty packer with a size.
     ///
     /// # Arguments
     ///
@@ -29,6 +29,98 @@ impl Packer {
         let skylines = vec![skyline];
 
         Self { max_size, skylines }
+    }
+
+    /// Fill the packer with already existing rectangles.
+    ///
+    /// The rectangles should be as close to Y = 0 as much as possible, to efficiently add new items.
+    ///
+    /// # Arguments
+    ///
+    /// * `existing_rectangles` - Iterator of pre-set rectangles that should be filled into the positions.
+    ///
+    /// # Panics
+    ///
+    /// - When any rectangle is out of bounds.
+    #[inline]
+    pub fn with_existing_rectangles_iter(
+        mut self,
+        existing_rectangles: impl Iterator<Item = Rect<u16>>,
+    ) -> Self {
+        for rect in existing_rectangles {
+            // Construct the new skyline to check for overlaps and inserts
+            let new_skyline = Skyline {
+                position: Point2::new(rect.origin.x, rect.origin.y + rect.height()),
+                width: rect.width(),
+            };
+
+            // Split overlapping skylines
+            let mut index = 0;
+            let mut index_to_insert = 0;
+            while index < self.skylines.len() {
+                let skyline = self.skylines[index];
+
+                if skyline.position.y > new_skyline.position.y || !skyline.overlaps(new_skyline) {
+                    // Only take higher skylines that also overlap
+                    continue;
+                }
+
+                if skyline.left() >= new_skyline.left() && skyline.right() <= new_skyline.right() {
+                    // Skyline is inside the new one
+                    self.skylines.remove(index);
+                    continue;
+                }
+
+                if skyline.left() < new_skyline.left() && skyline.right() > new_skyline.right() {
+                    // Old skyline is inside the new one
+
+                    // Insert the slice after
+                    self.skylines.insert(
+                        index + 1,
+                        Skyline {
+                            position: Point2::new(new_skyline.right(), skyline.position.y),
+                            width: skyline.right() - new_skyline.right(),
+                        },
+                    );
+
+                    // Cut the right part of the old skyline
+                    self.skylines[index].width = new_skyline.left() - skyline.left();
+
+                    // Insert between the recently split one
+                    index_to_insert = index + 1;
+                    break;
+                }
+
+                if skyline.left() < new_skyline.left() {
+                    // Cut the right part of the old skyline
+                    self.skylines[index].width = new_skyline.left() - skyline.left();
+
+                    // Insert after this skyline
+                    index_to_insert = index + 1;
+                }
+
+                if skyline.right() > new_skyline.right() {
+                    // Cut the left part of the old skyline
+                    self.skylines[index].width = skyline.right() - new_skyline.right();
+                    self.skylines[index].position.x = new_skyline.right();
+
+                    // Insert before this skyline
+                    index_to_insert = index;
+                    break;
+                }
+
+                index += 1;
+            }
+            // Insert the skyline here
+            self.skylines.insert(index_to_insert, new_skyline);
+
+            // Merge the skylines on the same height
+            self.merge();
+        }
+
+        dbg!(&self.skylines);
+
+        self
     }
 
     /// Insert and pack a rectangle.
@@ -116,6 +208,11 @@ impl Packer {
         );
 
         // Shrink all skylines to the right of the inserted skyline
+        self.shrink(skyline_index);
+    }
+
+    /// Shrink all skylines from the right of the index.
+    fn shrink(&mut self, skyline_index: usize) {
         let index = skyline_index + 1;
         while index < self.skylines.len() {
             let previous = &self.skylines[index - 1];
@@ -181,6 +278,12 @@ impl Skyline {
     pub const fn right(&self) -> u16 {
         self.position.x + self.width
     }
+
+    /// Whether it overlaps with another skyline.
+    #[inline(always)]
+    pub const fn overlaps(&self, other: Skyline) -> bool {
+        self.right() >= other.left() && other.right() >= self.left()
+    }
 }
 
 #[cfg(test)]
@@ -207,6 +310,36 @@ mod tests {
         // Filling the 32x32 square with 64 + 1 equal blocks of 4x4 should overflow the box
         let mut packer = Packer::new(Size2::new(32, 32));
         for _ in 0..64 {
+            assert!(packer.insert(Size2::new(4, 4)).is_some());
+        }
+        assert!(packer.insert(Size2::new(4, 4)).is_none());
+    }
+
+    #[test]
+    fn existing_rects() {
+        // Filling the 32x32 square with 63 + 1 predefined + 1 equal blocks of 4x4 should overflow the box
+        let mut packer = Packer::new(Size2::new(32, 32)).with_existing_rectangles_iter(
+            std::iter::once(Rect::new(Point2::new(0, 0), Size2::new(4, 4))),
+        );
+        for _ in 0..63 {
+            assert!(packer.insert(Size2::new(4, 4)).is_some());
+        }
+        assert!(packer.insert(Size2::new(4, 4)).is_none());
+
+        // Filling the 32x32 square with 63 + 1 predefined + 1 equal blocks of 4x4 should overflow the box
+        let mut packer = Packer::new(Size2::new(32, 32)).with_existing_rectangles_iter(
+            std::iter::once(Rect::new(Point2::new(28, 0), Size2::new(4, 4))),
+        );
+        for _ in 0..63 {
+            assert!(packer.insert(Size2::new(4, 4)).is_some());
+        }
+        assert!(packer.insert(Size2::new(4, 4)).is_none());
+
+        // Filling the 32x32 square with 63 + 1 predefined + 1 equal blocks of 4x4 should overflow the box
+        let mut packer = Packer::new(Size2::new(32, 32)).with_existing_rectangles_iter(
+            std::iter::once(Rect::new(Point2::new(4, 0), Size2::new(4, 4))),
+        );
+        for _ in 0..63 {
             assert!(packer.insert(Size2::new(4, 4)).is_some());
         }
         assert!(packer.insert(Size2::new(4, 4)).is_none());
