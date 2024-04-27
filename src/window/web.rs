@@ -32,23 +32,29 @@ where
     let body = document
         .body()
         .ok_or_else(|| miette::miette!("Error finding web body"))?;
-    body.style().set_css_text("text-align: center");
-    let canvas = document
-        .create_element("canvas")
-        .map_err(|err| miette::miette!("Error creating canvas: {err:?}"))?
-        .dyn_into::<HtmlCanvasElement>()
-        .map_err(|err| miette::miette!("Error casting canvas: {err:?}"))?;
-    canvas.set_id("canvas");
-    body.append_child(&canvas)
-        .map_err(|err| miette::miette!("Error appending canvas to body: {err:?}"))?;
 
-    // Create a header with the title
-    let header = document
-        .create_element("h2")
-        .map_err(|err| miette::miette!("Error creating h2 element: {err:?}"))?;
-    header.set_text_content(Some(window_config.title.as_str()));
-    body.append_child(&header)
-        .map_err(|err| miette::miette!("Error appending header to body: {err:?}"))?;
+    // Look for a canvas with ID 'chuot', and if not found create it
+    let canvas = match document.get_element_by_id("chuot") {
+        // Canvas found, use it
+        Some(canvas) => canvas
+            .dyn_into::<HtmlCanvasElement>()
+            .map_err(|err| miette::miette!("Error casting canvas: {err:?}"))?,
+        // No canvas found, create the element
+        None => {
+            log::warn!("No canvas element with ID 'chuot' found, creating a new one and adding it to the body of the page");
+            let canvas = document
+                .create_element("canvas")
+                .map_err(|err| miette::miette!("Error creating canvas: {err:?}"))?
+                .dyn_into::<HtmlCanvasElement>()
+                .map_err(|err| miette::miette!("Error casting canvas: {err:?}"))?;
+            canvas.set_id("chuot");
+
+            body.append_child(&canvas)
+                .map_err(|err| miette::miette!("Error appending canvas to body: {err:?}"))?;
+
+            canvas
+        }
+    };
 
     log::debug!("Creating window attached to canvas");
 
@@ -64,9 +70,9 @@ where
         .wrap_err("Error setting up window")?;
 
     // Ensure the pixels are not rendered with wrong filtering and that the size is correct
-    canvas.style().set_css_text(
-        "display:block; margin: auto; image-rendering: pixelated; outline: none; border: none;",
-    );
+    canvas
+        .style()
+        .set_css_text("image-rendering: pixelated; outline: none; border: none;");
 
     crate::window::winit_start(
         event_loop,
