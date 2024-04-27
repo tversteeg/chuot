@@ -4,11 +4,19 @@ use glamour::{Contains, Rect, Size2, Vector2};
 use miette::Result;
 use winit::window::Window;
 
-use crate::{assets::EmbeddedRawStaticAtlas, window::InGameProfiler, Context, GameConfig};
+use crate::{
+    assets::{loader::png::PngReader, EmbeddedRawStaticAtlas},
+    window::InGameProfiler,
+    Context, GameConfig,
+};
 
 use super::{
-    atlas::Atlas, component::SpriteRenderState, data::ScreenInfo, gpu::Gpu,
-    post_processing::PostProcessingState, uniform::UniformState,
+    atlas::{Atlas, AtlasRef},
+    component::SpriteRenderState,
+    data::ScreenInfo,
+    gpu::Gpu,
+    post_processing::PostProcessingState,
+    uniform::UniformState,
 };
 
 /// Texture format we prefer to use for everything.
@@ -20,13 +28,11 @@ pub(crate) const PREFERRED_TEXTURE_FORMAT: wgpu::TextureFormat =
 /// Main render state holding the GPU information.
 pub(crate) struct MainRenderState<'window> {
     /// GPU state.
-    gpu: Gpu<'window>,
+    pub(crate) gpu: Gpu<'window>,
     /// Uniform screen info (size and scale) to the shaders.
     screen_info: UniformState<ScreenInfo>,
     /// Sprite component specific render pipelines.
     sprite_render_state: SpriteRenderState,
-    /// Texture atlas.
-    atlas: Atlas,
     /// Size of the final buffer to draw.
     ///
     /// Will be scaled with integer scaling and letterboxing to fit the screen.
@@ -39,10 +45,8 @@ pub(crate) struct MainRenderState<'window> {
     background_color: wgpu::Color,
     /// Viewport color
     viewport_color: wgpu::Color,
-    /// Whether this is the first tick.
-    ///
-    /// Needed for WASM to upload the buffers, which can't be done on initialization for some reason.
-    first_tick: bool,
+    /// Image atlas.
+    atlas: Atlas,
 }
 
 impl<'window> MainRenderState<'window> {
@@ -94,7 +98,6 @@ impl<'window> MainRenderState<'window> {
         let viewport_color = super::u32_to_wgpu_color(game_config.viewport_color);
 
         let buffer_size = game_config.buffer_size;
-        let first_tick = true;
 
         Ok(Self {
             gpu,
@@ -106,7 +109,6 @@ impl<'window> MainRenderState<'window> {
             background_color,
             viewport_color,
             atlas,
-            first_tick,
         })
     }
 
@@ -133,12 +135,6 @@ impl<'window> MainRenderState<'window> {
 
         // Render on the GPU
         let mut frame = self.gpu.start();
-
-        // Upload the uniform buffer again on WASM, needed because of some weird bug
-        if self.first_tick {
-            self.atlas.rects.upload(frame.queue);
-            self.first_tick = false;
-        }
 
         // Determine whether we need a downscale pass, we know this if the letterbox is at position zero it fits exactly
         let needs_downscale_pass = !cfg!(target_arch = "wasm32")
@@ -201,6 +197,28 @@ impl<'window> MainRenderState<'window> {
 
         #[cfg(feature = "in-game-profiler")]
         in_game_profiler.finish_profile_heap("Present frame", profile_region);
+    }
+
+    /// Upload everything that gets added at another point in time where the graphics state wasn't available.
+    pub(crate) fn upload(&mut self, images: Vec<(AtlasRef, PngReader)>) {
+        images.into_iter().for_each(|(atlas_id, mut image_reader)| {
+            // Read the PNG
+            let mut buf = vec![0; image_reader.output_buffer_size()];
+            let info = image_reader
+                .next_frame(&mut buf)
+                .expect("Error reading image");
+
+            // Upload the PNG
+            let uploaded_id = self.atlas.add_texture(
+                Size2::new(info.width, info.height),
+                bytemuck::cast_slice(&buf),
+                &self.gpu.queue,
+            );
+            assert_eq!(uploaded_id, atlas_id);
+        });
+
+        // Upload uniforsm
+        self.atlas.rects.upload(&self.gpu.queue);
     }
 
     /// Resize the surface.

@@ -83,6 +83,8 @@ pub(crate) struct UniformArrayState<T: NoUninit> {
     buffer: wgpu::Buffer,
     /// Buffer on CPU.
     local_buffer: Vec<T>,
+    /// Amount of items that haven't been uploaded to the GPU yet.
+    new_to_upload: usize,
 }
 
 impl<T: NoUninit> UniformArrayState<T> {
@@ -138,11 +140,14 @@ impl<T: NoUninit> UniformArrayState<T> {
         // Create the local buffer
         let local_buffer = Vec::new();
 
+        let new_to_upload = 0;
+
         Self {
             bind_group,
             buffer,
             bind_group_layout,
             local_buffer,
+            new_to_upload,
         }
     }
 
@@ -153,33 +158,37 @@ impl<T: NoUninit> UniformArrayState<T> {
         // Construct a new empty array
         let mut this = Self::new(device);
 
-        // Upload the whole array
+        // Set the whole array and mark everything as to upload
+        this.new_to_upload = items.len();
         this.local_buffer = items;
 
         this
     }
 
-    /// Push the complete current buffer.
+    /// Push the new items.
     #[inline]
     pub(crate) fn upload(&mut self, queue: &wgpu::Queue) {
-        // Push all values
-        queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&self.local_buffer));
+        if self.new_to_upload == 0 {
+            // Nothing to upload
+            return;
+        }
+
+        let start_index = self.local_buffer.len() - self.new_to_upload;
+
+        // Push the new
+        queue.write_buffer(
+            &self.buffer,
+            (start_index * std::mem::size_of::<T>()) as u64,
+            bytemuck::cast_slice(&self.local_buffer[start_index..]),
+        );
     }
 
-    /// Get the value for a rectangle.
-    #[inline]
-    pub(crate) fn get(&mut self, index: usize) -> &T {
-        self.local_buffer
-            .get(index)
-            .expect("Index not found in uniform buffer")
-    }
-
-    /// Push a value to the array of the uniform.
+    /// Push and upload a value to the array of the uniform.
     ///
     /// # Returns
     ///
     /// - The index of the pushed item.
-    pub(crate) fn push(&mut self, value: &T, queue: &Queue) -> u64 {
+    pub(crate) fn push_immediately(&mut self, value: &T, queue: &Queue) -> u64 {
         assert!(
             self.local_buffer.len() < Self::MAX_ITEMS,
             "Uniform value out ouf range"

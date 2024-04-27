@@ -138,7 +138,7 @@ impl Loadable for Sprite {
         Self: Sized,
     {
         // Load the image
-        let image = Image::load(id, asset_source);
+        let image = asset_source.get_or_load_image_if_exists(id)?;
         let size = Size2::new(image.size.width as f32, image.size.height as f32);
 
         // Draw the full sprite

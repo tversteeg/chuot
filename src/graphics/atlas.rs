@@ -177,7 +177,7 @@ impl Atlas {
         );
 
         // Push the newly packed dimensions to the uniform buffer, returning the reference to it
-        let uniform_index = self.rects.push(
+        let uniform_index = self.rects.push_immediately(
             &Rect::new(
                 Vector2::new(x as f32, y as f32),
                 Size2::new(size.width as f32, size.height as f32),
@@ -191,7 +191,7 @@ impl Atlas {
     /// Update a region of pixels of the texture in the atlas.
     pub(crate) fn update_pixels(
         &self,
-        texture_ref: u16,
+        texture_ref: AtlasRef,
         mut sub_rectangle: Rect,
         pixels: &[u32],
         queue: &wgpu::Queue,

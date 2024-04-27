@@ -78,7 +78,7 @@ impl Loadable for Font {
         let last_char = last_char as usize;
 
         // Split the sprite into multiple sub-sprites for each character
-        let sprites = base.horizontal_parts(glyph_size.width as f32);
+        let sprites = base.horizontal_parts(glyph_size.width);
 
         assert_eq!(
             last_char - first_char,

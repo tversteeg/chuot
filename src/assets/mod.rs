@@ -31,7 +31,9 @@ pub use runtime::AssetSource;
 #[cfg(not(feature = "embed-assets"))]
 pub(crate) use runtime::{EmbeddedAssets, EmbeddedRawStaticAtlas};
 
-use crate::{font::Font, sprite::Sprite};
+use crate::{font::Font, graphics::atlas::AtlasRef, sprite::Sprite};
+
+use self::loader::png::PngReader;
 
 /// Asset ID.
 ///
@@ -79,7 +81,7 @@ impl<T: Loadable> AssetManager<T> {
     /// Get an asset or throw an exception.
     #[inline]
     #[track_caller]
-    pub(crate) fn get_or_insert<'id>(&mut self, id: &'id str, asset_source: &AssetSource) -> Rc<T> {
+    pub(crate) fn get_or_insert(&mut self, id: &str, asset_source: &AssetSource) -> Rc<T> {
         if let Some(asset) = self.get(id) {
             asset
         } else {
@@ -90,14 +92,14 @@ impl<T: Loadable> AssetManager<T> {
     /// Return an asset if it exists.
     #[inline]
     #[track_caller]
-    pub(crate) fn get<'id>(&self, id: &'id str) -> Option<Rc<T>> {
+    pub(crate) fn get(&self, id: &str) -> Option<Rc<T>> {
         self.assets.get(id).cloned()
     }
 
     /// Upload a new asset.
     #[inline]
     #[track_caller]
-    pub(crate) fn insert<'id>(&mut self, id: &'id str, asset_source: &AssetSource) -> Rc<T> {
+    pub(crate) fn insert(&mut self, id: &str, asset_source: &AssetSource) -> Rc<T> {
         log::debug!("Asset '{id}' not loaded yet, loading from source");
 
         // Create owned ID
@@ -134,11 +136,7 @@ impl CustomAssetManager {
     /// Get an asset or throw an exception.
     #[inline]
     #[track_caller]
-    pub(crate) fn get_or_insert<'id, T>(
-        &mut self,
-        id: &'id str,
-        asset_source: &AssetSource,
-    ) -> Rc<T>
+    pub(crate) fn get_or_insert<T>(&mut self, id: &str, asset_source: &AssetSource) -> Rc<T>
     where
         T: Loadable,
     {
@@ -152,20 +150,18 @@ impl CustomAssetManager {
     /// Return an asset if it exists.
     #[inline]
     #[track_caller]
-    pub(crate) fn get<'id, T>(&self, id: &'id str) -> Option<Rc<T>>
+    pub(crate) fn get<T>(&self, id: &str) -> Option<Rc<T>>
     where
         T: Loadable,
     {
         // Try to find the asset
-        let Some(dyn_asset) = self.assets.get(id) else {
-            return None;
-        };
+        let dyn_asset = self.assets.get(id)?;
 
         // Try to downcast it to the requested type
         match dyn_asset.clone().downcast_rc::<T>() {
             Ok(asset) => Some(asset),
             Err(_) => {
-                panic!("Could downcast asset, loaded type is different from requested type")
+                panic!("Could downcast asset with ID '{id}', loaded type is different from requested type")
             }
         }
     }
@@ -173,7 +169,7 @@ impl CustomAssetManager {
     /// Upload a new asset.
     #[inline]
     #[track_caller]
-    pub(crate) fn insert<'id, T>(&mut self, id: &'id str, asset_source: &AssetSource) -> Rc<T>
+    pub(crate) fn insert<T>(&mut self, id: &str, asset_source: &AssetSource) -> Rc<T>
     where
         T: Loadable,
     {
@@ -241,7 +237,7 @@ impl AssetsManager {
     ///
     /// - When sprite asset could not be loaded.
     #[inline]
-    pub(crate) fn sprite<'id>(&mut self, id: &'id str) -> Rc<Sprite> {
+    pub(crate) fn sprite(&mut self, id: &str) -> Rc<Sprite> {
         self.sprites.get_or_insert(id, &self.source)
     }
 
@@ -251,7 +247,7 @@ impl AssetsManager {
     ///
     /// - When font asset could not be loaded.
     #[inline]
-    pub(crate) fn font<'id>(&mut self, id: &'id str) -> Rc<Font> {
+    pub(crate) fn font(&mut self, id: &str) -> Rc<Font> {
         self.fonts.get_or_insert(id, &self.source)
     }
 
@@ -261,7 +257,7 @@ impl AssetsManager {
     ///
     /// - When audio asset could not be loaded.
     #[inline]
-    pub(crate) fn audio<'id>(&mut self, id: &'id str) -> Rc<Audio> {
+    pub(crate) fn audio(&mut self, id: &str) -> Rc<Audio> {
         self.audio.get_or_insert(id, &self.source)
     }
 
@@ -272,7 +268,7 @@ impl AssetsManager {
     /// - When audio asset could not be loaded.
     /// - When type used to load the asset mismatches the type used to get it.
     #[inline]
-    pub(crate) fn custom<'id, T>(&mut self, id: &'id str) -> Rc<T>
+    pub(crate) fn custom<T>(&mut self, id: &str) -> Rc<T>
     where
         T: Loadable,
     {
@@ -286,11 +282,24 @@ impl AssetsManager {
     /// - When audio asset could not be loaded.
     /// - When type used to load the asset mismatches the type used to get it.
     #[inline]
-    pub(crate) fn custom_owned<'id, T>(&mut self, id: &'id str) -> T
+    pub(crate) fn custom_owned<T>(&mut self, id: &str) -> T
     where
         T: Loadable + Clone,
     {
         // Create a clone of the asset
         Rc::<T>::unwrap_or_clone(self.custom.get_or_insert::<T>(id, &self.source))
+    }
+
+    /// Take a list of unuploaded images we still need to upload.
+    #[cfg(not(feature = "embed-assets"))]
+    pub(crate) fn take_images_for_uploading(&mut self) -> Vec<(AtlasRef, PngReader)> {
+        self.source.take_images_for_uploading()
+    }
+
+    /// Take a list of unuploaded images we still need to upload.
+    #[cfg(feature = "embed-assets")]
+    pub(crate) fn take_images_for_uploading(&mut self) -> Vec<(AtlasRef, PngReader)> {
+        // TODO: allow runtime images
+        Vec::new()
     }
 }

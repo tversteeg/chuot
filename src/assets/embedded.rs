@@ -8,7 +8,7 @@ use imgref::Img;
 use png::Decoder;
 
 use crate::{
-    assets::Id,
+    assets::{image::Image, Id},
     graphics::{atlas::Atlas, gpu::Gpu},
 };
 
@@ -201,38 +201,35 @@ impl AssetSource {
         Some(L::load(self.raw_asset(id, L::EXTENSION)?))
     }
 
-    /// Get the atlas ID based on a texture asset ID.
+    /// Load a new image based on the loader.
+    ///
+    /// This is a special case because images need to be uploaded to the GPU at a later stage.
     ///
     /// # Arguments
     ///
-    /// * `id` - Asset ID passed to the [`Loadable`] function to get the atlas ID from.
+    /// * `id` - Image asset ID passed to the [`Loadable`] function to load the image with.
     ///
     /// # Returns
     ///
-    /// - An atlas ID when the asset is found and has the correct type.
-    /// - `None` if the asset could not be found.
+    /// - An image when it's found and has the correct type.
+    /// - `None` if the image asset could not be found.
     #[track_caller]
-    pub fn atlas_id(&self, id: &Id) -> Option<u16> {
-        self.static_texture_id_to_atlas_id.get(id).cloned()
-    }
+    pub(crate) fn get_or_load_image_if_exists(&self, id: &Id) -> Option<Image> {
+        log::debug!("Loading image asset '{id}'");
 
-    /// Get the size of a texture based on a texture asset ID.
-    ///
-    /// # Arguments
-    ///
-    /// * `id` - Asset ID passed to the [`Loadable`] function to get the size from.
-    ///
-    /// # Returns
-    ///
-    /// - A size when the asset is found and has the correct type.
-    /// - `None` if the asset could not be found.
-    #[track_caller]
-    pub fn texture_size(&self, id: &Id) -> Option<Size2<u32>> {
-        self.static_texture_id_to_size.get(id).cloned()
+        // Get or load the image
+        self.static_texture_id_to_atlas_id
+            .get(id)
+            .and_then(|atlas_id| {
+                self.static_texture_id_to_size.get(id).map(|size| Image {
+                    atlas_id: *atlas_id,
+                    size: *size,
+                })
+            })
     }
 
     /// Get the bytes of an asset that matches the ID and the extension.
-    pub(crate) fn raw_asset(&self, id: &Id, extension: &str) -> Option<&'static [u8]> {
+    fn raw_asset(&self, id: &Id, extension: &str) -> Option<&'static [u8]> {
         self.assets.iter().find_map(|raw_asset| {
             if raw_asset.id == id && raw_asset.extension == extension {
                 Some(raw_asset.bytes)

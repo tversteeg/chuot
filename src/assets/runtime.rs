@@ -1,16 +1,25 @@
 //! Assets that will be loaded during runtime.
 
-use std::{path::PathBuf, str::FromStr};
+use std::{cell::RefCell, path::PathBuf, rc::Rc, str::FromStr};
 
 use glamour::Size2;
 use hashbrown::HashMap;
 
 use crate::{
-    assets::Id,
-    graphics::{atlas::Atlas, gpu::Gpu},
+    assets::{image::Image, Id},
+    graphics::{
+        atlas::{Atlas, AtlasRef},
+        gpu::Gpu,
+    },
 };
 
-use super::loader::{png::PngLoader, Loader};
+use super::{
+    image::ImageCache,
+    loader::{
+        png::{PngLoader, PngReader},
+        Loader,
+    },
+};
 
 /// Compile time assets that haven't been parsed yet.
 pub struct EmbeddedAssets(pub &'static str);
@@ -46,14 +55,20 @@ impl EmbeddedRawStaticAtlas {
 pub struct AssetSource {
     /// Asset directory.
     assets_dir: PathBuf,
+    /// Cache of images.
+    image_cache: Rc<RefCell<ImageCache>>,
 }
 
 impl AssetSource {
     /// Construct a new source from a directory in the project folder.
     pub(crate) fn new(assets_dir: &str) -> Self {
         let assets_dir = PathBuf::from_str(assets_dir).unwrap();
+        let image_cache = Rc::new(RefCell::new(ImageCache::new()));
 
-        Self { assets_dir }
+        Self {
+            assets_dir,
+            image_cache,
+        }
     }
 
     /// Load a new asset based on the loader.
@@ -70,7 +85,6 @@ impl AssetSource {
     /// # Panics
     ///
     /// - When loading the asset fails.
-    #[track_caller]
     pub fn load_if_exists<L, T>(&self, id: &Id) -> Option<T>
     where
         L: Loader<T>,
@@ -83,7 +97,7 @@ impl AssetSource {
         // Convert ID back to file
         let file_path = self
             .assets_dir
-            .join(format!("{}.{}", id.replace(".", "/"), L::EXTENSION));
+            .join(format!("{}.{}", id.replace('.', "/"), L::EXTENSION));
 
         // Read the file, return None if it failed for whatever reason
         let bytes = std::fs::read(file_path).ok()?;
@@ -92,23 +106,35 @@ impl AssetSource {
         Some(L::load(&bytes))
     }
 
-    /// Get the atlas ID based on a texture asset ID.
+    /// Load a new image based on the loader.
+    ///
+    /// This is a special case because images need to be uploaded to the GPU at a later stage.
     ///
     /// # Arguments
     ///
-    /// * `id` - Asset ID passed to the [`Loadable`] function to get the atlas ID from.
+    /// * `id` - Image asset ID passed to the [`Loadable`] function to load the image with.
     ///
     /// # Returns
     ///
-    /// - An atlas ID when the asset is found and has the correct type.
-    /// - `None` if the asset could not be found.
-    #[track_caller]
-    pub fn atlas_id(&self, id: &Id) -> Option<u16> {
-        // TODO
-        Some(0)
+    /// - An image when it's found and has the correct type.
+    /// - `None` if the image asset could not be found.
+    pub(crate) fn get_or_load_image_if_exists(&self, id: &Id) -> Option<Image> {
+        log::debug!("Loading image asset '{id}'",);
+
+        // Get or load the image
+        self.image_cache
+            .borrow_mut()
+            .get_or_load(id)
+            .and_then(|atlas_id| {
+                Some(Image {
+                    atlas_id,
+                    // TODO: offset this somehow
+                    size: self.image_size(id)?,
+                })
+            })
     }
 
-    /// Get the size of a texture based on a texture asset ID.
+    /// Get the size of an image based on a texture asset ID.
     ///
     /// # Arguments
     ///
@@ -118,13 +144,27 @@ impl AssetSource {
     ///
     /// - A size when the asset is found and has the correct type.
     /// - `None` if the asset could not be found.
-    #[track_caller]
-    pub fn texture_size(&self, id: &Id) -> Option<Size2<u32>> {
+    pub(crate) fn image_size(&self, id: &Id) -> Option<Size2<u32>> {
         // Hacky way to get the texture by reading the whole PNG
         // TODO: find better way
         let png = self.load_if_exists::<PngLoader, _>(id)?;
         let info = png.info();
 
         Some(Size2::new(info.width, info.height))
+    }
+
+    /// Take and load all images for uploading.
+    pub(crate) fn take_images_for_uploading(&mut self) -> Vec<(AtlasRef, PngReader)> {
+        self.image_cache
+            .borrow_mut()
+            .take_to_load()
+            .map(|(id, atlas_id)| {
+                (
+                    atlas_id,
+                    self.load_if_exists::<PngLoader, _>(&id)
+                        .expect("File suddenly disappeared"),
+                )
+            })
+            .collect()
     }
 }

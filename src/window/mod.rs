@@ -301,6 +301,11 @@ where
                             {
                                 profiling::scope!("Render Internal");
 
+                                // Upload assets to the GPU
+                                ctx.write(|ctx| {
+                                    render_state.upload(ctx.assets.take_images_for_uploading());
+                                });
+
                                 // Render everything
                                 #[cfg(feature = "in-game-profiler")]
                                 render_state.render(&mut ctx, &mut in_game_profiler, &window);
