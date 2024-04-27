@@ -72,7 +72,7 @@
 //! This will dice all PNG assets into a single tiny optimized PNG atlas.
 //! On startup this diced atlas will be efficiently uploaded to the GPU as a single bigger atlas, which will be used for all static sprites.
 //!
-//! ## `hot-reload-assets` (default)
+//! ## `hot-reload-assets`
 //!
 //! Hot-reload assets from disk when they are saved.
 //! Has no effect on the web target.
@@ -91,7 +91,7 @@
 //! sudo apt install libasound2-dev
 //! ```
 //!
-//! ## `in-game-profiler` (default)
+//! ## `in-game-profiler`
 //!
 //! A profiler window overlay, implemented with [puffin_egui](https://docs.rs/puffin_egui/latest/puffin_egui/).
 //!

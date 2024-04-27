@@ -16,7 +16,6 @@ categories = [
 ]
 rust-version = "1.77.0"
 include = ["/src", "build.rs", "/shaders"]
-build-script = "build.rs"
 
 [package.metadata.docs.rs]
 # Only enable features that actually expose APIs
@@ -35,7 +34,7 @@ targets = [
 rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
-default = ["hot-reload-assets", "dialogue", "in-game-profiler"]
+default = ["dialogue"]
 
 # Embed all assets into the binary.
 #
