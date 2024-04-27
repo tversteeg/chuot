@@ -79,7 +79,7 @@ impl<T: Loadable> AssetManager<T> {
     /// Get an asset or throw an exception.
     #[inline]
     #[track_caller]
-    pub(crate) fn get_or_insert(&mut self, id: &Id, asset_source: &AssetSource) -> Rc<T> {
+    pub(crate) fn get_or_insert<'id>(&mut self, id: &'id str, asset_source: &AssetSource) -> Rc<T> {
         if let Some(asset) = self.get(id) {
             asset
         } else {
@@ -90,22 +90,25 @@ impl<T: Loadable> AssetManager<T> {
     /// Return an asset if it exists.
     #[inline]
     #[track_caller]
-    pub(crate) fn get(&self, id: &Id) -> Option<Rc<T>> {
+    pub(crate) fn get<'id>(&self, id: &'id str) -> Option<Rc<T>> {
         self.assets.get(id).cloned()
     }
 
     /// Upload a new asset.
     #[inline]
     #[track_caller]
-    pub(crate) fn insert(&mut self, id: &Id, asset_source: &AssetSource) -> Rc<T> {
+    pub(crate) fn insert<'id>(&mut self, id: &'id str, asset_source: &AssetSource) -> Rc<T> {
         log::debug!("Asset '{id}' not loaded yet, loading from source");
 
+        // Create owned ID
+        let id = Id::new(id);
+
         // Load the asset
-        let asset = T::load(id, asset_source);
+        let asset = T::load(&id, asset_source);
         let asset = Rc::new(asset);
 
         // Store the asset so it can be accessed later again
-        self.assets.insert(id.to_owned(), asset.clone());
+        self.assets.insert(id, asset.clone());
 
         asset
     }
@@ -131,11 +134,14 @@ impl CustomAssetManager {
     /// Get an asset or throw an exception.
     #[inline]
     #[track_caller]
-    pub(crate) fn get_or_insert<T: Loadable>(
+    pub(crate) fn get_or_insert<'id, T>(
         &mut self,
-        id: &Id,
+        id: &'id str,
         asset_source: &AssetSource,
-    ) -> Rc<T> {
+    ) -> Rc<T>
+    where
+        T: Loadable,
+    {
         if let Some(asset) = self.get(id) {
             asset
         } else {
@@ -146,7 +152,10 @@ impl CustomAssetManager {
     /// Return an asset if it exists.
     #[inline]
     #[track_caller]
-    pub(crate) fn get<T: Loadable>(&self, id: &Id) -> Option<Rc<T>> {
+    pub(crate) fn get<'id, T>(&self, id: &'id str) -> Option<Rc<T>>
+    where
+        T: Loadable,
+    {
         // Try to find the asset
         let Some(dyn_asset) = self.assets.get(id) else {
             return None;
@@ -164,14 +173,20 @@ impl CustomAssetManager {
     /// Upload a new asset.
     #[inline]
     #[track_caller]
-    pub(crate) fn insert<T: Loadable>(&mut self, id: &Id, asset_source: &AssetSource) -> Rc<T> {
+    pub(crate) fn insert<'id, T>(&mut self, id: &'id str, asset_source: &AssetSource) -> Rc<T>
+    where
+        T: Loadable,
+    {
         log::debug!("Asset '{id}' not loaded yet, loading from source");
 
+        // Create owned ID
+        let id = Id::new(id);
+
         // Load the asset
-        let asset: Rc<dyn Loadable> = Rc::new(T::load(id, asset_source));
+        let asset: Rc<dyn Loadable> = Rc::new(T::load(&id, asset_source));
 
         // Store the asset so it can be accessed later again
-        self.assets.insert(id.to_owned(), asset.clone());
+        self.assets.insert(id, asset.clone());
 
         // Safe to unwrap because we created the type here
         match asset.downcast_rc::<T>() {
@@ -226,8 +241,8 @@ impl AssetsManager {
     ///
     /// - When sprite asset could not be loaded.
     #[inline]
-    pub(crate) fn sprite(&mut self, id: impl Into<Id>) -> Rc<Sprite> {
-        self.sprites.get_or_insert(&id.into(), &self.source)
+    pub(crate) fn sprite<'id>(&mut self, id: &'id str) -> Rc<Sprite> {
+        self.sprites.get_or_insert(id, &self.source)
     }
 
     /// Get or load a font.
@@ -236,8 +251,8 @@ impl AssetsManager {
     ///
     /// - When font asset could not be loaded.
     #[inline]
-    pub(crate) fn font(&mut self, id: impl Into<Id>) -> Rc<Font> {
-        self.fonts.get_or_insert(&id.into(), &self.source)
+    pub(crate) fn font<'id>(&mut self, id: &'id str) -> Rc<Font> {
+        self.fonts.get_or_insert(id, &self.source)
     }
 
     /// Get or load an audio file.
@@ -246,8 +261,8 @@ impl AssetsManager {
     ///
     /// - When audio asset could not be loaded.
     #[inline]
-    pub(crate) fn audio(&mut self, id: impl Into<Id>) -> Rc<Audio> {
-        self.audio.get_or_insert(&id.into(), &self.source)
+    pub(crate) fn audio<'id>(&mut self, id: &'id str) -> Rc<Audio> {
+        self.audio.get_or_insert(id, &self.source)
     }
 
     /// Get or load a custom asset.
@@ -257,11 +272,11 @@ impl AssetsManager {
     /// - When audio asset could not be loaded.
     /// - When type used to load the asset mismatches the type used to get it.
     #[inline]
-    pub(crate) fn custom<T>(&mut self, id: impl Into<Id>) -> Rc<T>
+    pub(crate) fn custom<'id, T>(&mut self, id: &'id str) -> Rc<T>
     where
         T: Loadable,
     {
-        self.custom.get_or_insert(&id.into(), &self.source)
+        self.custom.get_or_insert(id, &self.source)
     }
 
     /// Get a clone or load a custom asset.
@@ -271,11 +286,11 @@ impl AssetsManager {
     /// - When audio asset could not be loaded.
     /// - When type used to load the asset mismatches the type used to get it.
     #[inline]
-    pub(crate) fn custom_owned<T>(&mut self, id: impl Into<Id>) -> T
+    pub(crate) fn custom_owned<'id, T>(&mut self, id: &'id str) -> T
     where
         T: Loadable + Clone,
     {
         // Create a clone of the asset
-        Rc::<T>::unwrap_or_clone(self.custom.get_or_insert::<T>(&id.into(), &self.source))
+        Rc::<T>::unwrap_or_clone(self.custom.get_or_insert::<T>(id, &self.source))
     }
 }

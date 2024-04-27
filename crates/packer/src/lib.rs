@@ -118,8 +118,6 @@ impl Packer {
             self.merge();
         }
 
-        dbg!(&self.skylines);
-
         self
     }
 
