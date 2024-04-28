@@ -84,7 +84,7 @@ winit_input_helper = "0.16.0"
 glam = { version = "0.27", features = ["bytemuck", "fast-math"] }
 glamour = { version = "0.11.1", features = ["serde"] }
 smol_str = "0.2.1"
-fastrand = "2.0.2"
+fastrand = "2.1.0"
 web-time = "1.1.0"
 kira = { version = "0.8.7", default-features = false, features = ["cpal", "ogg", "serde"] }
 imgref = "1.10.1"
