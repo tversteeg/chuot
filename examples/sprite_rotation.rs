@@ -1,10 +1,6 @@
 //! Show how simple it is to rotate a sprite.
 
-use chuot::{
-    config::RotationAlgorithm,
-    glamour::{Rect, Size2, Vector2},
-    Context, GameConfig, KeyCode, MouseButton, PixelGame,
-};
+use chuot::{config::RotationAlgorithm, glamour::Size2, Context, GameConfig, KeyCode, PixelGame};
 
 /// Define a game state for our example.
 #[derive(Default)]

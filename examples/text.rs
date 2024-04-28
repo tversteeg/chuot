@@ -1,4 +1,12 @@
-//! Show how to draw a sprite.
+//! Show how to draw text from a font bitmap.
+//!
+//! Text is a bitmap split into exact sizes for each glyph.
+//! The font image for this example is:
+//! {{ img(src="/assets/Beachball.png" alt="Font") }}
+//! With the following TOML:
+//! ```toml
+//! {{ load_data(path="/assets/Beachball.toml") }}
+//! ```
 
 use chuot::{Context, GameConfig, KeyCode, PixelGame};
 use glamour::Size2;
@@ -18,11 +26,9 @@ impl PixelGame for GameState {
 
     /// Render the game.
     fn render(&mut self, ctx: Context) {
-        // Load a sprite asset and draw it
-        ctx.sprite("threeforms")
-            // Place the sprite in the middle of the screen
-            .translate(ctx.size() / 2.0)
-            // Draw the sprite on the screen
+        // Load a text asset and draw it
+        ctx.text("Beachball", "Hello world!")
+            // Draw the text on the screen
             .draw();
     }
 }

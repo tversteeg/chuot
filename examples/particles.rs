@@ -1,4 +1,4 @@
-//! Show how we can efficiently draw thousands of particles.
+//! Show how we can efficiently draw tens of thousands of particles.
 
 use chuot::{config::RotationAlgorithm, Context, GameConfig, KeyCode, MouseButton, PixelGame};
 use glamour::{Size2, Vector2};
@@ -160,7 +160,7 @@ impl PixelGame for GameState {
 fn main() {
     // Game configuration
     let config = GameConfig {
-        buffer_size: Size2::new(800.0, 600.0),
+        buffer_size: Size2::new(720.0, 576.0),
         // Don't scale the pixels
         scaling: 1.0,
         // Disable vsync so we can see the effect of the particles on the FPS
