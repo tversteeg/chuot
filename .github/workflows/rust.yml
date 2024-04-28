@@ -47,6 +47,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: stable
+          targets: wasm32-unknown-unknown
 
       # Install cargo-hack
       - uses: taiki-e/install-action@cargo-hack
@@ -62,6 +63,8 @@ jobs:
         run: cargo check --no-default-features --features embed-assets
       - name: Build (hot-reload-assets)
         run: cargo check --no-default-features --features hot-reload-assets
+      - name: Build (WASM)
+        run: cargo run --package run-wasm -- --example sprite --release --no-default-features --features embed-assets --build-only
 
   # Run tests on Linux
   test:
@@ -83,34 +86,3 @@ jobs:
       # Test all features on the target platform
       - name: Test
         run: cargo test --features dialogue
-
-  # Build the WASM target & push it to GitHub pages
-  wasm:
-    name: WASM test & build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      # Install rust stable
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: stable
-          targets: wasm32-unknown-unknown
-
-      # Cache the built dependencies
-      - uses: Swatinem/rust-cache@v2.7.3
-        with:
-          save-if: ${{ github.event_name == 'push' }}
-
-      # Build the WASM 
-      - name: Build
-        run: cargo run --package run-wasm -- --example sprite --release --no-default-features --features embed-assets --build-only
-
-      # Deploy to GitHub pages
-      - name: Deploy to GitHub Pages
-        uses: s0/git-publish-subdir-action@master
-        env:
-          REPO: self
-          BRANCH: gh-pages
-          FOLDER: target/wasm-examples/sprite
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
