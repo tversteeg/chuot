@@ -34,7 +34,9 @@ fn main() {
     GameState
         .run(
             chuot::load_assets!(),
-            GameConfig::default().with_buffer_size((720.0, 576.0)),
+            GameConfig::default()
+                .with_buffer_size((720.0, 576.0))
+                .with_scaling(1.0),
         )
         .expect("Error running game");
 }
