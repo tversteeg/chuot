@@ -1,4 +1,11 @@
 //! Show how simple it is to rotate a sprite.
+//!
+//! The sprite image for this example is:
+//! {{ img(src="/assets/threeforms.png" alt="Font") }}
+//! With the following TOML:
+//! ```toml
+//! offset = "Middle"
+//! ```
 
 use chuot::{config::RotationAlgorithm, glamour::Size2, Context, GameConfig, KeyCode, PixelGame};
 

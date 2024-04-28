@@ -5,7 +5,7 @@
 //! {{ img(src="/assets/Beachball.png" alt="Font") }}
 //! With the following TOML:
 //! ```toml
-//! {{ load_data(path="/assets/Beachball.toml") }}
+//! glyph_size = { width = 10, height = 10 }
 //! ```
 
 use chuot::{Context, GameConfig, KeyCode, PixelGame};
@@ -28,6 +28,8 @@ impl PixelGame for GameState {
     fn render(&mut self, ctx: Context) {
         // Load a text asset and draw it
         ctx.text("Beachball", "Hello world!")
+            // Draw at the middle of the screen
+            .translate((1.0, 40.0))
             // Draw the text on the screen
             .draw();
     }
@@ -37,10 +39,10 @@ impl PixelGame for GameState {
 fn main() {
     // Game configuration
     let config = GameConfig {
-        buffer_size: Size2::new(240.0, 192.0),
-        // Apply a minimum of 3 times scaling for the buffer
+        buffer_size: Size2::new(120.0, 96.0),
+        // Apply a minimum of 6 times scaling for the buffer
         // Will result in a minimum, and on web exact, window size of 960x720
-        scaling: 3.0,
+        scaling: 6.0,
         ..Default::default()
     };
 

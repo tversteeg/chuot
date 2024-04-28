@@ -1,4 +1,11 @@
 //! Show how to draw a sprite.
+//!
+//! The sprite image for this example is:
+//! {{ img(src="/assets/threeforms.png" alt="Font") }}
+//! With the following TOML:
+//! ```toml
+//! offset = "Middle"
+//! ```
 
 use chuot::{Context, GameConfig, KeyCode, PixelGame};
 use glamour::Size2;
@@ -33,7 +40,7 @@ fn main() {
     let config = GameConfig {
         buffer_size: Size2::new(240.0, 192.0),
         // Apply a minimum of 3 times scaling for the buffer
-        // Will result in a minimum, and on web exact, window size of 960x720
+        // Will result in a minimum, and on web exact, window size of 720x576
         scaling: 3.0,
         ..Default::default()
     };

@@ -32,6 +32,9 @@ impl PixelGame for GameState {
 fn main() {
     // Start the game with defaults for the window
     GameState
-        .run(chuot::load_assets!(), GameConfig::default())
+        .run(
+            chuot::load_assets!(),
+            GameConfig::default().with_buffer_size((720.0, 576.0)),
+        )
         .expect("Error running game");
 }
