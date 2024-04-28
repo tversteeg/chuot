@@ -1,6 +1,6 @@
-//! Very simple example showing how a sound file can be loaded from disk.
+//! Show how a sound file can be played.
 //!
-//! To play it press the left mouse button.
+//! To play it press the left mouse button on the canvas.
 
 use chuot::{Context, GameConfig, KeyCode, MouseButton, PixelGame};
 
