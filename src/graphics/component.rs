@@ -60,6 +60,7 @@ impl SpriteRenderState {
                 buffers: &[TexturedVertex::descriptor(), Instances::descriptor()],
                 module: &shader,
                 entry_point: "vs_main",
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
             },
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
@@ -74,6 +75,7 @@ impl SpriteRenderState {
                     blend: Some(wgpu::BlendState::ALPHA_BLENDING),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
             }),
             primitive: wgpu::PrimitiveState {
                 topology: wgpu::PrimitiveTopology::TriangleList,

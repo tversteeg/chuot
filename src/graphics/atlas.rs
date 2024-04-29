@@ -8,7 +8,7 @@ use glamour::{Point2, Rect, Size2, Vector2};
 use super::{gpu::Gpu, state::PREFERRED_TEXTURE_FORMAT, uniform::UniformArrayState};
 
 /// Virtual packed texture size in pixels for both width and height.
-const ATLAS_TEXTURE_SIZE: u32 = 4096;
+pub(crate) const ATLAS_TEXTURE_SIZE: u32 = 4096;
 
 /// Index into the atlas rectangles.
 pub(crate) type AtlasRef = u16;

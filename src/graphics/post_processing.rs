@@ -112,6 +112,7 @@ impl PostProcessingState {
                 buffers: &[],
                 module: &shader,
                 entry_point: "vs_main",
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
             },
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
@@ -124,6 +125,7 @@ impl PostProcessingState {
                     }),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
             }),
             primitive: wgpu::PrimitiveState::default(),
             depth_stencil: None,
