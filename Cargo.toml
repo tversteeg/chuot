@@ -137,7 +137,7 @@ miette = { version = "7.2.0", features = ["fancy"] }
 miette = { version = "7.2.0", features = ["fancy-no-syscall"] }
 
 [build-dependencies]
-naga = { version = "0.19.2", features = ["wgsl-in", "wgsl-out"] }
+naga = { version = "0.20.0", features = ["wgsl-in", "wgsl-out"] }
 wgsl-minifier = "0.4.1"
 
 [workspace]
