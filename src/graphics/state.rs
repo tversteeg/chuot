@@ -200,26 +200,42 @@ impl<'window> MainRenderState<'window> {
     }
 
     /// Upload everything that gets added at another point in time where the graphics state wasn't available.
-    pub(crate) fn upload(&mut self, images: Vec<(AtlasRef, PngReader)>) {
-        {
-            profiling::scope!("Upload images");
+    pub(crate) fn upload(&mut self, ctx: &mut Context) {
+        ctx.write(|ctx| {
+            {
+                profiling::scope!("Upload images");
 
-            images.into_iter().for_each(|(atlas_id, mut image_reader)| {
-                // Read the PNG
-                let mut buf = vec![0; image_reader.output_buffer_size()];
-                let info = image_reader
-                    .next_frame(&mut buf)
-                    .expect("Error reading image");
+                ctx.assets.take_images_for_uploading().into_iter().for_each(
+                    |(atlas_id, mut image_reader)| {
+                        // Read the PNG
+                        let mut buf = vec![0; image_reader.output_buffer_size()];
+                        let info = image_reader
+                            .next_frame(&mut buf)
+                            .expect("Error reading image");
 
-                // Upload the PNG
-                let uploaded_id = self.atlas.add_texture(
-                    Size2::new(info.width, info.height),
-                    bytemuck::cast_slice(&buf),
-                    &self.gpu.queue,
+                        // Upload the PNG
+                        let uploaded_id = self.atlas.add_texture(
+                            Size2::new(info.width, info.height),
+                            bytemuck::cast_slice(&buf),
+                            &self.gpu.queue,
+                        );
+                        assert_eq!(uploaded_id, atlas_id);
+                    },
                 );
-                assert_eq!(uploaded_id, atlas_id);
-            });
-        }
+            }
+
+            {
+                profiling::scope!("Upload texture updates");
+
+                // Apply texture updates
+                ctx.texture_update_queue
+                    .drain(..)
+                    .for_each(|(atlas_id, sub_rect, pixels)| {
+                        self.atlas
+                            .update_pixels(atlas_id, sub_rect, &pixels, &self.gpu.queue);
+                    });
+            }
+        });
 
         {
             profiling::scope!("Upload uniforms");

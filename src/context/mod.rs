@@ -14,7 +14,7 @@ use winit_input_helper::WinitInputHelper;
 
 use crate::{
     assets::{AssetSource, AssetsManager, Id, Loadable},
-    graphics::instance::Instances,
+    graphics::{atlas::AtlasRef, instance::Instances},
     GameConfig,
 };
 
@@ -468,7 +468,7 @@ pub(crate) struct ContextInner {
     /// Instances of all sprites drawn this tick, also includes sprites from the fonts.
     pub(crate) instances: Instances,
     /// Portions of textures that need to be re-written.
-    pub(crate) texture_update_queue: Vec<(Id, Rect, Vec<u32>)>,
+    pub(crate) texture_update_queue: Vec<(AtlasRef, Rect, Vec<u32>)>,
     /// Time in seconds between every update tick.
     pub(crate) delta_time: f32,
     /// Frames per second for the render tick.
