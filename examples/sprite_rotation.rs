@@ -50,8 +50,9 @@ fn main() {
         // Apply a minimum of 3 times scaling for the buffer
         // Will result in a minimum, and on web exact, window size of 720x576
         scaling: 3.0,
-        // We use a custom rotation algorithm shader so the sprite looks more smooth while rotating with less noisy artifacts
-        rotation_algorithm: RotationAlgorithm::Scale3x,
+        // We use a custom rotation algorithm shader so the sprite looks more smooth while rotating with less noisy artifacts, this one is a bit slow
+        rotation_algorithm: RotationAlgorithm::CleanEdge,
+        vsync: false,
         ..Default::default()
     };
 

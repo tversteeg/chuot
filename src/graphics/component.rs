@@ -65,6 +65,7 @@ impl SpriteRenderState {
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
                 entry_point: match rotation_algorithm {
+                    RotationAlgorithm::CleanEdge => "fs_main_clean_edge",
                     RotationAlgorithm::Scale3x => "fs_main_scale3x",
                     RotationAlgorithm::Scale2x => "fs_main_scale2x",
                     RotationAlgorithm::Diag2x => "fs_main_diag2x",

@@ -170,7 +170,11 @@ This doesn't apply any extra rotation effects.
 
 ![Nearest Neighbor](./img/nearestneighbor.png)
 
-##### Scale3x
+##### cleanEdge
+
+![cleanEdge](./img/cleanedge.png)
+
+##### Scale3x (default)
 
 ![Scale3x](./img/scale3x.png)
 
@@ -184,6 +188,7 @@ This doesn't apply any extra rotation effects.
 
 #### Credits
 
+- [Torcado](https://torcado.com/cleanEdge/) for the awesome cleanEdge algorithm.
 - [gtoknu](https://www.shadertoy.com/view/4l2SRz) for the branchless scale2x shader.
 - [@damieng](https://damieng.com/typography/zx-origins/beachball/) for the font behind the `default-font` feature.
 - [KenneyNL](https://kenney.nl/assets/ui-audio) for the audio sample in the example.

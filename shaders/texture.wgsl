@@ -104,6 +104,8 @@ const EPSILON: vec4<f32> = vec4<f32>(1.0 / 255.0);
 
 // Offset needed for moving a single pixel
 const PIXEL_OFFSET: f32 = 1.0 / ATLAS_TEXTURE_SIZE;
+// Offset needed for moving two pixels
+const PIXEL_OFFSET_2: f32 = 2.0 / ATLAS_TEXTURE_SIZE;
 
 // Calculate branchless equality between two vectors.
 //
@@ -246,6 +248,240 @@ fn scale3x(
     return mix(row_s, mix(row_c, row_n, sub_step_2.y), sub_step_1.y);
 }
 
+// Similar for the cleanEdge algorithm
+fn similar(color1: vec4<f32>, color2: vec4<f32>) -> bool {
+    return (color1.a == 0.0 && color2.a == 0.0) || distance(color1, color2) <= 0.0;
+}
+
+// Similar with 3 colors for the cleanEdge algorithm
+fn similar3(color1: vec4<f32>, color2: vec4<f32>, color3: vec4<f32>) -> bool {
+    return similar(color1, color2) && similar(color2, color3);
+}
+
+// Similar with 4 colors for the cleanEdge algorithm
+fn similar4(color1: vec4<f32>, color2: vec4<f32>, color3: vec4<f32>, color4: vec4<f32>) -> bool {
+    return similar(color1, color2) && similar(color2, color3) && similar(color3, color4);
+}
+
+// Similar with 5 colors for the cleanEdge algorithm
+fn similar5(color1: vec4<f32>, color2: vec4<f32>, color3: vec4<f32>, color4: vec4<f32>, color5: vec4<f32>) -> bool {
+    return similar(color1, color2) && similar(color2, color3) && similar(color3, color4) && similar(color4, color5);
+}
+
+// Higher color for the cleanEdge algorithm
+fn higher(this_color: vec4<f32>, other_color: vec4<f32>) -> bool {
+    // Color with the highest priority, other colors will be tested based on the distance to this color to determine which colors take priority for overlaps
+    // White
+    let highest_color: vec3<f32> = vec3<f32>(1.0, 1.0, 1.0); 
+
+    if similar(this_color, other_color) {
+        return false;
+    }
+
+    if this_color.a == other_color.a {
+        return distance(this_color.rgb, highest_color) < distance(other_color.rgb, highest_color);
+    } else {
+        return this_color.a > other_color.a;
+    }
+}
+
+// Distance to line for the cleanEdge algorithm
+fn dist_to_line(test_point: vec2<f32>, point1: vec2<f32>, point2: vec2<f32>, dir: vec2<f32>) -> f32 {
+    let line_dir = point2 - point1;
+    let perp_dir = vec2<f32>(line_dir.y, -line_dir.x);
+    let dir_to_point1 = point1 - test_point;
+
+    return sign(dot(perp_dir, dir)) * dot(normalize(perp_dir), dir_to_point1);
+}
+
+// Slice distance for the cleanEdge algorithm
+fn slice_dist(
+    point: vec2<f32>,
+    main_dir: vec2<f32>,
+    point_dir: vec2<f32>,
+    n: vec4<f32>,
+    ne: vec4<f32>,
+    nee: vec4<f32>,
+    w: vec4<f32>,
+    c: vec4<f32>,
+    e: vec4<f32>,
+    ee: vec4<f32>,
+    sw: vec4<f32>,
+    s: vec4<f32>,
+    se: vec4<f32>,
+    see: vec4<f32>,
+    ssw: vec4<f32>,
+    ss: vec4<f32>,
+    sse: vec4<f32>,
+) -> vec4<f32> {
+    let min_width: f32 = 0.0;
+    let max_width: f32 = 1.4;
+    let line_width: f32 = 1.0; 
+
+    // Flip point
+    let flipped_point = main_dir * (point - 0.5) + 0.5;
+
+    // Edge detection
+
+    let dist_against = 4.0 
+        * distance(e, s)
+        + distance(ne, c)
+        + distance(c, sw)
+        + distance(ee, se)
+        + distance(se, ss);
+
+    let dist_towards = 4.0 
+        * distance(c, se)
+        + distance(n, e)
+        + distance(e, see)
+        + distance(w, s)
+        + distance(s, sse);
+
+    // Check for equivalent edges
+    var should_slice = dist_against < dist_towards || dist_against < dist_towards + 0.001 && !higher(c, e);
+
+    // Check for checkerboard patterns
+    if similar4(e, s, w, n) && similar3(ne, se, sw) && !similar(c, e) {
+        should_slice = false;
+    }
+
+    if !should_slice {
+        return vec4<f32>(-1.0);
+    }
+
+    var dist = 1.0;
+    var flip = false;
+    var center = vec2<f32>(0.5, 0.5);
+
+    if similar3(e, s, sw) && !similar3(e, s, w) && !similar(ne, sw) {
+        // Lower shallow 2:1 slant
+        if similar(c, se) && higher(c, e) {
+            // Single pixel wide diagonal, don't flip
+        } else if higher(c, e) || (similar(n, e) && !similar(c, se) && !higher(c, n)) {
+            // Priority edge cases, flip
+            flip = true;
+        }
+
+        // Midpoints of neighbor two-pixel groupings
+        if flip {
+            dist = line_width - dist_to_line(flipped_point, center + vec2<f32>(1.5, -1.0) * point_dir, center + vec2<f32>(-0.5, 0.0) * point_dir, -point_dir);
+        } else {
+            dist = dist_to_line(flipped_point, center + vec2<f32>(1.5, 0.0) * point_dir, center + vec2<f32>(-0.5, 1.0) * point_dir, point_dir);
+        }
+
+        if dist > line_width / 2.0 {
+            return vec4(-1.0);
+        } else if distance(c, e) <= distance(c, s) {
+            return e;
+        } else {
+            return s;
+        }
+    } else if similar3(ne, e, s) && !similar3(n, e, s) && !similar(ne, sw) {
+        // Forward steep 2:1 slant
+        if similar(c, se) && higher(c, s) {
+            // Single pixel wide diagonal, don't flip
+        } else if higher(c, s) || (similar(w, s) && !similar(c, se) && !higher(c, s)) {
+            // Priority edge cases, flip
+            flip = true;
+        }
+
+        // Midpoints of neighbor two-pixel groupings
+        if flip {
+            dist = line_width - dist_to_line(flipped_point, center + vec2<f32>(0.0, -0.5) * point_dir, center + vec2<f32>(-1.0, 1.5) * point_dir, -point_dir);
+        } else {
+            dist = dist_to_line(flipped_point, center + vec2<f32>(1.0, -0.5) * point_dir, center + vec2<f32>(0.0, 1.5) * point_dir, point_dir);
+        }
+
+        if dist > line_width / 2.0 {
+            return vec4(-1.0);
+        } else if distance(c, e) <= distance(c, s) {
+            return e;
+        } else {
+            return s;
+        }
+    } else if similar(e, s) {
+        // 45 degrees diagonal
+        if similar(c, se) && higher(c, e) {
+            // Single pixel wide diagonal, don't flip
+
+            if !similar(c, ss) && !similar(c, ee) {
+                // Line against triple color stripe edge case
+                flip = true;
+            }
+        } else if higher(c, e) || (similar(c, w) && similar4(w, e, s, n)) {
+            flip = true;
+        }
+
+        // Single pixel 2:1 slope, don't flip
+        if (((similar(e, sw) && similar3(n, e, se)) || (similar(ne, s) && similar3(w, s, se))) && !similar(c, se)) {
+			flip = true;
+		} 
+
+        // Midpoints of neighbor two-pixel groupings
+        if flip {
+            dist = line_width - dist_to_line(flipped_point, center + vec2<f32>(1.0, -1.0) * point_dir, center + vec2<f32>(-1.0, 1.0) * point_dir, -point_dir);
+        } else {
+            dist = dist_to_line(flipped_point, center + vec2<f32>(1.0, 0.0) * point_dir, center + vec2<f32>(0.0, 1.0) * point_dir, point_dir);
+        }
+
+        if dist > line_width / 2.0 {
+            return vec4(-1.0);
+        } else if distance(c, e) <= distance(c, s) {
+            return e;
+        } else {
+            return s;
+        }
+    } else if similar3(ee, se, s) && !similar3(ee, se, c) && !similar(nee, s) {
+        // Far corner of shallow slant
+        if similar(e, see) && higher(e, ee) {
+            // Single pixel wide diagonal, don't flip
+        } else if higher(e, ee) || (similar(ne, ee) && !similar(e, see) && !higher(e, ne)) {
+            // Priority edge cases, flip
+            flip = true;
+        }
+
+        // Midpoints of neighbor two-pixel groupings
+        if flip {
+            dist = line_width - dist_to_line(flipped_point, center + vec2<f32>(2.5, -1.0) * point_dir, center + vec2<f32>(0.5, 0.0) * point_dir, -point_dir);
+        } else {
+            dist = dist_to_line(flipped_point, center + vec2<f32>(2.5, 0.0) * point_dir, center + vec2<f32>(0.5, 1.0) * point_dir, point_dir);
+        }
+
+        if dist > line_width / 2.0 {
+            return vec4(-1.0);
+        } else if distance(e, ee) <= distance(e, se) {
+            return ee;
+        } else {
+            return se;
+        }
+    } else if similar3(e, se, ss) && !similar3(c, se, ss) && !similar(e, ssw) {
+        // Far corner of steep slant
+        if similar(s, sse) && higher(s, ss) {
+            // Single pixel wide diagonal, don't flip
+        } else if higher(s, ss) || (similar(sw, ss) && !similar(s, sse) && !higher(s, ss)) {
+            // Priority edge cases, flip
+            flip = true;
+        }
+
+        // Midpoints of neighbor two-pixel groupings
+        if flip {
+            dist = line_width - dist_to_line(flipped_point, center + vec2<f32>(0.0, 0.5) * point_dir, center + vec2<f32>(-1.0, 2.5) * point_dir, -point_dir);
+        } else {
+            dist = dist_to_line(flipped_point, center + vec2<f32>(1.0, 0.5) * point_dir, center + vec2<f32>(0.0, 2.5) * point_dir, point_dir);
+        }
+
+        if dist > line_width / 2.0 {
+            return vec4(-1.0);
+        } else if distance(s, se) <= distance(s, ss) {
+            return se;
+        } else {
+            return ss;
+        }
+    }
+
+    return vec4(-1.0);
+}
+
 // Scale3x
 @fragment
 fn fs_main_scale3x(in: VertexOutput) -> @location(0) vec4<f32> {
@@ -331,4 +567,59 @@ fn fs_main_scale2x(in: VertexOutput) -> @location(0) vec4<f32> {
 fn fs_main_nearest_neighbor(in: VertexOutput) -> @location(0) vec4<f32> {
     // Return the exact pixel
     return textureSample(t_diffuse, s_diffuse, in.tex_coords);
+}
+
+// Torcado's cleanEdge
+@fragment
+fn fs_main_clean_edge(in: VertexOutput) -> @location(0) vec4<f32> {
+    // Offset of the UV within the pixel
+    let local = fract(in.tex_coords * ATLAS_TEXTURE_SIZE);
+    let point_dir = sign(local - 0.5);
+
+    // Sample the pixels around the center with (n)orth, (e)ast, (s)outh, (w)est
+    let nnw = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(-PIXEL_OFFSET,-PIXEL_OFFSET_2) * point_dir);
+	let nn  = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>( 0.0,-PIXEL_OFFSET_2) * point_dir);
+	let nne = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>( PIXEL_OFFSET,-PIXEL_OFFSET_2) * point_dir);
+	
+	let nww = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(-PIXEL_OFFSET_2,-PIXEL_OFFSET_2) * point_dir);
+	let nw  = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(-PIXEL_OFFSET,-PIXEL_OFFSET) * point_dir);
+	let n   = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>( 0.0,-PIXEL_OFFSET) * point_dir);
+	let ne  = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>( PIXEL_OFFSET,-PIXEL_OFFSET) * point_dir);
+	let nee = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>( PIXEL_OFFSET_2,-PIXEL_OFFSET) * point_dir);
+	
+	let ww  = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(-PIXEL_OFFSET_2, 0.0) * point_dir);
+	let w   = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(-PIXEL_OFFSET, 0.0) * point_dir);
+	let c   = textureSample(t_diffuse, s_diffuse, in.tex_coords);
+	let e   = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>( PIXEL_OFFSET, 0.0) * point_dir);
+	let ee  = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>( PIXEL_OFFSET_2, 0.0) * point_dir);
+	
+	let sww = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(-PIXEL_OFFSET_2, PIXEL_OFFSET) * point_dir);
+	let sw  = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(-PIXEL_OFFSET, PIXEL_OFFSET) * point_dir);
+	let s   = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>( 0.0, PIXEL_OFFSET) * point_dir);
+	let se  = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>( PIXEL_OFFSET, PIXEL_OFFSET) * point_dir);
+	let see = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>( PIXEL_OFFSET_2, PIXEL_OFFSET) * point_dir);
+	
+	let ssw = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(-PIXEL_OFFSET, PIXEL_OFFSET_2) * point_dir);
+	let ss  = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>( 0.0, PIXEL_OFFSET_2) * point_dir);
+	let sse = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>( PIXEL_OFFSET, PIXEL_OFFSET_2) * point_dir);
+
+    // North slices
+	let n_col = slice_dist(local, vec2<f32>(1.0,-1.0), point_dir, s, se, see, w, c, e, ee, nw, n, ne, nee, nnw, nn, nne);
+    if n_col.r >= 0.0 {
+        return n_col;
+    }
+
+    // West slices
+	let w_col = slice_dist(local, vec2<f32>(-1.0, 1.0), point_dir, n, nw, nww, e, c, w, ww, se, s, sw, sww, sse, ss, ssw);
+    if w_col.r >= 0.0 {
+        return w_col;
+    }
+
+    // Corner slices
+    let c_col = slice_dist(local, vec2<f32>(1.0, 1.0), point_dir, n, ne, nee, w, c, e, ee, sw, s, se, see, ssw, ss, sse);
+    if c_col.r >= 0.0 {
+        return c_col;
+    }
+
+    return c;
 }

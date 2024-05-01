@@ -60,7 +60,7 @@ pub struct GameConfig {
     ///
     /// See [`RotationAlgorithm`] for more information.
     ///
-    /// Defaults to [`RotationAlgorithm::Scale3x`].
+    /// Defaults to [`RotationAlgorithm::CleanEdge`].
     pub rotation_algorithm: RotationAlgorithm,
     /// Maximum amount a single frame may take in seconds.
     ///
@@ -157,7 +157,7 @@ impl Default for GameConfig {
             title: "Pixel Game".to_string(),
             viewport_color: 0xFF76428A,
             background_color: 0xFF9BADB7,
-            rotation_algorithm: RotationAlgorithm::Scale3x,
+            rotation_algorithm: RotationAlgorithm::default(),
             max_frame_time_secs: 1.0 / 4.0,
             update_delta_time: 1.0 / 30.0,
         }
@@ -172,13 +172,18 @@ impl Default for GameConfig {
 ///
 /// | Algorithm | Performance | Visual Quality | Texture Lookups per Pixel |
 /// | --- | --- | --- | --- |
-/// | [`RotationAlgorithm::Scale3x`] (default) | ~60fps | Great | 9 |
-/// | [`RotationAlgorithm::Diag2x`] | ~60fps | Good | 9 |
-/// | [`RotationAlgorithm::NearestNeighbor`] | ~160fps | Terrible | 1 |
-/// | [`RotationAlgorithm::Scale2x`] | ~80fps | Bad | 5 |
+/// | [`RotationAlgorithm::CleanEdge`] | ~60fps | Great | 21 |
+/// | [`RotationAlgorithm::Scale3x`](default) | ~300fps | Okay | 9 |
+/// | [`RotationAlgorithm::Diag2x`] | ~400fps | Good | 9 |
+/// | [`RotationAlgorithm::NearestNeighbor`] | ~460fps | Terrible | 1 |
+/// | [`RotationAlgorithm::Scale2x`] | ~450fps | Bad | 5 |
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum RotationAlgorithm {
+    /// 'Upscale' with Torcado's [cleanEdge](https://torcado.com/cleanEdge/) algorithm.
+    ///
+    /// The performance is the worst of all but it looks very good when rotating pixel-art.
+    CleanEdge,
     /// 'Upscale' with the [Scale3x](http://www.scale2x.it/) algorithm.
     ///
     /// The performance is not that great. Rotating pixel-art will look quite good.
