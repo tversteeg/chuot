@@ -22,7 +22,7 @@ hot-reload-assets = []
 [dependencies]
 litrs = "0.4.1"
 quote = "1.0.36"
-proc-macro2 = "1.0"
+proc-macro2 = "1.0.81"
 walkdir = "2.5.0"
 
 png = { version = "0.17.13", optional = true }
