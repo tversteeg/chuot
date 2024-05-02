@@ -250,7 +250,7 @@ fn scale3x(
 
 // Similar for the cleanEdge algorithm
 fn similar(color1: vec4<f32>, color2: vec4<f32>) -> bool {
-    return (color1.a == 0.0 && color2.a == 0.0) || distance(color1, color2) <= 0.0;
+    return (color1.a == 0.0 && color2.a == 0.0) || all(color1.rgb == color2.rgb);
 }
 
 // Similar with 3 colors for the cleanEdge algorithm
@@ -270,19 +270,16 @@ fn similar5(color1: vec4<f32>, color2: vec4<f32>, color3: vec4<f32>, color4: vec
 
 // Higher color for the cleanEdge algorithm
 fn higher(this_color: vec4<f32>, other_color: vec4<f32>) -> bool {
-    // Color with the highest priority, other colors will be tested based on the distance to this color to determine which colors take priority for overlaps
-    // White
-    let highest_color: vec3<f32> = vec3<f32>(1.0, 1.0, 1.0); 
+    // Vec3(1.0) is the color with the highest priority
+    // Other colors will be tested based on the distance to this color to determine which colors take priority for overlaps
 
-    if similar(this_color, other_color) {
-        return false;
-    }
-
-    if this_color.a == other_color.a {
-        return distance(this_color.rgb, highest_color) < distance(other_color.rgb, highest_color);
-    } else {
-        return this_color.a > other_color.a;
-    }
+    // If similar return false
+    return !similar(this_color, other_color) &&
+        select(
+            this_color.a > other_color.a,
+            // Practically equivalent to `distance(this_color.rgb, vec3(1)) < distance(other_color.rgb, vec3(1))`
+            this_color.r + this_color.g + this_color.b >= other_color.r + other_color.g + other_color.b,
+            this_color.a == other_color.a);
 }
 
 // Distance to line for the cleanEdge algorithm
@@ -293,6 +290,45 @@ fn dist_to_line(test_point: vec2<f32>, point1: vec2<f32>, point2: vec2<f32>, dir
 
     return sign(dot(perp_dir, dir)) * dot(normalize(perp_dir), dir_to_point1);
 }
+
+// cleanEdge distance check
+fn dist_check(dist: f32, c: vec4<f32>, a: vec4<f32>, b: vec4<f32>) -> vec4<f32> {
+    // If distance is inside line, return -1, otherwise return the closest
+    return select(
+        select(a, b, distance(c, a) <= distance(c, b)),
+        vec4(-1.0),
+        dist > LINE_WIDTH / 2.0);
+}
+
+// cleanEdge distance caluclation
+fn midpoint(
+    flip: bool,
+    point: vec2<f32>,
+    point_dir: vec2<f32>,
+    offset_a1: vec2<f32>,
+    offset_a2: vec2<f32>,
+    offset_b1: vec2<f32>,
+    offset_b2: vec2<f32>
+) -> f32 {
+    // Midpoints of neighbor two-pixel groupings
+    return select(
+        dist_to_line(
+            point,
+            fma(offset_b1, point_dir, CENTER),
+            fma(offset_b2, point_dir, CENTER),
+            point_dir),
+        LINE_WIDTH - dist_to_line(
+            point,
+            fma(offset_a1, point_dir, CENTER),
+            fma(offset_a2, point_dir, CENTER),
+            -point_dir),
+        flip);
+}
+
+// cleanEdge line width parameter
+const LINE_WIDTH: f32 = 1.0; 
+// cleanEdge center value
+const CENTER = vec2<f32>(0.5, 0.5);
 
 // Slice distance for the cleanEdge algorithm
 fn slice_dist(
@@ -314,45 +350,37 @@ fn slice_dist(
     ss: vec4<f32>,
     sse: vec4<f32>,
 ) -> vec4<f32> {
-    let min_width: f32 = 0.0;
-    let max_width: f32 = 1.4;
-    let line_width: f32 = 1.0; 
-
-    // Flip point
-    let flipped_point = main_dir * (point - 0.5) + 0.5;
 
     // Edge detection
 
-    let dist_against = 4.0 
-        * distance(e, s)
-        + distance(ne, c)
-        + distance(c, sw)
-        + distance(ee, se)
-        + distance(se, ss);
+    let dist_against = fma(
+        4.0,
+        distance(e, s),
+            distance(ne, c)
+            + distance(c, sw)
+            + distance(ee, se)
+            + distance(se, ss)
+        );
 
-    let dist_towards = 4.0 
-        * distance(c, se)
-        + distance(n, e)
-        + distance(e, see)
-        + distance(w, s)
-        + distance(s, sse);
+    let dist_towards = fma(
+        4.0,
+        distance(c, se),
+            distance(n, e)
+            + distance(e, see)
+            + distance(w, s)
+            + distance(s, sse)
+        );
 
-    // Check for equivalent edges
-    var should_slice = dist_against < dist_towards || dist_against < dist_towards + 0.001 && !higher(c, e);
-
-    // Check for checkerboard patterns
-    if similar4(e, s, w, n) && similar3(ne, se, sw) && !similar(c, e) {
-        should_slice = false;
-    }
-
-    if !should_slice {
+    // Check for equivalent edges or checkerboard patterns
+    if !(dist_against < dist_towards || dist_against < dist_towards + 0.001 && !higher(c, e)) 
+        || (similar4(e, s, w, n) && similar3(ne, se, sw) && !similar(c, e)) {
         return vec4<f32>(-1.0);
     }
 
-    var dist = 1.0;
-    var flip = false;
-    var center = vec2<f32>(0.5, 0.5);
+    // Flip point
+    let flipped_point = fma(main_dir, point - 0.5, CENTER);
 
+    var flip = false;
     if similar3(e, s, sw) && !similar3(e, s, w) && !similar(ne, sw) {
         // Lower shallow 2:1 slant
         if similar(c, se) && higher(c, e) {
@@ -363,19 +391,17 @@ fn slice_dist(
         }
 
         // Midpoints of neighbor two-pixel groupings
-        if flip {
-            dist = line_width - dist_to_line(flipped_point, center + vec2<f32>(1.5, -1.0) * point_dir, center + vec2<f32>(-0.5, 0.0) * point_dir, -point_dir);
-        } else {
-            dist = dist_to_line(flipped_point, center + vec2<f32>(1.5, 0.0) * point_dir, center + vec2<f32>(-0.5, 1.0) * point_dir, point_dir);
-        }
+        let dist = midpoint(
+            flip,
+            flipped_point,
+            point_dir, 
+            vec2<f32>(1.5, -1.0),
+            vec2<f32>(-0.5, 0.0),
+            vec2<f32>(1.5, 0.0),
+            vec2<f32>(-0.5, 1.0),
+        );
 
-        if dist > line_width / 2.0 {
-            return vec4(-1.0);
-        } else if distance(c, e) <= distance(c, s) {
-            return e;
-        } else {
-            return s;
-        }
+        return dist_check(dist, c, e, s);
     } else if similar3(ne, e, s) && !similar3(n, e, s) && !similar(ne, sw) {
         // Forward steep 2:1 slant
         if similar(c, se) && higher(c, s) {
@@ -385,20 +411,17 @@ fn slice_dist(
             flip = true;
         }
 
-        // Midpoints of neighbor two-pixel groupings
-        if flip {
-            dist = line_width - dist_to_line(flipped_point, center + vec2<f32>(0.0, -0.5) * point_dir, center + vec2<f32>(-1.0, 1.5) * point_dir, -point_dir);
-        } else {
-            dist = dist_to_line(flipped_point, center + vec2<f32>(1.0, -0.5) * point_dir, center + vec2<f32>(0.0, 1.5) * point_dir, point_dir);
-        }
+        let dist = midpoint(
+            flip,
+            flipped_point,
+            point_dir, 
+            vec2<f32>(0.0, -0.5),
+            vec2<f32>(-1.0, 1.5),
+            vec2<f32>(1.0, -0.5),
+            vec2<f32>(0.0, 1.5),
+        );
 
-        if dist > line_width / 2.0 {
-            return vec4(-1.0);
-        } else if distance(c, e) <= distance(c, s) {
-            return e;
-        } else {
-            return s;
-        }
+        return dist_check(dist, c, e, s);
     } else if similar(e, s) {
         // 45 degrees diagonal
         if similar(c, se) && higher(c, e) {
@@ -417,20 +440,17 @@ fn slice_dist(
 			flip = true;
 		} 
 
-        // Midpoints of neighbor two-pixel groupings
-        if flip {
-            dist = line_width - dist_to_line(flipped_point, center + vec2<f32>(1.0, -1.0) * point_dir, center + vec2<f32>(-1.0, 1.0) * point_dir, -point_dir);
-        } else {
-            dist = dist_to_line(flipped_point, center + vec2<f32>(1.0, 0.0) * point_dir, center + vec2<f32>(0.0, 1.0) * point_dir, point_dir);
-        }
+        let dist = midpoint(
+            flip,
+            flipped_point,
+            point_dir, 
+            vec2<f32>(1.0, -1.0),
+            vec2<f32>(-1.0, 1.0),
+            vec2<f32>(1.0, 0.0),
+            vec2<f32>(0.0, 1.0),
+        );
 
-        if dist > line_width / 2.0 {
-            return vec4(-1.0);
-        } else if distance(c, e) <= distance(c, s) {
-            return e;
-        } else {
-            return s;
-        }
+        return dist_check(dist, c, e, s);
     } else if similar3(ee, se, s) && !similar3(ee, se, c) && !similar(nee, s) {
         // Far corner of shallow slant
         if similar(e, see) && higher(e, ee) {
@@ -440,20 +460,17 @@ fn slice_dist(
             flip = true;
         }
 
-        // Midpoints of neighbor two-pixel groupings
-        if flip {
-            dist = line_width - dist_to_line(flipped_point, center + vec2<f32>(2.5, -1.0) * point_dir, center + vec2<f32>(0.5, 0.0) * point_dir, -point_dir);
-        } else {
-            dist = dist_to_line(flipped_point, center + vec2<f32>(2.5, 0.0) * point_dir, center + vec2<f32>(0.5, 1.0) * point_dir, point_dir);
-        }
+        let dist = midpoint(
+            flip,
+            flipped_point,
+            point_dir, 
+            vec2<f32>(2.5, -1.0),
+            vec2<f32>(0.5, 0.0),
+            vec2<f32>(2.5, 0.0),
+            vec2<f32>(0.5, 1.0),
+        );
 
-        if dist > line_width / 2.0 {
-            return vec4(-1.0);
-        } else if distance(e, ee) <= distance(e, se) {
-            return ee;
-        } else {
-            return se;
-        }
+        return dist_check(dist, e, ee, ss);
     } else if similar3(e, se, ss) && !similar3(c, se, ss) && !similar(e, ssw) {
         // Far corner of steep slant
         if similar(s, sse) && higher(s, ss) {
@@ -463,20 +480,17 @@ fn slice_dist(
             flip = true;
         }
 
-        // Midpoints of neighbor two-pixel groupings
-        if flip {
-            dist = line_width - dist_to_line(flipped_point, center + vec2<f32>(0.0, 0.5) * point_dir, center + vec2<f32>(-1.0, 2.5) * point_dir, -point_dir);
-        } else {
-            dist = dist_to_line(flipped_point, center + vec2<f32>(1.0, 0.5) * point_dir, center + vec2<f32>(0.0, 2.5) * point_dir, point_dir);
-        }
+        let dist = midpoint(
+            flip,
+            flipped_point,
+            point_dir, 
+            vec2<f32>(0.0, 0.5),
+            vec2<f32>(-1.0, 2.5),
+            vec2<f32>(1.0, 0.5),
+            vec2<f32>(0.0, 2.5),
+        );
 
-        if dist > line_width / 2.0 {
-            return vec4(-1.0);
-        } else if distance(s, se) <= distance(s, ss) {
-            return se;
-        } else {
-            return ss;
-        }
+        return dist_check(dist, s, se, ss);
     }
 
     return vec4(-1.0);
@@ -572,6 +586,14 @@ fn fs_main_nearest_neighbor(in: VertexOutput) -> @location(0) vec4<f32> {
 // Torcado's cleanEdge
 @fragment
 fn fs_main_clean_edge(in: VertexOutput) -> @location(0) vec4<f32> {
+    // Take the sample of the exact pixel
+    let c = textureSample(t_diffuse, s_diffuse, in.tex_coords);
+
+    // Don't apply the algorithm when no rotations or skewing occurs
+    if in.only_translated_or_reflected == 1.0 {
+        return c;
+    }
+
     // Offset of the UV within the pixel
     let local = fract(in.tex_coords * ATLAS_TEXTURE_SIZE);
     let point_dir = sign(local - 0.5);
@@ -589,7 +611,6 @@ fn fs_main_clean_edge(in: VertexOutput) -> @location(0) vec4<f32> {
 	
 	let ww  = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(-PIXEL_OFFSET_2, 0.0) * point_dir);
 	let w   = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>(-PIXEL_OFFSET, 0.0) * point_dir);
-	let c   = textureSample(t_diffuse, s_diffuse, in.tex_coords);
 	let e   = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>( PIXEL_OFFSET, 0.0) * point_dir);
 	let ee  = textureSample(t_diffuse, s_diffuse, in.tex_coords + vec2<f32>( PIXEL_OFFSET_2, 0.0) * point_dir);
 	
@@ -605,21 +626,29 @@ fn fs_main_clean_edge(in: VertexOutput) -> @location(0) vec4<f32> {
 
     // North slices
 	let n_col = slice_dist(local, vec2<f32>(1.0,-1.0), point_dir, s, se, see, w, c, e, ee, nw, n, ne, nee, nnw, nn, nne);
-    if n_col.r >= 0.0 {
-        return n_col;
-    }
 
     // West slices
 	let w_col = slice_dist(local, vec2<f32>(-1.0, 1.0), point_dir, n, nw, nww, e, c, w, ww, se, s, sw, sww, sse, ss, ssw);
-    if w_col.r >= 0.0 {
-        return w_col;
-    }
 
     // Corner slices
     let c_col = slice_dist(local, vec2<f32>(1.0, 1.0), point_dir, n, ne, nee, w, c, e, ee, sw, s, se, see, ssw, ss, sse);
-    if c_col.r >= 0.0 {
-        return c_col;
-    }
 
-    return c;
+    // if n_col.r >= 0.0 { return n_col };
+    // if w_col.r >= 0.0 { return w_col };
+    // if c_col.r >= 0.0 { return c_col };
+    // return c;
+    return mix(
+        mix(
+            mix(
+                c,
+                c_col,
+                step(0.0, c_col.r)
+            ),
+            w_col,
+            step(0.0, w_col.r)
+        ),
+        n_col,
+        step(0.0, n_col.r)
+    );
 }
+

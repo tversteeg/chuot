@@ -52,7 +52,6 @@ fn main() {
         scaling: 3.0,
         // We use a custom rotation algorithm shader so the sprite looks more smooth while rotating with less noisy artifacts, this one is a bit slow
         rotation_algorithm: RotationAlgorithm::CleanEdge,
-        vsync: false,
         ..Default::default()
     };
 
