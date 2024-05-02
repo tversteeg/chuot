@@ -23,7 +23,7 @@ hot-reload-assets = []
 litrs = "0.4.1"
 quote = "1.0"
 proc-macro2 = "1.0"
-walkdir = "2"
+walkdir = "2.5.0"
 
 png = { version = "0.17.13", optional = true }
 sprite_dicing = { version = "0.1.2", optional = true }
