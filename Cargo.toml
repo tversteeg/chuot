@@ -72,7 +72,7 @@ chuot-macros = { path = "crates/macros", version = "0.1.0" }
 chuot-packer = { path = "crates/packer", version = "0.1.0" }
 
 miette = "7.2.0"
-serde = { version = "1.0.199", features = ["derive"] }
+serde = { version = "1.0.200", features = ["derive"] }
 serde-untagged = "0.1.5"
 bytemuck = { version = "1.15.0", features = ["derive"] }
 log = "0.4.21"
