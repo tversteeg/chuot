@@ -46,7 +46,7 @@ embed-assets = ["chuot-macros/embed-assets"]
 #
 # Has no effect when building for the web.
 # Mutually exclusive from `embed-assets`.
-hot-reload-assets = ["chuot-macros/hot-reload-assets"]
+hot-reload-assets = ["dep:notify-debouncer-mini", "chuot-macros/hot-reload-assets"]
 
 # Integrate [Yarn Spinner](https://www.yarnspinner.dev/), a friendly DSL for writing dialogue.
 dialogue = ["dep:yarnspinner"]
@@ -102,6 +102,9 @@ egui-wgpu = { version = "0.27.2", optional = true }
 egui-winit = { version = "0.27.2", default-features = false, features = ["wayland"], optional = true }
 puffin_egui = { version = "0.27.0", optional = true }
 stats_alloc = { version = "0.1.10", optional = true }
+
+# `hot-reload-assets` feature
+notify-debouncer-mini = { version = "0.4.1", optional = true }
 
 # Dependencies specifically for desktop
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

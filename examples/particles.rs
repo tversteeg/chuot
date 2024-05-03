@@ -131,7 +131,6 @@ impl PixelGame for GameState {
     /// Render the game.
     fn render(&mut self, ctx: Context) {
         // Draw all particles
-        // Will be loaded from disk if the `hot-reloading` feature is enabled, otherwise it will be embedded in the binary
         ctx.sprite("crate")
             .draw_multiple_translated(self.particles.iter().map(|particle| particle.position));
 

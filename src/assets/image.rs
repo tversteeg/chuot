@@ -95,4 +95,12 @@ impl ImageCache {
                 }
             })
     }
+
+    /// Remove an asset from the cache.
+    ///
+    /// This can be used to trigger a reload.
+    #[cfg(feature = "hot-reload-assets")]
+    pub(crate) fn remove(&mut self, _id: &Id) {
+        // TODO: implement this
+    }
 }

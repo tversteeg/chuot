@@ -1,6 +1,12 @@
 //! Show how to load a custom asset.
 //!
-//! When the `hot-reloading-assets` flag is enabled you can update the text live by editing the file.
+//! On desktop when the `hot-reload-assets` flag is enabled you can update the text live by editing the file.
+//!
+//! `example.txt`:
+//! ```txt
+//! This string is loaded
+//! from 'assets/example.txt'!
+//! ```
 
 use chuot::{
     assets::{loader::Loader, AssetSource, Id, Loadable},

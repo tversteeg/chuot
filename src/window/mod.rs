@@ -68,6 +68,11 @@ where
     U: TickFn<G> + 'static,
     R: TickFn<G> + 'static,
 {
+    // Start the watcher for the assets folder
+    #[cfg(feature = "hot-reload-assets")]
+    let _asset_watcher = crate::assets::hot_reload::watch_assets_folder(assets.0)
+        .wrap_err("Error setting up hot-reload watcher for assets folder")?;
+
     // Build the window builder with the event loop the user supplied
     let window_builder = WindowBuilder::new()
         .with_title(window_config.title.clone())
@@ -217,6 +222,10 @@ where
                                 ctx.mouse = ctx.input.cursor().and_then(|(x, y)| {
                                     render_state.map_coordinate(Vector2::new(x, y))
                                 });
+
+                                // Handle hot reloaded assets
+                                #[cfg(feature = "hot-reload-assets")]
+                                ctx.assets.process_hot_reloaded_assets();
                             });
 
                             // Update the timestep

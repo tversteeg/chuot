@@ -167,4 +167,17 @@ impl AssetSource {
             })
             .collect()
     }
+
+    /// Update based on the assets that have been changed.
+    #[cfg(feature = "hot-reload-assets")]
+    pub(crate) fn process_hot_reloaded_assets(&mut self) {
+        // Remove each item from the image cache, but don't consume the assets because it will be used after this by the `AssetsManager`
+        for changed_asset in crate::assets::hot_reload::global_assets_updated()
+            .lock()
+            .unwrap()
+            .iter()
+        {
+            self.image_cache.borrow_mut().remove(changed_asset);
+        }
+    }
 }

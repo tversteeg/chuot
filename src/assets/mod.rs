@@ -1,6 +1,6 @@
 //! Custom asset loading.
 //!
-//! Assets will be embedded into the binary when the `hot-reloading-assets` feature flag is disabled or a WASM build is made, since there's no filesystem there.
+//! Assets will be embedded into the binary when the `hot-reload-assets` feature flag is disabled or a WASM build is made, since there's no filesystem there.
 //!
 //! Asset loading is done through the various calls in [`crate::Context`].
 
@@ -8,6 +8,8 @@ mod audio;
 #[cfg(feature = "embed-assets")]
 #[doc(hidden)]
 pub mod embedded;
+#[cfg(feature = "hot-reload-assets")]
+pub(crate) mod hot_reload;
 pub(crate) mod image;
 pub mod loader;
 #[cfg(not(feature = "embed-assets"))]
@@ -78,13 +80,15 @@ pub(crate) struct AssetManager<T: Loadable> {
 }
 
 impl<T: Loadable> AssetManager<T> {
-    /// Get an asset or throw an exception.
+    /// Get an asset or load it from the asset source.
     #[inline]
     #[track_caller]
     pub(crate) fn get_or_insert(&mut self, id: &str, asset_source: &AssetSource) -> Rc<T> {
+        // Return a reference to the asset when it already exists, otherwise insert it
         if let Some(asset) = self.get(id) {
             asset
         } else {
+            // Asset not found, load it
             self.insert(id, asset_source)
         }
     }
@@ -133,16 +137,18 @@ pub(crate) struct CustomAssetManager {
 }
 
 impl CustomAssetManager {
-    /// Get an asset or throw an exception.
+    /// Get an asset or load it from the asset source.
     #[inline]
     #[track_caller]
     pub(crate) fn get_or_insert<T>(&mut self, id: &str, asset_source: &AssetSource) -> Rc<T>
     where
         T: Loadable,
     {
+        // Return a reference to the asset when it already exists, otherwise insert it
         if let Some(asset) = self.get(id) {
             asset
         } else {
+            // Asset not found, load it
             self.insert(id, asset_source)
         }
     }
@@ -301,5 +307,23 @@ impl AssetsManager {
     pub(crate) fn take_images_for_uploading(&mut self) -> Vec<(AtlasRef, PngReader)> {
         // TODO: allow runtime images
         Vec::new()
+    }
+
+    /// Update based on the assets that have been changed.
+    #[cfg(feature = "hot-reload-assets")]
+    pub(crate) fn process_hot_reloaded_assets(&mut self) {
+        // Clean the image cache
+        self.source.process_hot_reloaded_assets();
+
+        // Take each item from the updated assets list
+        for changed_asset in hot_reload::global_assets_updated().lock().unwrap().drain() {
+            log::debug!("Reloading asset '{changed_asset}'");
+
+            // Remove the changed asset from each manager, this will trigger the asset to load again when accessed
+            self.sprites.assets.remove(&changed_asset);
+            self.fonts.assets.remove(&changed_asset);
+            self.audio.assets.remove(&changed_asset);
+            self.custom.assets.remove(&changed_asset);
+        }
     }
 }
