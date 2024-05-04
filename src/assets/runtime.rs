@@ -1,6 +1,6 @@
 //! Assets that will be loaded during runtime.
 
-use std::{cell::RefCell, path::PathBuf, rc::Rc, str::FromStr};
+use std::{cell::RefCell, path::PathBuf, path::MAIN_SEPARATOR, rc::Rc, str::FromStr};
 
 use glamour::Size2;
 use hashbrown::HashMap;
@@ -13,12 +13,9 @@ use crate::{
     },
 };
 
-use super::{
-    image::ImageCache,
-    loader::{
-        png::{PngLoader, PngReader},
-        Loader,
-    },
+use super::loader::{
+    png::{PngLoader, PngReader},
+    Loader,
 };
 
 /// Compile time assets that haven't been parsed yet.
@@ -38,16 +35,6 @@ impl EmbeddedRawStaticAtlas {
     /// Create an empty atlas.
     pub(crate) fn parse_and_upload(self, gpu: &Gpu) -> Atlas {
         Atlas::new(Vec::new(), gpu)
-    }
-
-    /// Create a texture mapping to atlas index table.
-    pub(crate) fn texture_id_to_atlas_id_map(&self) -> HashMap<Id, u16> {
-        HashMap::new()
-    }
-
-    /// Create a texture mapping to size.
-    pub(crate) fn texture_id_to_size_map(&self) -> HashMap<Id, Size2<u32>> {
-        HashMap::new()
     }
 }
 
@@ -95,9 +82,11 @@ impl AssetSource {
         );
 
         // Convert ID back to file
-        let file_path = self
-            .assets_dir
-            .join(format!("{}.{}", id.replace('.', "/"), L::EXTENSION));
+        let file_path = self.assets_dir.join(format!(
+            "{}.{}",
+            id.replace('.', std::str::from_utf8(&[MAIN_SEPARATOR as u8]).unwrap()),
+            L::EXTENSION
+        ));
 
         // Read the file, return None if it failed for whatever reason
         let bytes = std::fs::read(file_path).ok()?;
@@ -179,5 +168,87 @@ impl AssetSource {
         {
             self.image_cache.borrow_mut().remove(changed_asset);
         }
+    }
+}
+
+/// Image cache for allowing multiple code paths to upload and reference images.
+pub(crate) struct ImageCache {
+    /// Images to still load and upload to the GPU.
+    to_load: HashMap<Id, AtlasRef>,
+    /// Map of already uploaded images with their atlas ID.
+    uploaded: HashMap<Id, AtlasRef>,
+    /// Atlas index of images already uploaded.
+    atlas_index: AtlasRef,
+}
+
+impl ImageCache {
+    /// Create a new empty image cache.
+    pub(crate) fn new() -> Self {
+        let to_load = HashMap::new();
+        let uploaded = HashMap::new();
+        let atlas_index = 0;
+
+        Self {
+            to_load,
+            uploaded,
+            atlas_index,
+        }
+    }
+
+    /// Get or load a new image if it doesn't exist.
+    pub(crate) fn get_or_load(&mut self, id: &Id) -> Option<AtlasRef> {
+        // TODO: check if path exists
+
+        // First look if it's already uploaded
+        if let Some(atlas_id) = self.atlas_id(id) {
+            return Some(atlas_id);
+        }
+
+        let atlas_index = self.atlas_index;
+        // Take the next item in the atlas
+        self.atlas_index += 1;
+
+        // It's not uploaded, add it to the queue
+        self.to_load.insert(id.clone(), atlas_index);
+
+        // Return the new incremented reference
+        Some(atlas_index)
+    }
+
+    /// Take all images that need to be uploaded.
+    pub(crate) fn take_to_load(&mut self) -> impl Iterator<Item = (Id, AtlasRef)> + '_ {
+        // Add to uploaded
+        self.uploaded.extend(self.to_load.clone().into_iter());
+
+        // Remove from the old vector
+        self.to_load.drain()
+    }
+
+    /// Request the atlas ID for an image.
+    ///
+    /// Will first look in already uploaded, and if not found loop over the new images to upload.
+    pub(crate) fn atlas_id(&self, id: &Id) -> Option<AtlasRef> {
+        // First look if it's already uploaded
+        if let Some(atlas_id) = self.uploaded.get(id) {
+            return Some(*atlas_id);
+        }
+
+        // Then try to find the item in the new images to upload
+        self.to_load.iter().find_map(|(to_upload_id, atlas_index)| {
+            if to_upload_id == id {
+                // Add the index of the new item to the length of the already uploaded images so we get the future ID
+                Some(*atlas_index)
+            } else {
+                None
+            }
+        })
+    }
+
+    /// Remove an asset from the cache.
+    ///
+    /// This can be used to trigger a reload.
+    #[cfg(feature = "hot-reload-assets")]
+    pub(crate) fn remove(&mut self, id: &Id) {
+        self.uploaded.remove(id);
     }
 }

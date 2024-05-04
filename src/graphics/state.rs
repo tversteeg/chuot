@@ -4,19 +4,11 @@ use glamour::{Contains, Rect, Size2, Vector2};
 use miette::Result;
 use winit::window::Window;
 
-use crate::{
-    assets::{loader::png::PngReader, EmbeddedRawStaticAtlas},
-    window::InGameProfiler,
-    Context, GameConfig,
-};
+use crate::{assets::EmbeddedRawStaticAtlas, window::InGameProfiler, Context, GameConfig};
 
 use super::{
-    atlas::{Atlas, AtlasRef},
-    component::SpriteRenderState,
-    data::ScreenInfo,
-    gpu::Gpu,
-    post_processing::PostProcessingState,
-    uniform::UniformState,
+    atlas::Atlas, component::SpriteRenderState, data::ScreenInfo, gpu::Gpu,
+    post_processing::PostProcessingState, uniform::UniformState,
 };
 
 /// Texture format we prefer to use for everything.

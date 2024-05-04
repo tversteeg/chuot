@@ -13,7 +13,7 @@ use winit::{event::MouseButton, keyboard::KeyCode, window::Window};
 use winit_input_helper::WinitInputHelper;
 
 use crate::{
-    assets::{AssetSource, AssetsManager, Id, Loadable},
+    assets::{AssetSource, AssetsManager, Loadable},
     graphics::{atlas::AtlasRef, instance::Instances},
     GameConfig,
 };
