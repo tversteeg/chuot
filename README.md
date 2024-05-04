@@ -7,7 +7,7 @@
 [![Dependency Status](https://deps.rs/repo/github/tversteeg/chuot/status.svg)](https://deps.rs/repo/github/tversteeg/chuot)
 [![Downloads](https://img.shields.io/crates/d/chuot.svg)](#downloads)
 
-### [Documentation](https://docs.rs/chuot/)
+### [Website](https://tversteeg.nl/chuot/)
 
 <!-- cargo-rdme start -->
 
