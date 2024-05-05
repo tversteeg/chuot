@@ -43,8 +43,8 @@ impl PixelGame for GameState {
                     self.particles.push(Particle {
                         position: mouse,
                         velocity: Vector2::new(
-                            chuot::random_range(-100.0, 100.0),
-                            chuot::random_range(-100.0, 100.0),
+                            chuot::random(-100.0, 100.0),
+                            chuot::random(-100.0, 100.0),
                         ),
                         life: PARTICLE_LIFE_SECS,
                     });
@@ -57,8 +57,8 @@ impl PixelGame for GameState {
                     self.particles.push(Particle {
                         position: mouse,
                         velocity: Vector2::new(
-                            chuot::random_range(-200.0, 200.0),
-                            chuot::random_range(-200.0, 200.0),
+                            chuot::random(-200.0, 200.0),
+                            chuot::random(-200.0, 200.0),
                         ),
                         life: PARTICLE_LIFE_SECS,
                     });
@@ -71,8 +71,8 @@ impl PixelGame for GameState {
                     self.particles.push(Particle {
                         position: mouse,
                         velocity: Vector2::new(
-                            chuot::random_range(-300.0, 300.0),
-                            chuot::random_range(-300.0, 300.0),
+                            chuot::random(-300.0, 300.0),
+                            chuot::random(-300.0, 300.0),
                         ),
                         life: PARTICLE_LIFE_SECS,
                     });
@@ -82,10 +82,7 @@ impl PixelGame for GameState {
             // Spawn a new particle at the mouse
             self.particles.push(Particle {
                 position: mouse,
-                velocity: Vector2::new(
-                    chuot::random_range(-10.0, 10.0),
-                    chuot::random_range(-10.0, 10.0),
-                ),
+                velocity: Vector2::new(chuot::random(-10.0, 10.0), chuot::random(-10.0, 10.0)),
                 life: PARTICLE_LIFE_SECS,
             });
         }

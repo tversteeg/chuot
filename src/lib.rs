@@ -199,7 +199,7 @@ pub use chuot_macros::load_assets;
 
 pub use config::GameConfig;
 pub use context::Context;
-pub use random::{random, random_range};
+pub use random::random;
 
 use miette::Result;
 
