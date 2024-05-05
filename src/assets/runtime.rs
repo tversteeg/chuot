@@ -62,7 +62,7 @@ impl AssetSource {
     ///
     /// # Arguments
     ///
-    /// * `id` - Asset ID passed to the [`Loadable`] function to load the asset with.
+    /// * `id` - Asset ID passed to the [`crate::assets::Loadable`] function to load the asset with.
     ///
     /// # Returns
     ///

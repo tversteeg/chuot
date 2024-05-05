@@ -163,7 +163,7 @@ pub mod context;
 #[cfg(feature = "dialogue")]
 pub mod dialogue;
 mod font;
-pub mod graphics;
+mod graphics;
 mod random;
 mod sprite;
 mod window;

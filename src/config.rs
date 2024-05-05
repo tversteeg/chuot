@@ -1,4 +1,4 @@
-//! Game configuration.
+//! Initial game configuration.
 
 use glamour::Size2;
 
@@ -60,7 +60,7 @@ pub struct GameConfig {
     ///
     /// See [`RotationAlgorithm`] for more information.
     ///
-    /// Defaults to [`RotationAlgorithm::CleanEdge`].
+    /// Defaults to [`RotationAlgorithm::Scale3x`].
     pub rotation_algorithm: RotationAlgorithm,
     /// Maximum amount a single frame may take in seconds.
     ///
@@ -168,13 +168,15 @@ impl Default for GameConfig {
 ///
 /// Defaults to [`RotationAlgorithm::Scale3x`].
 ///
+/// When you don't plan on rotating any sprite use [`RotationAlgorithm::NearestNeighbor`].
+///
 /// Here are the results from a simple test with 1000 sprites I did:
 ///
 /// | Algorithm | Performance | Visual Quality | Texture Lookups per Pixel |
 /// | --- | --- | --- | --- |
 /// | [`RotationAlgorithm::CleanEdge`] | ~60fps | Great | 21 |
-/// | [`RotationAlgorithm::Scale3x`](default) | ~300fps | Okay | 9 |
-/// | [`RotationAlgorithm::Diag2x`] | ~400fps | Good | 9 |
+/// | [`RotationAlgorithm::Scale3x`] (default) | ~300fps | Good | 9 |
+/// | [`RotationAlgorithm::Diag2x`] | ~400fps | Average | 9 |
 /// | [`RotationAlgorithm::NearestNeighbor`] | ~460fps | Terrible | 1 |
 /// | [`RotationAlgorithm::Scale2x`] | ~450fps | Bad | 5 |
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]

@@ -1,6 +1,7 @@
 //! Custom asset loading.
 //!
-//! Assets will be embedded into the binary when the `hot-reload-assets` feature flag is disabled or a WASM build is made, since there's no filesystem there.
+//! Assets will be embedded into the binary when the `embed-assets` feature flag is enabled.
+//! When building for WASM this feature flag is a requirement.
 //!
 //! Asset loading is done through the various calls in [`crate::Context`].
 
@@ -15,8 +16,6 @@ pub mod loader;
 #[cfg(not(feature = "embed-assets"))]
 #[doc(hidden)]
 pub mod runtime;
-
-pub use audio::Audio;
 
 use std::rc::Rc;
 
@@ -35,9 +34,9 @@ pub(crate) use runtime::{EmbeddedAssets, EmbeddedRawStaticAtlas};
 
 use crate::{font::Font, graphics::atlas::AtlasRef, sprite::Sprite};
 
-use self::loader::png::PngReader;
+use self::{audio::Audio, loader::png::PngReader};
 
-/// Asset ID.
+/// Identifier for any loadable asset, can be assigned multiple times for different types.
 ///
 /// When the string is smaller than 23 bytes this will be stored on the stack.
 pub type Id = SmolStr;
