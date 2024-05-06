@@ -2,8 +2,11 @@ name: CI
 on:
   push:
     paths-ignore:
-      - "docs/**"
-      - "**.md"
+      - ".github/git-cliff.toml"
+      - "release-plz.toml"
+      - "LICENSE"
+      - "README.md"
+      - "CHANGELOG.md"
 
 jobs:
   # Check for formatting

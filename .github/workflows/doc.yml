@@ -1,5 +1,11 @@
 name: Readme
-on: push
+on:
+  push:
+    paths-ignore:
+      - ".github/git-cliff.toml"
+      - "release-plz.toml"
+      - "LICENSE"
+      - "CHANGELOG.md"
 
 jobs:
   # Generate the readme from lib.rs
