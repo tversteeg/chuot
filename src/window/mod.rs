@@ -131,6 +131,7 @@ where
 }
 
 /// Open a winit window with an event loop.
+#[allow(clippy::future_not_send)]
 async fn winit_start<G, U, R>(
     event_loop: EventLoop<()>,
     window: Window,
@@ -166,7 +167,7 @@ where
     let asset_source = AssetSource::new(assets.0);
 
     // Create a surface on the window and setup the render state to it
-    let mut render_state = MainRenderState::new(&game_config, assets.atlas(), window.clone())
+    let mut render_state = MainRenderState::new(&game_config, assets.atlas(), Arc::clone(&window))
         .await
         .wrap_err("Error setting up the rendering pipeline")?;
 
@@ -176,7 +177,12 @@ where
         .wrap_err("Error setting up audio manager")?;
 
     // Setup the context passed to the tick function implemented by the user
-    let mut ctx = Context::new(&game_config, window.clone(), audio_manager, asset_source);
+    let mut ctx = Context::new(
+        &game_config,
+        Arc::clone(&window),
+        audio_manager,
+        asset_source,
+    );
 
     // Setup the in-game profiler
     #[cfg(feature = "in-game-profiler")]
@@ -283,9 +289,10 @@ where
                                 ctx.blending_factor = accumulator / game_config.update_delta_time;
 
                                 // Set the FPS with a smoothed average function
-                                ctx.frames_per_second = FPS_SMOOTHED_AVERAGE_ALPHA
-                                    * ctx.frames_per_second
-                                    + (1.0 - FPS_SMOOTHED_AVERAGE_ALPHA) * frame_time.recip();
+                                ctx.frames_per_second = FPS_SMOOTHED_AVERAGE_ALPHA.mul_add(
+                                    ctx.frames_per_second,
+                                    (1.0 - FPS_SMOOTHED_AVERAGE_ALPHA) * frame_time.recip(),
+                                );
 
                                 // Reset the renderable instances
                                 ctx.instances.clear();
@@ -311,7 +318,7 @@ where
                                 profiling::scope!("Render Internal");
 
                                 // Upload assets to the GPU
-                                render_state.upload(&mut ctx);
+                                render_state.upload(&ctx);
 
                                 // Render everything
                                 #[cfg(feature = "in-game-profiler")]

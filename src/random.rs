@@ -10,6 +10,8 @@
 /// # Returns
 ///
 /// - A random number between `min` and `max`.
+#[inline]
+#[must_use]
 pub fn random(min: f32, max: f32) -> f32 {
-    fastrand::f32() * (max - min) + min
+    fastrand::f32().mul_add(max - min, min)
 }

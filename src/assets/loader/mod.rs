@@ -3,6 +3,8 @@
 pub mod ogg;
 pub mod png;
 pub mod toml;
+#[cfg(feature = "dialogue")]
+pub mod yarn;
 
 /// How an asset should be loaded.
 pub trait Loader<T> {

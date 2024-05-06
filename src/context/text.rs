@@ -46,7 +46,7 @@ impl<'path, 'text, 'ctx> DrawTextContext<'path, 'text, 'ctx> {
         self.ctx.write(|ctx| {
             ctx.assets
                 .font(self.path)
-                .draw(self.position, self.text, &mut ctx.instances)
+                .draw(self.position, self.text, &mut ctx.instances);
         });
     }
 }

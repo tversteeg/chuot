@@ -104,7 +104,7 @@ impl Instances {
     }
 
     /// WGPU descriptor.
-    pub(crate) fn descriptor() -> wgpu::VertexBufferLayout<'static> {
+    pub(crate) const fn descriptor() -> wgpu::VertexBufferLayout<'static> {
         wgpu::VertexBufferLayout {
             array_stride: std::mem::size_of::<Instance>() as u64,
             step_mode: wgpu::VertexStepMode::Instance,

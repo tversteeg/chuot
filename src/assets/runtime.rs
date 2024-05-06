@@ -19,20 +19,24 @@ use super::loader::{
 };
 
 /// Compile time assets that haven't been parsed yet.
+#[allow(clippy::exhaustive_structs)]
 pub struct EmbeddedAssets(pub &'static str);
 
 impl EmbeddedAssets {
     /// Get an empty static atlas.
-    pub(crate) fn atlas(self) -> EmbeddedRawStaticAtlas {
+    #[allow(clippy::unused_self)]
+    pub(crate) const fn atlas(self) -> EmbeddedRawStaticAtlas {
         EmbeddedRawStaticAtlas
     }
 }
 
 /// Embedded diced sprite atlas in the binary.
+#[non_exhaustive]
 pub struct EmbeddedRawStaticAtlas;
 
 impl EmbeddedRawStaticAtlas {
     /// Create an empty atlas.
+    #[allow(clippy::unused_self)]
     pub(crate) fn parse_and_upload(self, gpu: &Gpu) -> Atlas {
         Atlas::new(Vec::new(), gpu)
     }
@@ -72,6 +76,8 @@ impl AssetSource {
     /// # Panics
     ///
     /// - When loading the asset fails.
+    #[inline]
+    #[must_use]
     pub fn load_if_exists<L, T>(&self, id: &Id) -> Option<T>
     where
         L: Loader<T>,
@@ -111,16 +117,13 @@ impl AssetSource {
         log::debug!("Loading image asset '{id}'",);
 
         // Get or load the image
-        self.image_cache
-            .borrow_mut()
-            .get_or_load(id)
-            .and_then(|atlas_id| {
-                Some(Image {
-                    atlas_id,
-                    // TODO: offset this somehow
-                    size: self.image_size(id)?,
-                })
-            })
+        let atlas_id = self.image_cache.borrow_mut().get_or_load(id);
+
+        Some(Image {
+            atlas_id,
+            // TODO: offset this somehow
+            size: self.image_size(id)?,
+        })
     }
 
     /// Get the size of an image based on a texture asset ID.
@@ -196,12 +199,12 @@ impl ImageCache {
     }
 
     /// Get or load a new image if it doesn't exist.
-    pub(crate) fn get_or_load(&mut self, id: &Id) -> Option<AtlasRef> {
+    pub(crate) fn get_or_load(&mut self, id: &Id) -> AtlasRef {
         // TODO: check if path exists
 
         // First look if it's already uploaded
         if let Some(atlas_id) = self.atlas_id(id) {
-            return Some(atlas_id);
+            return atlas_id;
         }
 
         let atlas_index = self.atlas_index;
@@ -212,13 +215,13 @@ impl ImageCache {
         self.to_load.insert(id.clone(), atlas_index);
 
         // Return the new incremented reference
-        Some(atlas_index)
+        atlas_index
     }
 
     /// Take all images that need to be uploaded.
     pub(crate) fn take_to_load(&mut self) -> impl Iterator<Item = (Id, AtlasRef)> + '_ {
         // Add to uploaded
-        self.uploaded.extend(self.to_load.clone().into_iter());
+        self.uploaded.extend(self.to_load.clone());
 
         // Remove from the old vector
         self.to_load.drain()
@@ -235,12 +238,8 @@ impl ImageCache {
 
         // Then try to find the item in the new images to upload
         self.to_load.iter().find_map(|(to_upload_id, atlas_index)| {
-            if to_upload_id == id {
-                // Add the index of the new item to the length of the already uploaded images so we get the future ID
-                Some(*atlas_index)
-            } else {
-                None
-            }
+            // Add the index of the new item to the length of the already uploaded images so we get the future ID
+            (to_upload_id == id).then_some(*atlas_index)
         })
     }
 

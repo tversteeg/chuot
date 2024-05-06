@@ -93,11 +93,11 @@ impl<'window> MainRenderState<'window> {
 
         Ok(Self {
             gpu,
-            sprite_render_state,
             screen_info,
+            sprite_render_state,
             buffer_size,
-            letterbox,
             downscale,
+            letterbox,
             background_color,
             viewport_color,
             atlas,
@@ -105,7 +105,7 @@ impl<'window> MainRenderState<'window> {
     }
 
     /// Render the frame and call the user `render` function.
-    #[allow(unused_variables)]
+    #[allow(unused_variables, clippy::needless_pass_by_ref_mut)]
     pub(crate) fn render(
         &mut self,
         ctx: &mut Context,
@@ -133,11 +133,7 @@ impl<'window> MainRenderState<'window> {
             && (self.letterbox.origin.x != 0.0 || self.letterbox.origin.y != 0.0);
 
         // If we need a downscale pass use that as the texture target, otherwise use the framebuffer directly
-        let target_texture_view = if needs_downscale_pass {
-            Some(&self.downscale.texture_view)
-        } else {
-            None
-        };
+        let target_texture_view = needs_downscale_pass.then_some(&self.downscale.texture_view);
 
         // First pass, render the contents to a custom buffer
         ctx.read(|ctx| {
@@ -192,7 +188,7 @@ impl<'window> MainRenderState<'window> {
     }
 
     /// Upload everything that gets added at another point in time where the graphics state wasn't available.
-    pub(crate) fn upload(&mut self, ctx: &mut Context) {
+    pub(crate) fn upload(&mut self, ctx: &Context) {
         ctx.write(|ctx| {
             {
                 profiling::scope!("Upload images");
@@ -253,7 +249,7 @@ impl<'window> MainRenderState<'window> {
     ///
     /// Is allowed to be unused because the `in-game-profiler` feature flag uses it.
     #[allow(unused)]
-    pub(crate) fn device(&self) -> &wgpu::Device {
+    pub(crate) const fn device(&self) -> &wgpu::Device {
         &self.gpu.device
     }
 

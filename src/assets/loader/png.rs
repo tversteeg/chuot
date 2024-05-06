@@ -12,11 +12,13 @@ pub type PngReader = Reader<Cursor<Vec<u8>>>;
 /// PNG asset loader.
 ///
 /// Doesn't fully parse the PNG but loads a reader.
+#[non_exhaustive]
 pub struct PngLoader;
 
 impl Loader<PngReader> for PngLoader {
     const EXTENSION: &'static str = "png";
 
+    #[inline]
     fn load(bytes: &[u8]) -> PngReader {
         log::debug!("Decoding PNG");
 
@@ -42,9 +44,10 @@ impl Loader<PngReader> for PngLoader {
         let (color_type, bits) = reader.output_color_type();
 
         // Must be 8 bit RGBA or indexed
-        if color_type != ColorType::Rgba || bits != BitDepth::Eight {
-            panic!("PNG is not 8 bit RGB with an alpha channel");
-        }
+        assert!(
+            color_type == ColorType::Rgba && bits == BitDepth::Eight,
+            "PNG is not 8 bit RGB with an alpha channel"
+        );
 
         reader
     }

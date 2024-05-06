@@ -31,7 +31,8 @@ impl<'path, 'ctx> AudioContext<'path, 'ctx> {
     ///
     /// * `volume` - Volume multiplication factor in the range `0.0..=1.0`.
     #[inline(always)]
-    pub fn with_volume(mut self, volume: f32) -> Self {
+    #[must_use]
+    pub const fn with_volume(mut self, volume: f32) -> Self {
         self.volume = Some(volume);
 
         self
@@ -43,7 +44,8 @@ impl<'path, 'ctx> AudioContext<'path, 'ctx> {
     ///
     /// * `panning` - Which of the stereo speakers to use, `0.0` is hard left, `1.0` is hard right and `0.5` is both equally (default).
     #[inline(always)]
-    pub fn pan(mut self, panning: f32) -> Self {
+    #[must_use]
+    pub const fn pan(mut self, panning: f32) -> Self {
         self.panning = Some(panning);
 
         self
@@ -53,6 +55,7 @@ impl<'path, 'ctx> AudioContext<'path, 'ctx> {
     ///
     /// This is equivalent to [`Self::with_loop_region(..)`].
     #[inline(always)]
+    #[must_use]
     pub fn with_loop(mut self) -> Self {
         self.loop_region = Some((..).into());
 
@@ -65,6 +68,7 @@ impl<'path, 'ctx> AudioContext<'path, 'ctx> {
     ///
     /// * `loop_region` - Range of seconds that should be looped.
     #[inline(always)]
+    #[must_use]
     pub fn with_loop_region(mut self, loop_region: impl Into<Region>) -> Self {
         self.loop_region = Some(loop_region.into());
 
@@ -77,6 +81,7 @@ impl<'path, 'ctx> AudioContext<'path, 'ctx> {
     ///
     /// * `playback_region` - Range of seconds that should be played.
     #[inline(always)]
+    #[must_use]
     pub fn with_playback_region(mut self, playback_region: impl Into<Region>) -> Self {
         self.playback_region = Some(playback_region.into());
 
@@ -98,32 +103,24 @@ impl<'path, 'ctx> AudioContext<'path, 'ctx> {
                 .0
                 .with_modified_settings(|settings| {
                     // Set the volume
-                    let settings = if let Some(volume) = self.volume {
-                        settings.volume(volume as f64)
-                    } else {
-                        settings
-                    };
+                    let settings = self
+                        .volume
+                        .map_or(settings, |volume| settings.volume(volume as f64));
 
                     // Set the panning
-                    let settings = if let Some(panning) = self.panning {
-                        settings.panning(panning as f64)
-                    } else {
-                        settings
-                    };
+                    let settings = self
+                        .panning
+                        .map_or(settings, |panning| settings.panning(panning as f64));
 
                     // Set the loop region
-                    let settings = if let Some(loop_region) = self.loop_region {
-                        settings.loop_region(loop_region)
-                    } else {
-                        settings
-                    };
+                    let settings = self
+                        .loop_region
+                        .map_or(settings, |loop_region| settings.loop_region(loop_region));
 
                     // Set the playback region
-                    if let Some(playback_region) = self.playback_region {
+                    self.playback_region.map_or(settings, |playback_region| {
                         settings.playback_region(playback_region)
-                    } else {
-                        settings
-                    }
+                    })
                 });
 
             ctx.audio_manager

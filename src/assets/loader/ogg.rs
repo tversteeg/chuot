@@ -7,11 +7,13 @@ use kira::sound::static_sound::{StaticSoundData, StaticSoundSettings};
 use super::Loader;
 
 /// OGG audio asset loader.
+#[non_exhaustive]
 pub struct OggLoader;
 
 impl Loader<StaticSoundData> for OggLoader {
     const EXTENSION: &'static str = "ogg";
 
+    #[inline]
     fn load(bytes: &[u8]) -> StaticSoundData {
         // Allocate the bytes into a cursor
         let bytes = Cursor::new(bytes.to_vec());

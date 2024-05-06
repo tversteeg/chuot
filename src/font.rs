@@ -89,8 +89,8 @@ impl Loadable for Font {
         Some(Self {
             sprites,
             glyph_size,
-            last_char,
             first_char,
+            last_char,
         })
     }
 }
@@ -112,13 +112,13 @@ pub(crate) struct FontMetadata {
 impl FontMetadata {
     /// Default for the `first_char` field.
     #[inline]
-    fn default_first_char() -> char {
+    const fn default_first_char() -> char {
         '!'
     }
 
     /// Default for the `last_char` field.
     #[inline]
-    fn default_last_char() -> char {
+    const fn default_last_char() -> char {
         '~'
     }
 }

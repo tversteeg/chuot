@@ -89,7 +89,7 @@ pub(crate) struct UniformArrayState<T: NoUninit> {
 
 impl<T: NoUninit> UniformArrayState<T> {
     /// Maximum bytes allowed by WebGL2.
-    const MAX_BYTES: usize = 16384;
+    const MAX_BYTES: usize = 0x4000;
 
     /// Maximum items in array based on the maximum amount of bytes.
     const MAX_ITEMS: usize = Self::MAX_BYTES / std::mem::size_of::<T>();
@@ -143,9 +143,9 @@ impl<T: NoUninit> UniformArrayState<T> {
         let new_to_upload = 0;
 
         Self {
+            bind_group_layout,
             bind_group,
             buffer,
-            bind_group_layout,
             local_buffer,
             new_to_upload,
         }
@@ -154,7 +154,7 @@ impl<T: NoUninit> UniformArrayState<T> {
     /// Create from a vector.
     ///
     /// Still needs to be uploaded.
-    pub(crate) fn from_vec(items: Vec<T>, device: &wgpu::Device) -> UniformArrayState<T> {
+    pub(crate) fn from_vec(items: Vec<T>, device: &wgpu::Device) -> Self {
         // Construct a new empty array
         let mut this = Self::new(device);
 

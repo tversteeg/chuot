@@ -28,7 +28,7 @@ pub(crate) struct Sprite {
 
 impl Sprite {
     /// Split into equal horizontal parts.
-    pub(crate) fn horizontal_parts(&self, part_width: f32) -> Vec<Sprite> {
+    pub(crate) fn horizontal_parts(&self, part_width: f32) -> Vec<Self> {
         // Ensure that the image can be split into equal parts
         assert!(
             self.sub_rectangle.width() % part_width == 0.0,
@@ -93,7 +93,7 @@ impl Sprite {
 
     /// Get the size of the sprite in pixels.
     #[inline]
-    pub(crate) fn size(&self) -> Size2 {
+    pub(crate) const fn size(&self) -> Size2 {
         self.size
     }
 
@@ -117,7 +117,7 @@ impl Sprite {
     }
 
     /// Vertices for the instanced sprite quad.
-    pub(crate) fn vertices() -> [TexturedVertex; 4] {
+    pub(crate) const fn vertices() -> [TexturedVertex; 4] {
         [
             TexturedVertex::new(Vector2::new(0.0, 0.0), 0.0, Vector2::new(0.0, 0.0)),
             TexturedVertex::new(Vector2::new(1.0, 0.0), 0.0, Vector2::new(1.0, 0.0)),
@@ -127,7 +127,7 @@ impl Sprite {
     }
 
     /// Indices for the instanced sprite quad.
-    pub(crate) fn indices() -> [u16; 6] {
+    pub(crate) const fn indices() -> [u16; 6] {
         [0, 1, 3, 3, 1, 2]
     }
 }
@@ -145,19 +145,19 @@ impl Loadable for Sprite {
         let sub_rectangle = Rect::new(Point2::ZERO, size);
 
         // Load the metadata
-        let metadata = match SpriteMetadata::load_if_exists(id, asset_source) {
-            Some(metadata) => metadata,
-            None => {
+        let metadata = SpriteMetadata::load_if_exists(id, asset_source).map_or_else(
+            || {
                 log::warn!("Sprite metadata for '{id}' not found, using default");
 
                 SpriteMetadata::default()
-            }
-        };
+            },
+            |metadata| metadata,
+        );
 
         Some(Self {
             image,
-            metadata,
             sub_rectangle,
+            metadata,
             size,
         })
     }
@@ -182,12 +182,10 @@ impl SpriteOffset {
     #[inline]
     pub(crate) fn offset(&self, sprite_size: Size2) -> Vector2 {
         match self {
-            SpriteOffset::Middle => {
-                Vector2::new(-sprite_size.width / 2.0, -sprite_size.height / 2.0)
-            }
-            SpriteOffset::MiddleTop => Vector2::new(-sprite_size.width / 2.0, 0.0),
-            SpriteOffset::LeftTop => Vector2::ZERO,
-            SpriteOffset::Custom(offset) => -*offset,
+            Self::Middle => Vector2::new(-sprite_size.width / 2.0, -sprite_size.height / 2.0),
+            Self::MiddleTop => Vector2::new(-sprite_size.width / 2.0, 0.0),
+            Self::LeftTop => Vector2::ZERO,
+            Self::Custom(offset) => -*offset,
         }
     }
 }

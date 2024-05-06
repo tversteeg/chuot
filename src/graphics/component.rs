@@ -124,11 +124,11 @@ impl SpriteRenderState {
         let indices = indices.len() as u32;
 
         Self {
-            indices,
             render_pipeline,
             vertex_buffer,
-            instance_buffer,
             index_buffer,
+            instance_buffer,
+            indices,
         }
     }
 

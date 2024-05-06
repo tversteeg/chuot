@@ -26,8 +26,8 @@ fn u32_to_wgpu_color(argb: u32) -> Color {
         let g = g.powf(2.2);
         let b = b.powf(2.2);
 
-        Color { a, r, g, b }
+        Color { r, g, b, a }
     } else {
-        Color { a, r, g, b }
+        Color { r, g, b, a }
     }
 }

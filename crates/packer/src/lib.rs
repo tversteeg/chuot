@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 //! 2D texture packer based on [`texture_packer`](https://docs.rs/texture_packer/latest/texture_packer/).
 //!
 //! Removes all features for actually creating the textures and allows inserting already defined rectangles.
@@ -20,6 +22,7 @@ impl Packer {
     ///
     /// * `max_size` - Maximum size of the output atlas.
     #[inline]
+    #[must_use]
     pub fn new(max_size: Size2<u16>) -> Self {
         // Start with a single skyline of the full width
         let skyline = Skyline {
@@ -43,6 +46,7 @@ impl Packer {
     ///
     /// - When any rectangle is out of bounds.
     #[inline]
+    #[must_use]
     pub fn with_existing_rectangles_iter(
         mut self,
         existing_rectangles: impl Iterator<Item = Rect<u16>>,
@@ -131,6 +135,7 @@ impl Packer {
     ///
     /// - `None` when there's not enough space to pack the rectangle.
     /// - The offset inside the atlas when the rectangle fits.
+    #[inline]
     pub fn insert(&mut self, rectangle_size: Size2<u16>) -> Option<Point2<u16>> {
         // Find the rectangle with the skyline, keep the bottom and width as small as possible
         let mut bottom = std::u16::MAX;
@@ -267,19 +272,19 @@ struct Skyline {
 impl Skyline {
     /// Left split position.
     #[inline(always)]
-    pub const fn left(&self) -> u16 {
+    pub const fn left(self) -> u16 {
         self.position.x
     }
 
     /// Right split position.
     #[inline(always)]
-    pub const fn right(&self) -> u16 {
+    pub const fn right(self) -> u16 {
         self.position.x + self.width
     }
 
     /// Whether it overlaps with another skyline.
     #[inline(always)]
-    pub const fn overlaps(&self, other: Skyline) -> bool {
+    pub const fn overlaps(self, other: Self) -> bool {
         self.right() >= other.left() && other.right() >= self.left()
     }
 }

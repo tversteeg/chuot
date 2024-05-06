@@ -62,7 +62,8 @@ impl Context {
     ///
     /// - When asset failed loading.
     #[inline(always)]
-    pub fn sprite<'path>(&self, path: &'path str) -> DrawSpriteContext<'path, '_> {
+    #[must_use]
+    pub const fn sprite<'path>(&self, path: &'path str) -> DrawSpriteContext<'path, '_> {
         DrawSpriteContext {
             path,
             ctx: self,
@@ -85,7 +86,8 @@ impl Context {
     ///
     /// - When asset failed loading.
     #[inline(always)]
-    pub fn text<'path, 'text>(
+    #[must_use]
+    pub const fn text<'path, 'text>(
         &self,
         path: &'path str,
         text: &'text str,
@@ -131,7 +133,8 @@ impl Context {
     /// }
     /// # }
     #[inline(always)]
-    pub fn audio<'path>(&self, path: &'path str) -> AudioContext<'path, '_> {
+    #[must_use]
+    pub const fn audio<'path>(&self, path: &'path str) -> AudioContext<'path, '_> {
         AudioContext {
             path,
             ctx: self,
@@ -166,7 +169,7 @@ impl Context {
     /// # }
     #[inline]
     pub fn exit(&self) {
-        self.write(|ctx| ctx.exit = true)
+        self.write(|ctx| ctx.exit = true);
     }
 
     /// Get the delta time in seconds for the update tick.
@@ -177,6 +180,7 @@ impl Context {
     ///
     /// - Seconds a single update tick took, this is a constant.
     #[inline]
+    #[must_use]
     pub fn delta_time(&self) -> f32 {
         self.read(|ctx| ctx.delta_time)
     }
@@ -204,6 +208,7 @@ impl Context {
     /// }
     /// # }
     #[inline]
+    #[must_use]
     pub fn frames_per_second(&self) -> f32 {
         self.read(|ctx| ctx.frames_per_second)
     }
@@ -241,6 +246,7 @@ impl Context {
     /// }
     /// # }
     #[inline]
+    #[must_use]
     pub fn blending_factor(&self) -> f32 {
         self.read(|ctx| ctx.blending_factor)
     }
@@ -253,6 +259,7 @@ impl Context {
     ///
     /// - Width and height of the drawable part of the window.
     #[inline]
+    #[must_use]
     pub fn size(&self) -> Size2 {
         self.read(|ctx| ctx.size)
     }
@@ -280,6 +287,7 @@ impl Context {
     /// - `None` when the mouse is not on the buffer of pixels.
     /// - `Some(..)` with the coordinates of the pixel if the mouse is on the buffer of pixels.
     #[inline]
+    #[must_use]
     pub fn mouse(&self) -> Option<Vector2> {
         self.read(|ctx| ctx.mouse)
     }
@@ -294,6 +302,7 @@ impl Context {
     ///
     /// - `true` when the mouse is pressed.
     #[inline]
+    #[must_use]
     pub fn mouse_pressed(&self, mouse_button: MouseButton) -> bool {
         self.read(|ctx| ctx.input.mouse_pressed(mouse_button))
     }
@@ -308,6 +317,7 @@ impl Context {
     ///
     /// - `true` when the mouse is released.
     #[inline]
+    #[must_use]
     pub fn mouse_released(&self, mouse_button: MouseButton) -> bool {
         self.read(|ctx| ctx.input.mouse_released(mouse_button))
     }
@@ -322,6 +332,7 @@ impl Context {
     ///
     /// - `true` when the mouse is being held down.
     #[inline]
+    #[must_use]
     pub fn mouse_held(&self, mouse_button: MouseButton) -> bool {
         self.read(|ctx| ctx.input.mouse_held(mouse_button))
     }
@@ -338,6 +349,7 @@ impl Context {
     ///
     /// - `true` when the specified key is pressed.
     #[inline]
+    #[must_use]
     pub fn key_pressed(&self, keycode: KeyCode) -> bool {
         self.read(|ctx| ctx.input.key_pressed(keycode))
     }
@@ -354,6 +366,7 @@ impl Context {
     ///
     /// - `true` when the specified key is released.
     #[inline]
+    #[must_use]
     pub fn key_released(&self, keycode: KeyCode) -> bool {
         self.read(|ctx| ctx.input.key_released(keycode))
     }
@@ -370,6 +383,7 @@ impl Context {
     ///
     /// - `true` when the specified key is being held.
     #[inline]
+    #[must_use]
     pub fn key_held(&self, keycode: KeyCode) -> bool {
         self.read(|ctx| ctx.input.key_held(keycode))
     }

@@ -23,6 +23,7 @@ use glamour::Size2;
 /// GameConfig::default().with_title("My Game");
 /// ```
 #[derive(Debug, Clone)]
+#[allow(clippy::exhaustive_structs)]
 pub struct GameConfig {
     /// Amount of pixels for the canvas.
     ///
@@ -74,6 +75,8 @@ pub struct GameConfig {
 
 impl GameConfig {
     /// Set the amount of pixels for the canvas.
+    #[inline]
+    #[must_use]
     pub fn with_buffer_size(mut self, buffer_size: impl Into<Size2>) -> Self {
         self.buffer_size = buffer_size.into();
 
@@ -81,7 +84,9 @@ impl GameConfig {
     }
 
     /// Set the factor applied to the buffer size for the requested window size.
-    pub fn with_scaling(mut self, scaling: f32) -> Self {
+    #[inline]
+    #[must_use]
+    pub const fn with_scaling(mut self, scaling: f32) -> Self {
         self.scaling = scaling;
 
         self
@@ -90,7 +95,9 @@ impl GameConfig {
     /// Set vsync on the GPU.
     ///
     /// This will try to lock the framerate with the refreshrate.
-    pub fn with_vsync(mut self, vsync: bool) -> Self {
+    #[inline]
+    #[must_use]
+    pub const fn with_vsync(mut self, vsync: bool) -> Self {
         self.vsync = vsync;
 
         self
@@ -99,6 +106,8 @@ impl GameConfig {
     /// Set the name in the title bar.
     ///
     /// On WASM this will display as a header underneath the rendered content.
+    #[inline]
+    #[must_use]
     pub fn with_title(mut self, title: impl Into<String>) -> Self {
         self.title = title.into();
 
@@ -109,14 +118,18 @@ impl GameConfig {
     ///
     /// The viewport is the area outside of the buffer when inside a bigger window.
     /// Set the factor applied to the buffer size for the requested window size.
-    pub fn with_viewport_color(mut self, viewport_color: u32) -> Self {
+    #[inline]
+    #[must_use]
+    pub const fn with_viewport_color(mut self, viewport_color: u32) -> Self {
         self.viewport_color = viewport_color;
 
         self
     }
 
     /// Set the color of the background of the buffer.
-    pub fn with_background_color(mut self, background_color: u32) -> Self {
+    #[inline]
+    #[must_use]
+    pub const fn with_background_color(mut self, background_color: u32) -> Self {
         self.background_color = background_color;
 
         self
@@ -127,21 +140,27 @@ impl GameConfig {
     /// Different algorithms have different performance and aesthetic trade offs.
     ///
     /// See [`RotationAlgorithm`] for more information.
-    pub fn with_rotation_algorithm(mut self, rotation_algorithm: RotationAlgorithm) -> Self {
+    #[inline]
+    #[must_use]
+    pub const fn with_rotation_algorithm(mut self, rotation_algorithm: RotationAlgorithm) -> Self {
         self.rotation_algorithm = rotation_algorithm;
 
         self
     }
 
     /// Set the maximum amount a single frame may take in seconds.
-    pub fn with_max_frame_time_secs(mut self, max_frame_time_secs: f32) -> Self {
+    #[inline]
+    #[must_use]
+    pub const fn with_max_frame_time_secs(mut self, max_frame_time_secs: f32) -> Self {
         self.max_frame_time_secs = max_frame_time_secs;
 
         self
     }
 
     /// Set the duration in seconds a single update tick will take.
-    pub fn with_update_delta_time(mut self, update_delta_time: f32) -> Self {
+    #[inline]
+    #[must_use]
+    pub const fn with_update_delta_time(mut self, update_delta_time: f32) -> Self {
         self.update_delta_time = update_delta_time;
 
         self
@@ -149,12 +168,13 @@ impl GameConfig {
 }
 
 impl Default for GameConfig {
+    #[inline]
     fn default() -> Self {
         Self {
             buffer_size: Size2::new(320.0, 280.0),
             scaling: 2.0,
             vsync: true,
-            title: "Pixel Game".to_string(),
+            title: "Pixel Game".to_owned(),
             viewport_color: 0xFF76428A,
             background_color: 0xFF9BADB7,
             rotation_algorithm: RotationAlgorithm::default(),

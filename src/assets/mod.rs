@@ -56,6 +56,9 @@ pub trait Loadable: Downcast {
     ///
     /// - When parsing binary bytes of asset into type fails.
     /// - When asset does not exist in the source.
+    #[inline]
+    #[must_use]
+    #[allow(clippy::option_if_let_else)]
     fn load(id: &Id, asset_source: &AssetSource) -> Self
     where
         Self: Sized,
@@ -84,12 +87,9 @@ impl<T: Loadable> AssetManager<T> {
     #[track_caller]
     pub(crate) fn get_or_insert(&mut self, id: &str, asset_source: &AssetSource) -> Rc<T> {
         // Return a reference to the asset when it already exists, otherwise insert it
-        if let Some(asset) = self.get(id) {
-            asset
-        } else {
+        self.get(id)
             // Asset not found, load it
-            self.insert(id, asset_source)
-        }
+            .map_or_else(|| self.insert(id, asset_source), |asset| asset)
     }
 
     /// Return an asset if it exists.
@@ -102,6 +102,7 @@ impl<T: Loadable> AssetManager<T> {
     /// Upload a new asset.
     #[inline]
     #[track_caller]
+    #[allow(clippy::option_if_let_else)]
     pub(crate) fn insert(&mut self, id: &str, asset_source: &AssetSource) -> Rc<T> {
         log::debug!("Asset '{id}' not loaded yet, loading from source");
 
@@ -113,7 +114,7 @@ impl<T: Loadable> AssetManager<T> {
         let asset = Rc::new(asset);
 
         // Store the asset so it can be accessed later again
-        self.assets.insert(id, asset.clone());
+        self.assets.insert(id, Rc::clone(&asset));
 
         asset
     }
@@ -138,23 +139,20 @@ pub(crate) struct CustomAssetManager {
 impl CustomAssetManager {
     /// Get an asset or load it from the asset source.
     #[inline]
-    #[track_caller]
     pub(crate) fn get_or_insert<T>(&mut self, id: &str, asset_source: &AssetSource) -> Rc<T>
     where
         T: Loadable,
     {
         // Return a reference to the asset when it already exists, otherwise insert it
-        if let Some(asset) = self.get(id) {
-            asset
-        } else {
+        self.get(id)
             // Asset not found, load it
-            self.insert(id, asset_source)
-        }
+            .map_or_else(|| self.insert(id, asset_source), |asset| asset)
     }
 
     /// Return an asset if it exists.
     #[inline]
     #[track_caller]
+    #[allow(clippy::option_if_let_else)]
     pub(crate) fn get<T>(&self, id: &str) -> Option<Rc<T>>
     where
         T: Loadable,
@@ -163,7 +161,7 @@ impl CustomAssetManager {
         let dyn_asset = self.assets.get(id)?;
 
         // Try to downcast it to the requested type
-        match dyn_asset.clone().downcast_rc::<T>() {
+        match Rc::clone(dyn_asset).downcast_rc::<T>() {
             Ok(asset) => Some(asset),
             Err(_) => {
                 panic!("Could downcast asset with ID '{id}', loaded type is different from requested type")
@@ -174,6 +172,7 @@ impl CustomAssetManager {
     /// Upload a new asset.
     #[inline]
     #[track_caller]
+    #[allow(clippy::option_if_let_else)]
     pub(crate) fn insert<T>(&mut self, id: &str, asset_source: &AssetSource) -> Rc<T>
     where
         T: Loadable,
@@ -187,7 +186,7 @@ impl CustomAssetManager {
         let asset: Rc<dyn Loadable> = Rc::new(T::load(&id, asset_source));
 
         // Store the asset so it can be accessed later again
-        self.assets.insert(id, asset.clone());
+        self.assets.insert(id, Rc::clone(&asset));
 
         // Safe to unwrap because we created the type here
         match asset.downcast_rc::<T>() {

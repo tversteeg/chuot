@@ -8,12 +8,13 @@ use yarnspinner::{
     prelude::Dialogue as YarnDialogue,
 };
 
-use crate::assets::Loadable;
+use crate::assets::{loader::yarn::YarnLoader, AssetSource, Id, Loadable};
 
 /// Dialogue system based on Yarn Spinner.
 ///
 /// Can be hot reloaded, the starting node is always called `start`.
 #[derive(Debug)]
+#[non_exhaustive]
 pub struct Dialogue {
     /// Yarnspinner dialogue internal.
     pub state: YarnDialogue,
@@ -23,6 +24,7 @@ pub struct Dialogue {
 
 impl Dialogue {
     /// Register a function that can be triggered from the dialogue state.
+    #[inline]
     pub fn register_function<M, F>(&mut self, name: impl Into<Cow<'static, str>>, function: F)
     where
         M: 'static,
@@ -35,6 +37,11 @@ impl Dialogue {
     /// Set the value of a dialogue variable.
     ///
     /// Name must start with `"$.."`
+    ///
+    /// # Errors
+    ///
+    /// - When dialogue variable could not be set.
+    #[inline]
     pub fn set_variable(
         &mut self,
         name: impl Into<String>,
@@ -52,6 +59,11 @@ impl Dialogue {
     /// Get the current value as a number of a dialogue variable.
     ///
     /// Name must start with `"$.."`
+    ///
+    /// # Errors
+    ///
+    /// - When dialogue variable is not a number
+    #[inline]
     pub fn number(&self, name: &str) -> Result<f32> {
         let YarnValue::Number(var) = self.variable(name)? else {
             miette::bail!("Yarn variable '{name}' is not a number");
@@ -63,6 +75,11 @@ impl Dialogue {
     /// Get the current value as a string of a dialogue variable.
     ///
     /// Name must start with `"$.."`
+    ///
+    /// # Errors
+    ///
+    /// - When dialogue variable is not a string.
+    #[inline]
     pub fn string(&self, name: &str) -> Result<String> {
         let YarnValue::String(var) = self.variable(name)? else {
             miette::bail!("Yarn variable '{name}' is not a string");
@@ -74,6 +91,11 @@ impl Dialogue {
     /// Get the current value as a boolean of a dialogue variable.
     ///
     /// Name must start with `"$.."`
+    ///
+    /// # Errors
+    ///
+    /// - When dialogue variable is not a boolean.
+    #[inline]
     pub fn boolean(&self, name: &str) -> Result<bool> {
         let YarnValue::Boolean(var) = self.variable(name)? else {
             miette::bail!("Yarn variable '{name}' is not a boolean");
@@ -85,6 +107,10 @@ impl Dialogue {
     /// Get the current raw Yarn value of a dialogue variable.
     ///
     /// Name must start with `"$.."`
+    ///
+    /// # Errors
+    ///
+    /// - When dialogue variable does not exist
     fn variable(&self, name: &str) -> Result<YarnValue> {
         self.state
             .variable_storage()
@@ -95,63 +121,11 @@ impl Dialogue {
 }
 
 impl Loadable for Dialogue {
-    fn load_if_exists(_id: &crate::assets::Id, _assets: &crate::assets::AssetSource) -> Option<Self>
+    #[inline]
+    fn load_if_exists(id: &Id, assets: &AssetSource) -> Option<Self>
     where
         Self: Sized,
     {
-        todo!()
+        assets.load_if_exists::<YarnLoader, _>(id)
     }
 }
-
-/*
-/// Yarn Spinner dialogue asset loader.
-///
-/// Currently only supports loading a single file.
-pub struct DialogueLoader;
-
-impl Loader<Dialogue> for DialogueLoader {
-    fn load(content: Cow<[u8]>, ext: &str) -> Result<Dialogue, BoxedError> {
-        assert_eq!(ext.to_lowercase(), "yarn");
-
-        // Create a fake file, we don't know the filename
-        let file_name = "dialogue.yarn".to_string();
-        let source = String::from_utf8(content.into_owned())?;
-
-        let yarn_file = File { file_name, source };
-
-        // Compile the yarn source file
-        let compilation = Compiler::new().add_file(yarn_file).compile()?;
-
-        // Split the resulting string table into metadata and base language strings
-        let (base_language_string_table, metadata): (HashMap<_, _>, HashMap<_, _>) = compilation
-            .string_table
-            .into_iter()
-            .map(|(line_id, string_info)| {
-                (
-                    (line_id.clone(), string_info.text),
-                    (line_id, string_info.metadata),
-                )
-            })
-            .unzip();
-
-        // Use the default text provider for feeding text into the game
-        let mut text_provider = StringTableTextProvider::new();
-        text_provider.extend_base_language(base_language_string_table);
-
-        // Storage where all the variables defined in the dialogue will be stored
-        let variable_storage = MemoryVariableStorage::new();
-
-        // Create the dialogue
-        let mut state = YarnDialogue::new(Box::new(variable_storage), Box::new(text_provider));
-
-        // Give the dialogue our compiled program
-        state.add_program(
-            compilation
-                .program
-                .ok_or_else(|| miette::miette!("Error compiling Yarn dialogue"))?,
-        );
-
-        Ok(Dialogue { state, metadata })
-    }
-}
-*/

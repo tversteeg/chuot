@@ -87,10 +87,10 @@ impl<'window> Gpu<'window> {
         surface.configure(&device, &config);
 
         Ok(Self {
-            surface,
             device,
-            config,
+            surface,
             queue,
+            config,
         })
     }
 

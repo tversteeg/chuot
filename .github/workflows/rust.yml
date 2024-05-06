@@ -9,9 +9,9 @@ on:
       - "CHANGELOG.md"
 
 jobs:
-  # Check for formatting
-  rustfmt:
-    name: Formatter check
+  # Check for formatting and clippy
+  style:
+    name: Code style check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,11 +23,26 @@ jobs:
           components: rustfmt
           override: true
 
-      - run: rustup component add rustfmt
+      - run: rustup component add rustfmt clippy
+
+      # Check formatting
       - uses: actions-rs/cargo@v1
         with:
           command: fmt
           args: --all -- --check
+
+      # Install required libraries
+      - name: Install dependencies
+        run: sudo apt-get install -y libasound2-dev
+
+      # Check clippy
+      - uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --all-targets
+        # Make sure CI fails on all warnings, including Clippy lints
+        env:
+          RUSTFLAGS: "-Dwarnings"
 
   # Run a compilation check on Linux, macOS, and Windows
   compile:
@@ -51,9 +66,6 @@ jobs:
         with:
           toolchain: stable
           targets: wasm32-unknown-unknown
-
-      # Install cargo-hack
-      - uses: taiki-e/install-action@cargo-hack
 
       # Check different feature combinations
       - name: Build (no features)

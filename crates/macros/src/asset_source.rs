@@ -29,10 +29,7 @@ impl Input {
         // Get the full path on disk
         let canonicalized = match Path::new(&path_str).canonicalize() {
             Ok(path) => path,
-            Err(err) => panic!(
-                "Asset path '{}' could not be canonicalized: {err}",
-                path_str
-            ),
+            Err(err) => panic!("Asset path '{path_str}' could not be canonicalized: {err}",),
         };
 
         Ok(Self(canonicalized))

@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 //! AGPL licensed and opinionated game engine for 2D pixel-art games.
 //!
 //! # Features
@@ -162,13 +164,12 @@ pub mod config;
 pub mod context;
 #[cfg(feature = "dialogue")]
 pub mod dialogue;
-mod font;
-mod graphics;
-mod random;
-mod sprite;
-mod window;
+pub(crate) mod font;
+pub(crate) mod graphics;
+pub(crate) mod random;
+pub(crate) mod sprite;
+pub(crate) mod window;
 
-use assets::EmbeddedAssets;
 /// Re-exported vector math type.
 pub use glamour;
 /// Re-exported winit type used in [`Context`].
@@ -201,6 +202,7 @@ pub use config::GameConfig;
 pub use context::Context;
 pub use random::random;
 
+use assets::EmbeddedAssets;
 use miette::Result;
 
 /// Main entrypoint containing game state for running the game.
@@ -278,6 +280,10 @@ where
     /// * `assets` - Source of the assets, needs to be `chuot::load_assets!()`.
     /// * `game_config` - Configuration for the window, can be used to set the buffer size, the window title and other things.
     ///
+    /// # Errors
+    ///
+    /// - When `hot-reload-assets` feature is enabled and the assets folder could not be watched.
+    ///
     /// # Example
     ///
     /// ```no_run
@@ -306,14 +312,9 @@ where
     /// # Ok(()) }
     /// # try_main().unwrap();
     /// ```
+    #[inline]
     fn run(self, assets: EmbeddedAssets, game_config: GameConfig) -> Result<()> {
         // Spawn the window with the game loop
-        window::window(
-            self,
-            game_config,
-            |state, ctx| state.update(ctx),
-            |state, ctx| state.render(ctx),
-            assets,
-        )
+        window::window(self, game_config, Self::update, Self::render, assets)
     }
 }

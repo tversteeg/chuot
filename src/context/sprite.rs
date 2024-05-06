@@ -40,7 +40,7 @@ impl<'path, 'ctx> DrawSpriteContext<'path, 'ctx> {
     ///
     /// # Arguments
     ///
-    /// * `rotation` - Rotation of the target sprite in radians, will be applied using the RotSprite algorithm.
+    /// * `rotation` - Rotation of the target sprite in radians, will be applied using the algorithm passed in [`crate::config::GameConfig::with_rotation_algorithm`].
     #[inline(always)]
     #[must_use]
     pub fn rotate(mut self, rotation: impl Into<Angle>) -> Self {
@@ -159,6 +159,7 @@ impl<'path, 'ctx> DrawSpriteContext<'path, 'ctx> {
     ///
     /// - When asset failed loading.
     #[inline]
+    #[must_use]
     pub fn size(&self) -> Size2 {
         self.ctx.write(|ctx| ctx.assets.sprite(self.path).size())
     }

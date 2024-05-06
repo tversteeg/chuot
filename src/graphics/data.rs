@@ -30,14 +30,14 @@ pub struct TexturedVertex {
 
 impl TexturedVertex {
     /// Construct a new textured vertex from a 2D position, a Z index and a UV coordinate.
-    pub fn new(position: Vector2, z: f32, uv: Vector2) -> Self {
+    pub const fn new(position: Vector2, z: f32, uv: Vector2) -> Self {
         let position = Vector3::new(position.x, position.y, z);
 
         Self { position, uv }
     }
 
     /// WGPU descriptor.
-    pub(crate) fn descriptor() -> VertexBufferLayout<'static> {
+    pub(crate) const fn descriptor() -> VertexBufferLayout<'static> {
         VertexBufferLayout {
             array_stride: std::mem::size_of::<Self>() as u64,
             step_mode: VertexStepMode::Vertex,

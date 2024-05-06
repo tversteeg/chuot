@@ -87,7 +87,7 @@ fn main() {
         // We use a custom rotation algorithm shader so the sprite looks more smooth while rotating with less noisy artifacts
         rotation_algorithm: RotationAlgorithm::Scale3x,
         // Update more so the line draws more pixels
-        update_delta_time: 100f32.recip(),
+        update_delta_time: 100_f32.recip(),
         ..Default::default()
     };
 

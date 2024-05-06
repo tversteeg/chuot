@@ -134,9 +134,9 @@ impl PostProcessingState {
         });
 
         Self {
+            texture_view,
             bind_group,
             render_pipeline,
-            texture_view,
         }
     }
 

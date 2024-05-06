@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 //! This crate provides the `assets!` macro for [`chuot`](https://docs.rs/chuot).
 
 mod asset_source;
