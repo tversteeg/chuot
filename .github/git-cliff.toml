@@ -68,8 +68,8 @@ filter_unconventional = true
 split_commits = false
 # regex for preprocessing the commit messages
 commit_preprocessors = [
-    # replace issue number with the link
-    { pattern = '\((\w+\s)?#([0-9]+)\)', replace = "([#${1}](https://github.com/tversteeg/chuot/issues/${1}))" },
+    # link to rust crate
+    { pattern = 'rust crates? ([[:word:]-]+)', replace = "rust crate [${1}](https://crates.io/crates/${1})" },
 ]
 # regex for parsing and grouping commits
 commit_parsers = [
@@ -83,7 +83,7 @@ commit_parsers = [
   { message = "^chore: release", skip = true },
   { message = "^chore|ci", group = "<!-- 7 -->Miscellaneous Tasks" },
   { message = ".*", default_scope = "project" },
-  { message = "\\(crate\\)", scope = "project" },
+  { message = '\(crate\)', scope = "project" },
 ]
 # protect breaking changes from being skipped due to matching a skipping commit_parser
 protect_breaking_commits = false
@@ -99,8 +99,3 @@ ignore_tags = ""
 topo_order = false
 # sort the commits inside sections by oldest/newest order
 sort_commits = "oldest"
-# create nice links
-link_parsers = [
-  # crates.io
-  { pattern = 'rust crate (\S+)', text = "rust crate", href = "https://crates.io/crates/$1" },
-]
