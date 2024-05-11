@@ -86,7 +86,7 @@ glamour = { version = "0.11.1", features = ["serde"] }
 smol_str = "0.2.1"
 fastrand = "2.1.0"
 web-time = "1.1.0"
-kira = { version = "0.8.7", default-features = false, features = ["cpal", "ogg", "serde"] }
+kira = { version = "0.9.0", default-features = false, features = ["cpal", "ogg", "serde"] }
 imgref = "1.10.1"
 toml = "0.8.12"
 downcast-rs = "1.2.1"
