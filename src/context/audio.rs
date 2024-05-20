@@ -97,35 +97,36 @@ impl<'path, 'ctx> AudioContext<'path, 'ctx> {
     #[inline(always)]
     pub fn play(self) {
         self.ctx.write(|ctx| {
-            let sound_data = ctx
-                .assets
-                .audio(self.path)
-                .0
-                .with_modified_settings(|settings| {
-                    // Set the volume
-                    let settings = self
-                        .volume
-                        .map_or(settings, |volume| settings.volume(volume as f64));
+            // Get the sound data and its settings
+            let sound_data = &ctx.assets.audio(self.path).0;
+            let mut settings = sound_data.settings.clone();
 
-                    // Set the panning
-                    let settings = self
-                        .panning
-                        .map_or(settings, |panning| settings.panning(panning as f64));
+            // Set the volume
+            if let Some(volume) = self.volume {
+                settings = settings.volume(volume as f64);
+            }
 
-                    // Set the loop region
-                    let settings = self
-                        .loop_region
-                        .map_or(settings, |loop_region| settings.loop_region(loop_region));
+            // Set the panning
+            if let Some(panning) = self.panning {
+                settings = settings.panning(panning as f64);
+            }
 
-                    // Set the playback region
-                    self.playback_region.map_or(settings, |playback_region| {
-                        settings.playback_region(playback_region)
-                    })
-                });
+            // Set the loop region
+            if let Some(loop_region) = self.loop_region {
+                settings = settings.loop_region(loop_region);
+            }
+
+            // Setup the sound data with the new settings and the playback region
+            let mut sound_data = sound_data.with_settings(settings);
+
+            // Set the playback region slice
+            if let Some(playback_region) = self.playback_region {
+                sound_data = sound_data.slice(playback_region);
+            }
 
             ctx.audio_manager
                 .play(sound_data)
-                .expect("Error playing audio")
+                .expect("Error playing audio");
         });
     }
 }

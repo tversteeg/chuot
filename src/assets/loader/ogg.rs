@@ -2,7 +2,7 @@
 
 use std::io::Cursor;
 
-use kira::sound::static_sound::{StaticSoundData, StaticSoundSettings};
+use kira::sound::static_sound::StaticSoundData;
 
 use super::Loader;
 
@@ -19,7 +19,6 @@ impl Loader<StaticSoundData> for OggLoader {
         let bytes = Cursor::new(bytes.to_vec());
 
         // Parse the sound file
-        StaticSoundData::from_cursor(bytes, StaticSoundSettings::new())
-            .expect("Error loading audio")
+        StaticSoundData::from_cursor(bytes).expect("Error loading audio")
     }
 }
