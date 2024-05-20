@@ -72,9 +72,9 @@ chuot-macros = { path = "crates/macros", version = "0.1.0" }
 chuot-packer = { path = "crates/packer", version = "0.1.0" }
 
 miette = "7.2.0"
-serde = { version = "1.0.200", features = ["derive"] }
-serde-untagged = "0.1.5"
-bytemuck = { version = "1.15.0", features = ["derive"] }
+serde = { version = "1.0.202", features = ["derive"] }
+serde-untagged = "0.1.6"
+bytemuck = { version = "1.16.0", features = ["derive"] }
 log = "0.4.21"
 hashbrown = "0.14.5"
 png = "0.17.13"
@@ -83,12 +83,12 @@ winit = { version = "0.29.15", default-features = false, features = ["rwh_06", "
 winit_input_helper = "0.16.0"
 glam = { version = "0.27", features = ["bytemuck", "fast-math"] }
 glamour = { version = "0.11.1", features = ["serde"] }
-smol_str = "0.2.1"
+smol_str = "0.2.2"
 fastrand = "2.1.0"
 web-time = "1.1.0"
 kira = { version = "0.8.7", default-features = false, features = ["cpal", "ogg", "serde"] }
 imgref = "1.10.1"
-toml = "0.8.12"
+toml = "0.8.13"
 downcast-rs = "1.2.1"
 
 # `dialogue` feature
@@ -119,7 +119,7 @@ puffin = { version = "0.19.0", optional = true }
 # Dependencies specifically for WASM
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 # Not used directly but the JS feature is required by the 'ahash' feature in `assets_manager`
-getrandom = { version = "0.2.14", features = ["js"] }
+getrandom = { version = "0.2.15", features = ["js"] }
 wgpu = { version = "0.20.0", default-features = false, features = ["webgl", "wgsl", "fragile-send-sync-non-atomic-wasm"] }
 console_log = "1.0.0"
 web-sys = { version = "0.3.69", features = ["Document", "Window", "Element"] }

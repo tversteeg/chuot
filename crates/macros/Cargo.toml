@@ -22,12 +22,12 @@ hot-reload-assets = []
 [dependencies]
 litrs = "0.4.1"
 quote = "1.0.36"
-proc-macro2 = "1.0.81"
+proc-macro2 = "1.0.83"
 walkdir = "2.5.0"
 
 png = { version = "0.17.13", optional = true }
 sprite_dicing = { version = "0.1.2", optional = true }
-bytemuck = { version = "1.15.0", optional = true }
+bytemuck = { version = "1.16.0", optional = true }
 packr2 = { version = "0.3.3", optional = true }
 oxipng = { version = "9.1.1", optional = true }
 
