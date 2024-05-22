@@ -94,19 +94,19 @@ If disabled _all_ assets will be baked into the binary.
 A thin wrapper around [Yarn Spinner](https://www.yarnspinner.dev/).
 Allows creating hot-reloadable dialogue systems.
 
-###### Requirements
-
-On Linux you need to install `asound2-dev`:
-
-```sh
-sudo apt install libasound2-dev
-```
-
 ##### `in-game-profiler`
 
 A profiler window overlay, implemented with [puffin_egui](https://docs.rs/puffin_egui/latest/puffin_egui/).
 
 Other profiling methods in your game can also be implemented, the [profiling](https://docs.rs/profiling/latest/profiling/) crate is enabled even when this feature flag is disabled.
+
+#### Install Requirements
+
+On Linux you need to install `asound2-dev` for audio and `udev-dev` for gamepads:
+
+```sh
+sudo apt install libasound2-dev libudev-dev
+```
 
 #### Example
 
