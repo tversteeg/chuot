@@ -11,6 +11,7 @@
 //! - Simple bitmap font drawing.
 //! - Dialogue scripting system.
 //! - OGG audio playback.
+//! - First-class gamepad support.
 //! - In game CPU & memory profiler GUI.
 //!
 //! # Goals
@@ -170,6 +171,8 @@ pub(crate) mod random;
 pub(crate) mod sprite;
 pub(crate) mod window;
 
+/// Re-exported gilrs type used in [`Context`].
+pub use gilrs::ev::{Axis, Button};
 /// Re-exported vector math type.
 pub use glamour;
 /// Re-exported winit type used in [`Context`].

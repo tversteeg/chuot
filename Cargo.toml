@@ -90,6 +90,8 @@ kira = { version = "0.9.0", default-features = false, features = ["cpal", "ogg",
 imgref = "1.10.1"
 toml = "0.8.13"
 downcast-rs = "1.2.1"
+gilrs = "0.10.7"
+smallvec = { version = "1.13.2", features = ["const_new", "union"] }
 
 # `dialogue` feature
 

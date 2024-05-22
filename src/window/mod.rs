@@ -10,13 +10,14 @@ mod web;
 // Allow passing the profiler without having to change function signatures
 #[cfg(feature = "in-game-profiler")]
 pub(crate) use in_game_profiler::InGameProfiler;
-use kira::manager::{AudioManager, AudioManagerSettings};
 #[cfg(not(feature = "in-game-profiler"))]
 pub(crate) type InGameProfiler = ();
 
 use std::sync::Arc;
 
+use gilrs::GilrsBuilder;
 use glamour::Vector2;
+use kira::manager::{AudioManager, AudioManagerSettings};
 use miette::{IntoDiagnostic, Result, WrapErr};
 use web_time::Instant;
 use winit::{
@@ -176,12 +177,20 @@ where
         .into_diagnostic()
         .wrap_err("Error setting up audio manager")?;
 
+    // Setup the gamepad state
+    let gilrs = GilrsBuilder::new()
+        // Manually handle all updates
+        .set_update_state(false)
+        .build()
+        .map_err(|err| miette::miette!("Error setting gamepads: {err}"))?;
+
     // Setup the context passed to the tick function implemented by the user
     let mut ctx = Context::new(
         &game_config,
         Arc::clone(&window),
         audio_manager,
         asset_source,
+        gilrs,
     );
 
     // Setup the in-game profiler
@@ -245,10 +254,20 @@ where
 
                             // Call the update tick function with the context
                             while accumulator >= game_config.update_delta_time {
+                                // Handle events
                                 let should_exit = ctx.write(|ctx| {
                                     // Handle the accumulated window events
                                     ctx.input.step_with_window_events(&window_events);
                                     window_events.clear();
+
+                                    // Tell the gamepad that we handled all events
+                                    // This will increase the internal counter we can check on release and on press events with
+                                    ctx.gilrs.inc();
+
+                                    // Handle the gamepad events
+                                    while let Some(gamepad_event) = ctx.gilrs.next_event() {
+                                        ctx.gilrs.update(&gamepad_event);
+                                    }
 
                                     // Exit when the window is destroyed or closed
                                     let should_exit = ctx.input.close_requested()

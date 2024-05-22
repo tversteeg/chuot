@@ -22,6 +22,7 @@ AGPL licensed and opinionated game engine for 2D pixel-art games.
 - Simple bitmap font drawing.
 - Dialogue scripting system.
 - OGG audio playback.
+- First-class gamepad support.
 - In game CPU & memory profiler GUI.
 
 #### Goals

@@ -6,9 +6,14 @@ pub mod text;
 
 use std::{cell::RefCell, rc::Rc, sync::Arc};
 
+use gilrs::{
+    ev::state::{AxisData, ButtonData},
+    Axis, Button, GamepadId, Gilrs,
+};
 use glamour::{Angle, Rect, Size2, Vector2};
 
 use kira::manager::{backend::DefaultBackend, AudioManager};
+use smallvec::SmallVec;
 use winit::{event::MouseButton, keyboard::KeyCode, window::Window};
 use winit_input_helper::WinitInputHelper;
 
@@ -389,6 +394,143 @@ impl Context {
     }
 }
 
+/// Gamepad input methods.
+impl Context {
+    /// List all connected gamepads.
+    ///
+    /// Required for querying gamepad state and handling input in the other functions.
+    ///
+    /// The array is stack allocated up to 4 connected gamepads, after that it will be heap allocated.
+    ///
+    /// # Returns
+    ///
+    /// - Stack allocated array of all currently connected gamepad IDs.
+    #[inline]
+    #[must_use]
+    pub fn gamepads_ids(&self) -> SmallVec<[GamepadId; 4]> {
+        self.read(|ctx| ctx.gilrs.gamepads().map(|(id, _gamepad)| id).collect())
+    }
+
+    /// Whether a gamepad button goes from "not pressed" to "pressed".
+    ///
+    /// # Arguments
+    ///
+    /// * `gamepad_id` - ID of the gamepad to check the button of, must be retrieved with [`Context::gamepad_ids`].
+    /// * `button` - Which button on the gamepad to check.
+    ///
+    /// # Returns
+    ///
+    /// - `None` when gamepad is not found or is disconnected.
+    /// - `Some(true)` when gamepad button is being pressed this update tick.
+    #[inline]
+    #[must_use]
+    pub fn gamepad_button_pressed(&self, gamepad_id: GamepadId, button: Button) -> Option<bool> {
+        self.read(|ctx| {
+            ctx.gilrs.connected_gamepad(gamepad_id).and_then(|gamepad| {
+                gamepad.button_data(button).map(|button_data| {
+                    // The counter is updated once per update loop so we can keep track of that to ensure that the button only now changed state
+                    button_data.is_pressed() && button_data.counter() == ctx.gilrs.counter()
+                })
+            })
+        })
+    }
+
+    /// Whether a gamepad button goes from "pressed" to "not pressed".
+    ///
+    /// # Arguments
+    ///
+    /// * `gamepad_id` - ID of the gamepad to check the button of, must be retrieved with [`Context::gamepad_ids`].
+    /// * `button` - Which button on the gamepad to check.
+    ///
+    /// # Returns
+    ///
+    /// - `None` when gamepad is not found or is disconnected.
+    /// - `Some(true)` when gamepad button is being released this update tick.
+    #[inline]
+    #[must_use]
+    pub fn gamepad_button_released(&self, gamepad_id: GamepadId, button: Button) -> Option<bool> {
+        self.read(|ctx| {
+            ctx.gilrs.connected_gamepad(gamepad_id).and_then(|gamepad| {
+                gamepad.button_data(button).map(|button_data| {
+                    // The counter is updated once per update loop so we can keep track of that to ensure that the button only now changed state
+                    !button_data.is_pressed() && button_data.counter() == ctx.gilrs.counter()
+                })
+            })
+        })
+    }
+
+    /// Whether a gamepad button is in a "pressed" state.
+    ///
+    /// # Arguments
+    ///
+    /// * `gamepad_id` - ID of the gamepad to check the button of, must be retrieved with [`Context::gamepad_ids`].
+    /// * `button` - Which button on the gamepad to check.
+    ///
+    /// # Returns
+    ///
+    /// - `None` when gamepad is not found or is disconnected.
+    /// - `Some(true)` when gamepad button is being pressed.
+    /// - `Some(false)` when gamepad button is released.
+    #[inline]
+    #[must_use]
+    pub fn gamepad_button_held(&self, gamepad_id: GamepadId, button: Button) -> Option<bool> {
+        self.read(|ctx| {
+            ctx.gilrs
+                .connected_gamepad(gamepad_id)
+                .map(|gamepad| gamepad.is_pressed(button))
+        })
+    }
+
+    /// "Value" of a gamepad button between 0.0 and 1.0.
+    ///
+    /// Used for triggers.
+    ///
+    /// # Arguments
+    ///
+    /// * `gamepad_id` - ID of the gamepad to check the button of, must be retrieved with [`Context::gamepad_ids`].
+    /// * `button` - Which button element on the gamepad to check.
+    ///
+    /// # Returns
+    ///
+    /// - `None` when gamepad is not found or is disconnected.
+    /// - `Some(0.0)` when gamepad axis element is not moved.
+    /// - `Some(1.0)` when gamepad axis element is fully engaged.
+    #[inline]
+    #[must_use]
+    pub fn gamepad_button_value(&self, gamepad_id: GamepadId, button: Button) -> Option<f32> {
+        self.read(|ctx| {
+            ctx.gilrs
+                .connected_gamepad(gamepad_id)
+                .and_then(|gamepad| gamepad.button_data(button).map(ButtonData::value))
+        })
+    }
+
+    /// "Value" of a gamepad element between -1.0 and 1.0.
+    ///
+    /// Used for sticks.
+    ///
+    /// # Arguments
+    ///
+    /// * `gamepad_id` - ID of the gamepad to check the axis of, must be retrieved with [`Context::gamepad_ids`].
+    /// * `axis` - Which axis element on the gamepad to check.
+    ///
+    /// # Returns
+    ///
+    /// - `None` when gamepad is not found or is disconnected.
+    /// - `Some(0.0)` when gamepad axis element is not moved.
+    /// - `Some(1.0)` when gamepad axis element is fully engaged.
+    /// - `Some(-1.0)` when gamepad axis element is fully negatively engaged, for example a horizontal axis being moved left.
+    #[inline]
+    #[must_use]
+    pub fn gamepad_axis(&self, gamepad_id: GamepadId, axis: Axis) -> Option<f32> {
+        self.read(|ctx| {
+            ctx.gilrs
+                .connected_gamepad(gamepad_id)
+                .and_then(|gamepad| gamepad.axis_data(axis).map(AxisData::value))
+        })
+    }
+}
+
 /// Generic asset loading.
 impl Context {
     /// Load a read-only reference to a custom defined asset.
@@ -437,6 +579,7 @@ impl Context {
         window: Arc<Window>,
         audio_manager: AudioManager<DefaultBackend>,
         asset_source: AssetSource,
+        gilrs: Gilrs,
     ) -> Self {
         Self {
             inner: Rc::new(RefCell::new(ContextInner::new(
@@ -444,6 +587,7 @@ impl Context {
                 window,
                 audio_manager,
                 asset_source,
+                gilrs,
             ))),
         }
     }
@@ -479,6 +623,8 @@ pub(crate) struct ContextInner {
     ///
     /// Exoses methods for detecting mouse and keyboard events.
     pub(crate) input: WinitInputHelper,
+    /// Gamepad input.
+    pub(crate) gilrs: Gilrs,
     /// Instances of all sprites drawn this tick, also includes sprites from the fonts.
     pub(crate) instances: Instances,
     /// Portions of textures that need to be re-written.
@@ -506,6 +652,7 @@ impl ContextInner {
         window: Arc<Window>,
         audio_manager: AudioManager<DefaultBackend>,
         asset_source: AssetSource,
+        gilrs: Gilrs,
     ) -> Self {
         let exit = false;
         let mouse = None;
@@ -522,6 +669,7 @@ impl ContextInner {
             exit,
             mouse,
             input,
+            gilrs,
             instances,
             texture_update_queue,
             delta_time,
