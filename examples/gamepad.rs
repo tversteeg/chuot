@@ -78,7 +78,7 @@ impl PixelGame for GameState {
                 // Show the button value if an inbetween value is received
                 if let Some(value) = ctx.gamepad_button_value(*gamepad_id, button) {
                     // Only show when engaged
-                    if value != 0.0 && value != 1.0 {
+                    if value > 0.0 && value < 1.0 {
                         ctx.text("Beachball", &format!(" {name}: {value:.1}"))
                             .translate((2.0, line_y))
                             .draw();
