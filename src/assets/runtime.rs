@@ -1,6 +1,11 @@
 //! Assets that will be loaded during runtime.
 
-use std::{cell::RefCell, path::PathBuf, path::MAIN_SEPARATOR, rc::Rc, str::FromStr};
+use std::{
+    cell::RefCell,
+    path::{PathBuf, MAIN_SEPARATOR},
+    rc::Rc,
+    str::FromStr,
+};
 
 use glamour::Size2;
 use hashbrown::HashMap;
@@ -147,7 +152,9 @@ impl AssetSource {
 
     /// Take and load all images for uploading.
     pub(crate) fn take_images_for_uploading(&mut self) -> Vec<(AtlasRef, PngReader)> {
-        self.image_cache
+        // Load the images
+        let mut to_load = self
+            .image_cache
             .borrow_mut()
             .take_to_load()
             .map(|(id, atlas_id)| {
@@ -157,7 +164,12 @@ impl AssetSource {
                         .expect("File suddenly disappeared"),
                 )
             })
-            .collect()
+            .collect::<Vec<_>>();
+
+        // Sort so all atlas references are inserted in the proper order
+        to_load.sort_by_key(|(atlas_id, _img)| *atlas_id);
+
+        to_load
     }
 
     /// Update based on the assets that have been changed.
@@ -237,10 +249,7 @@ impl ImageCache {
         }
 
         // Then try to find the item in the new images to upload
-        self.to_load.iter().find_map(|(to_upload_id, atlas_index)| {
-            // Add the index of the new item to the length of the already uploaded images so we get the future ID
-            (to_upload_id == id).then_some(*atlas_index)
-        })
+        self.to_load.get(id).copied()
     }
 
     /// Remove an asset from the cache.

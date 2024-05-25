@@ -13,7 +13,7 @@ pub mod embedded;
 pub(crate) mod hot_reload;
 pub(crate) mod image;
 pub mod loader;
-#[cfg(not(feature = "embed-assets"))]
+//#[cfg(not(feature = "embed-assets"))]
 #[doc(hidden)]
 pub mod runtime;
 
