@@ -14,7 +14,11 @@ use glamour::{Angle, Rect, Size2, Vector2};
 
 use kira::manager::{backend::DefaultBackend, AudioManager};
 use smallvec::SmallVec;
-use winit::{event::MouseButton, keyboard::KeyCode, window::Window};
+use winit::{
+    event::MouseButton,
+    keyboard::KeyCode,
+    window::{Fullscreen, Window},
+};
 use winit_input_helper::WinitInputHelper;
 
 use crate::{
@@ -277,6 +281,25 @@ impl Context {
     #[inline]
     pub fn set_cursor_visible(&self, visible: bool) {
         self.write(|ctx| ctx.window.set_cursor_visible(visible));
+    }
+
+    /// Toggle fullscreen mode.
+    ///
+    /// Uses a borderless fullscreen mode, not exclusive.
+    #[inline]
+    pub fn toggle_fullscreen(&self) {
+        self.write(|ctx| {
+            // Check if we currently are in fullscreen mode
+            let is_fullscreen = ctx.window.fullscreen().is_some();
+
+            ctx.window.set_fullscreen(if is_fullscreen {
+                // Turn fullscreen off
+                None
+            } else {
+                // Enable fullscreen
+                Some(Fullscreen::Borderless(None))
+            });
+        });
     }
 }
 

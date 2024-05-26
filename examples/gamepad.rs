@@ -26,6 +26,12 @@ impl PixelGame for GameState {
         // Get all IDs of connected gamepads
         let connected_gamepad_ids = ctx.gamepads_ids();
 
+        if connected_gamepad_ids.is_empty() {
+            ctx.text("Beachball", "Activate or\nconnect a gamepad")
+                .translate((2.0, line_y))
+                .draw();
+        }
+
         // Show the D-Pad button presses for each connected gamepad
         for (index, gamepad_id) in connected_gamepad_ids.iter().enumerate() {
             // Draw the gamepad index
