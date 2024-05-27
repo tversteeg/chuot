@@ -303,7 +303,7 @@ impl Context {
     }
 }
 
-/// Input methods.
+/// Mouse input methods.
 impl Context {
     /// Get the position if the mouse is inside the viewport frame.
     ///
@@ -365,6 +365,20 @@ impl Context {
         self.read(|ctx| ctx.input.mouse_held(mouse_button))
     }
 
+    /// How much the mouse scroll wheel changed in the last update tick.
+    ///
+    /// # Returns
+    ///
+    /// - Vector where the X dimension is horizontal scrolling and the Y dimension vertical scrolling.
+    #[inline]
+    #[must_use]
+    pub fn scroll_delta(&self) -> Vector2<f32> {
+        self.read(|ctx| Vector2::from_tuple(ctx.input.scroll_diff()))
+    }
+}
+
+/// Keyboard input methods.
+impl Context {
     /// Whether the key goes from "not pressed" to "pressed".
     ///
     /// Uses physical keys in the US layout, so for example the W key will be in the same physical key on both US and french keyboards.
