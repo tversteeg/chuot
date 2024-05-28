@@ -42,6 +42,30 @@ use self::{audio::Audio, loader::png::PngReader};
 pub type Id = SmolStr;
 
 /// Any asset that's loadable from any amount of binary files.
+///
+/// # Example
+///
+/// ```
+/// use chuot::assets::{AssetSource, Id, Loadable, loader::toml::TomlLoader};
+/// use serde::Deserialize;
+///
+/// /// We define a custom settings object that will be loaded from a '.toml' file.
+/// #[derive(Deserialize)]
+/// struct Settings {
+///   property_a: String,
+///   property_b: i32,
+/// }
+///
+/// impl Loadable for Settings {
+///   fn load_if_exists(id: &Id, assets: &AssetSource) -> Option<Self>
+///   where
+///     Self: Sized,
+///   {
+///     // Use the TOML loader to load our asset
+///     assets.load_if_exists::<TomlLoader, _>(id)
+///   }
+/// }
+/// ```
 pub trait Loadable: Downcast {
     /// Convert a file object to this type if it exists, if it doesn't return `None`.
     ///
