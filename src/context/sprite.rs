@@ -133,7 +133,7 @@ impl<'path, 'ctx> DrawSpriteContext<'path, 'ctx> {
     ///
     /// - When asset failed loading.
     /// - When the sub rectangle does not fit inside the sprite's rectangle.
-    /// - When the size of the sub rectangle does not match the amount of pixels
+    /// - When the size of the sub rectangle does not match the amount of pixels.
     #[inline]
     pub fn update_pixels(self, sub_rectangle: impl Into<Rect>, pixels: impl Into<Vec<u32>>) {
         self.ctx.write(|ctx| {

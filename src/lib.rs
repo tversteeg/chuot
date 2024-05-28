@@ -203,6 +203,8 @@ use miette::Result;
 /// Main entrypoint containing game state for running the game.
 ///
 /// This is the main interface with the game engine.
+///
+/// See [`Context`] for all functions interfacing with the game engine from both functions.
 pub trait PixelGame: Sized
 where
     Self: 'static,
@@ -210,11 +212,13 @@ where
     /// A single update tick in the game loop.
     ///
     /// Will run on a different rate from the render loop specified in the game configuration.
+    ///
     /// Must be used for updating the game state.
+    /// It's possible to queue draw calls on the update context since that's the same object as render, but that will result in very erratic drawing since the render loop is uncoupled from the update loop.
     ///
     /// # Arguments
     ///
-    /// * `ctx` - Game context, used to obtain information about the state.
+    /// * `ctx` - Game context, used to obtain information and mutate the game state.
     ///
     /// # Example
     ///
@@ -241,12 +245,13 @@ where
     /// A single render tick in the game loop.
     ///
     /// Will run on a different rate from the update loop specified in the game configuration.
-    /// Must be used for rendering items on the screen.
-    /// Shouldn't be used for updating the game state since it runs framerate dependent.
+    ///
+    /// Must be used for rendering the game.
+    /// Be careful with mutating game state here, when it's dependent on external state the result will be erratic and incorrect, such as handling any form of input.
     ///
     /// # Arguments
     ///
-    /// * `ctx` - Game context, used to queue draw calls .
+    /// * `ctx` - Game context, used to obtain information and queue draw calls.
     ///
     /// # Example
     ///
@@ -277,6 +282,7 @@ where
     ///
     /// # Errors
     ///
+    /// - When a window could not be opened (desktop only).
     /// - When `hot-reload-assets` feature is enabled and the assets folder could not be watched.
     ///
     /// # Example

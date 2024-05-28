@@ -2,10 +2,16 @@
 
 /// Generate a random number between the range.
 ///
+/// Internally this calls:
+///
+/// ```
+/// fastrand::f32().mul_add(max - min, min);
+/// ```
+///
 /// # Arguments
 ///
 /// * `min` - Start of the random value, must be smaller than `max`.
-/// * `max` - End of the random value, must be bigger than `max`.
+/// * `max` - End of the random value, must be bigger than `min`.
 ///
 /// # Returns
 ///
