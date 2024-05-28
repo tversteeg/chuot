@@ -6,6 +6,7 @@
 [![License: AGPL-3.0](https://img.shields.io/crates/l/chuot.svg)](#license)
 [![Dependency Status](https://deps.rs/repo/github/tversteeg/chuot/status.svg)](https://deps.rs/repo/github/tversteeg/chuot)
 [![Downloads](https://img.shields.io/crates/d/chuot.svg)](#downloads)
+[![Matrix](https://img.shields.io/matrix/chuot-general%3Aone.ems.host)](https://matrix.to/#/#chuot-general:one.ems.host)
 
 ### [Website](https://tversteeg.nl/chuot/)
 
@@ -63,14 +64,6 @@ impl PixelGame for MyGame {
 let game = MyGame;
 
 game.run(chuot::load_assets!(), GameConfig::default())?;
-```
-
-#### Feature Flags
-
-All major feature flags are enabled by default, I would recommend installing `chuot` with `default-features = false` and adding the required features as needed.
-
-```sh
-cargo add chuot --no-default-features
 ```
 
 ##### `embed-assets`

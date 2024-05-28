@@ -57,14 +57,6 @@
 //! # try_main().unwrap();
 //! ```
 //!
-//! # Feature Flags
-//!
-//! All major feature flags are enabled by default, I would recommend installing `chuot` with `default-features = false` and adding the required features as needed.
-//!
-//! ```sh
-//! cargo add chuot --no-default-features
-//! ```
-//!
 //! ## `embed-assets`
 //!
 //! Embed all assets into the binary when building.
