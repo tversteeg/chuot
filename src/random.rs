@@ -5,6 +5,7 @@
 /// Internally this calls:
 ///
 /// ```
+/// # let (min, max) = (0.0, 0.0);
 /// fastrand::f32().mul_add(max - min, min);
 /// ```
 ///

@@ -4,21 +4,29 @@ pub mod audio;
 pub mod sprite;
 pub mod text;
 
+/// Re-exported gilrs type used in [`Context`].
+#[doc(hidden)]
+#[deprecated(since = "0.1.2", note = "import from chuot::context::..")]
+pub use gilrs::ev::{Axis, Button};
+/// Re-exported winit type used in [`Context`].
+#[doc(hidden)]
+#[deprecated(since = "0.1.2", note = "import from chuot::context::..")]
+pub use winit::{
+    dpi::PhysicalSize,
+    event::MouseButton,
+    keyboard::{Key, KeyCode},
+};
+
 use std::{cell::RefCell, rc::Rc, sync::Arc};
 
 use gilrs::{
     ev::state::{AxisData, ButtonData},
-    Axis, Button, GamepadId, Gilrs,
+    GamepadId, Gilrs,
 };
 use glamour::{Angle, Rect, Size2, Vector2};
-
 use kira::manager::{backend::DefaultBackend, AudioManager};
 use smallvec::SmallVec;
-use winit::{
-    event::MouseButton,
-    keyboard::KeyCode,
-    window::{Fullscreen, Window},
-};
+use winit::window::{Fullscreen, Window};
 use winit_input_helper::WinitInputHelper;
 
 use crate::{

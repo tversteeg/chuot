@@ -3,8 +3,10 @@
 //! Show text for most button presses.
 //! The state of the gamepads is checked in the `render` function, which is something you normally would not want to do, you would want to check it in the `update` function. But for this example that doesn't matter because the update delta time is low enough that it lasts multiple render functions.
 
-use chuot::{Button, Context, GameConfig, KeyCode, PixelGame};
-use gilrs::Axis;
+use chuot::{
+    context::{Axis, Button, KeyCode},
+    Context, GameConfig, PixelGame,
+};
 
 /// Define empty game state.
 struct GameState;

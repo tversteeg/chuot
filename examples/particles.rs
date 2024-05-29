@@ -1,7 +1,11 @@
 //! Show how we can efficiently draw tens of thousands of particles.
 
-use chuot::{config::RotationAlgorithm, Context, GameConfig, KeyCode, MouseButton, PixelGame};
-use glamour::{Size2, Vector2};
+use chuot::{
+    config::RotationAlgorithm,
+    context::{KeyCode, MouseButton},
+    glamour::{Size2, Vector2},
+    Context, GameConfig, PixelGame,
+};
 
 /// How long a particle lives in seconds.
 const PARTICLE_LIFE_SECS: f32 = 10.0;

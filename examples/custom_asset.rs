@@ -10,8 +10,9 @@
 
 use chuot::{
     assets::{loader::Loader, AssetSource, Id, Loadable},
+    context::KeyCode,
     glamour::Size2,
-    Context, GameConfig, KeyCode, PixelGame,
+    Context, GameConfig, PixelGame,
 };
 use serde::Deserialize;
 

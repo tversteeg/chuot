@@ -7,7 +7,9 @@
 //! offset = "Middle"
 //! ```
 
-use chuot::{config::RotationAlgorithm, glamour::Size2, Context, GameConfig, KeyCode, PixelGame};
+use chuot::{
+    config::RotationAlgorithm, context::KeyCode, glamour::Size2, Context, GameConfig, PixelGame,
+};
 
 /// Define a game state for our example.
 #[derive(Default)]

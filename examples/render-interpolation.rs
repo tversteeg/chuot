@@ -1,7 +1,10 @@
 //! Show how to interpolate a sprite in the render loop by keeping a previous state in the update loop.
 
-use chuot::{Context, GameConfig, KeyCode, MouseButton, PixelGame};
-use glamour::Vector2;
+use chuot::{
+    context::{KeyCode, MouseButton},
+    glamour::Vector2,
+    Context, GameConfig, PixelGame,
+};
 
 /// Define a game state for our example.
 #[derive(Default)]

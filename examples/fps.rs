@@ -8,7 +8,7 @@
 //! glyph_size = { width = 10, height = 10 }
 //! ```
 
-use chuot::{Context, GameConfig, KeyCode, PixelGame};
+use chuot::{context::KeyCode, Context, GameConfig, PixelGame};
 use glamour::Size2;
 
 /// Define a game state for our example.

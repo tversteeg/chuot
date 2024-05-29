@@ -163,11 +163,16 @@ pub(crate) mod random;
 pub(crate) mod sprite;
 pub(crate) mod window;
 
-/// Re-exported gilrs type used in [`Context`].
-pub use gilrs::ev::{Axis, Button};
 /// Re-exported vector math type.
 pub use glamour;
+
+/// Re-exported gilrs type used in [`Context`].
+#[doc(hidden)]
+#[deprecated(since = "0.1.2", note = "import from chuot::context::..")]
+pub use gilrs::ev::{Axis, Button};
 /// Re-exported winit type used in [`Context`].
+#[doc(hidden)]
+#[deprecated(since = "0.1.2", note = "import from chuot::context::..")]
 pub use winit::{
     dpi::PhysicalSize,
     event::MouseButton,

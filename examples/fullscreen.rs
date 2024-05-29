@@ -2,7 +2,7 @@
 //!
 //! Press 'f' to toggle fullscreen.
 
-use chuot::{Context, GameConfig, KeyCode, PixelGame};
+use chuot::{context::KeyCode, Context, GameConfig, PixelGame};
 
 /// Define empty game state.
 struct GameState;

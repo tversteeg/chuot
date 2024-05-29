@@ -2,7 +2,10 @@
 //!
 //! To play it press the left mouse button on the canvas.
 
-use chuot::{Context, GameConfig, KeyCode, MouseButton, PixelGame};
+use chuot::{
+    context::{KeyCode, MouseButton},
+    Context, GameConfig, PixelGame,
+};
 
 /// Define empty game state.
 struct GameState;

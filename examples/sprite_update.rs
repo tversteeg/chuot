@@ -9,8 +9,9 @@
 
 use chuot::{
     config::RotationAlgorithm,
+    context::{KeyCode, MouseButton},
     glamour::{Size2, Vector2},
-    Context, GameConfig, KeyCode, MouseButton, PixelGame,
+    Context, GameConfig, PixelGame,
 };
 use glamour::Rect;
 

@@ -7,8 +7,7 @@
 //! offset = "Middle"
 //! ```
 
-use chuot::{Context, GameConfig, KeyCode, PixelGame};
-use glamour::Size2;
+use chuot::{context::KeyCode, glamour::Size2, Context, GameConfig, PixelGame};
 
 /// Define a game state for our example.
 #[derive(Default)]
