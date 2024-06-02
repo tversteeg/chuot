@@ -73,6 +73,10 @@
 //! Has no effect on the web target.
 //! If disabled _all_ assets will be baked into the binary.
 //!
+//! ## `read-image` (default)
+//!
+//! Expose read operations on images, if disabled sprites will be uploaded to the GPU and their data will be removed from memory.
+//!
 //! ## `dialogue` (default)
 //!
 //! A thin wrapper around [Yarn Spinner](https://www.yarnspinner.dev/).

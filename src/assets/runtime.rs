@@ -128,6 +128,8 @@ impl AssetSource {
             atlas_id,
             // TODO: offset this somehow
             size: self.image_size(id)?,
+            #[cfg(feature = "read-image")]
+            pixels: self.image_pixels(id)?,
         })
     }
 
@@ -183,6 +185,25 @@ impl AssetSource {
         {
             self.image_cache.borrow_mut().remove(changed_asset);
         }
+    }
+
+    /// Get the raw pixels of an image based on a texture asset ID.
+    #[cfg(feature = "read-image")]
+    fn image_pixels(&self, id: &Id) -> Option<imgref::ImgVec<u32>> {
+        // Load the PNG file
+        let mut png = self.load_if_exists::<PngLoader, _>(id)?;
+
+        // Read the PNG
+        let mut buf = vec![0u32; png.output_buffer_size()];
+        let info = png
+            .next_frame(bytemuck::cast_slice_mut(&mut buf))
+            .expect("Error reading image");
+
+        Some(imgref::Img::new(
+            buf,
+            info.width as usize,
+            info.height as usize,
+        ))
     }
 }
 

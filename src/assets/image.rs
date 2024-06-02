@@ -14,4 +14,8 @@ pub(crate) struct Image {
 
     /// Size of the image in pixels.
     pub(crate) size: Size2<u32>,
+
+    /// Image RGBA pixels.
+    #[cfg(feature = "read-image")]
+    pub(crate) pixels: imgref::ImgVec<u32>,
 }
