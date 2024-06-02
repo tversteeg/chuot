@@ -86,7 +86,7 @@ impl EmbeddedRawStaticAtlas {
         let mut reader = decoder.read_info().unwrap();
 
         // Allocate the buffer for the pixels
-        let mut png_pixels = vec![0u32; reader.output_buffer_size()];
+        let mut png_pixels = vec![0_u32; reader.output_buffer_size()];
 
         // Read the bytes into the buffer
         let info = reader
@@ -224,6 +224,8 @@ impl AssetSource {
                 self.static_texture_id_to_size.get(id).map(|size| Image {
                     atlas_id: *atlas_id,
                     size: *size,
+                    #[cfg(feature = "read-image")]
+                    pixels: todo!(),
                 })
             })
     }

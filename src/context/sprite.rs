@@ -149,6 +149,33 @@ impl<'path, 'ctx> DrawSpriteContext<'path, 'ctx> {
         });
     }
 
+    /// Read the pixels of a portion of the sprite.
+    ///
+    /// # Performance
+    ///
+    /// Reading pixels will copy a subregion from the image the sprite is a part of, thus it's quite slow.
+    ///
+    /// When you don't use this function it's recommended to disable the `read-image` feature flag, which will reduce memory usage of the game.
+    ///
+    /// # Returns
+    ///
+    /// - A tuple containing the size of the sprite and a vector of pixels in RGBA u32 format, length of the array is width * height of the sprite.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
+    #[inline]
+    #[cfg(feature = "read-image")]
+    pub fn read_pixels(self) -> (Size2, Vec<u32>) {
+        self.ctx.write(|ctx| {
+            // Get the sprite
+            let sprite = ctx.assets.sprite(self.path);
+
+            // Read the size and the pixels
+            (sprite.size(), sprite.pixels())
+        })
+    }
+
     /// Get the size of the sprite in pixels.
     ///
     /// # Returns

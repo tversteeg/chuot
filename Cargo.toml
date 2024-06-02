@@ -34,13 +34,18 @@ targets = [
 rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
-default = ["dialogue"]
+default = ["dialogue", "read-image"]
 
 # Embed all assets into the binary.
 #
 # If disabled loads all assets from disk.
 # Mutually exclusive from `hot-reload-assets`.
 embed-assets = ["chuot-macros/embed-assets"]
+
+# Keep the image data in memory so the pixel data can be retrieved.
+#
+# If disabled some image functionality is not available because all textures are uploaded to the GPU and then removed from memory.
+read-image = []
 
 # Enable assets and hot-reload assets from disk when they are saved.
 #
@@ -87,7 +92,7 @@ smol_str = "0.2.2"
 fastrand = "2.1.0"
 web-time = "1.1.0"
 kira = { version = "0.9.0", default-features = false, features = ["cpal", "ogg", "serde"] }
-imgref = "1.10.1"
+imgref = { version = "1.10.1", default-features = false }
 toml = "0.8.13"
 downcast-rs = "1.2.1"
 gilrs = "0.10.7"

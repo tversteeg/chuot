@@ -97,6 +97,37 @@ impl Sprite {
         self.size
     }
 
+    /// Read the pixels for this sprite.
+    #[inline]
+    #[cfg(feature = "read-image")]
+    pub(crate) fn pixels(&self) -> Vec<u32> {
+        let Rect {
+            origin: Point2 { x, y },
+            size: Size2 { width, height },
+        } = self.sub_rectangle;
+
+        assert!(
+            x >= 0.0 && y >= 0.0,
+            "Image subrectangle cannot contain negative coordinates"
+        );
+        assert!(
+            width >= 0.0 && height >= 0.0,
+            "Image size cannot be negative"
+        );
+
+        let (sub_image, width, height) = self
+            .image
+            .pixels
+            .sub_image(x as usize, y as usize, width as usize, height as usize)
+            .to_contiguous_buf();
+
+        // Check we get the correct sub image
+        assert_eq!(width, self.size.width as usize);
+        assert_eq!(height, self.size.height as usize);
+
+        sub_image.into_owned()
+    }
+
     /// Calculate the transformation matrix.
     fn matrix(&self, translation: Vector2, rotation: Angle) -> Affine2 {
         let sprite_offset = self.metadata.offset.offset(self.size);
