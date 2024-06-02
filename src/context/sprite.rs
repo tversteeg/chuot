@@ -89,7 +89,7 @@ impl<'path, 'ctx> DrawSpriteContext<'path, 'ctx> {
     /// # use chuot::glamour::Vector2;
     /// # fn call(ctx: chuot::Context) {
     /// ctx.sprite("some_asset")
-    ///   .draw_multiple_translated((0..10).map(|x| Vector2::new(x as f32, 0.0)));
+    ///     .draw_multiple_translated((0..10).map(|x| Vector2::new(x as f32, 0.0)));
     /// # }
     /// ```
     ///
@@ -99,9 +99,9 @@ impl<'path, 'ctx> DrawSpriteContext<'path, 'ctx> {
     /// # use chuot::glamour::Vector2;
     /// # fn call(ctx: chuot::Context) {
     /// for x in 0..10 {
-    ///   ctx.sprite("some_asset")
-    ///     .translate(Vector2::new(x as f32, 0.0))
-    ///     .draw();
+    ///     ctx.sprite("some_asset")
+    ///         .translate(Vector2::new(x as f32, 0.0))
+    ///         .draw();
     /// }
     /// # }
     /// ```

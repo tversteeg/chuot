@@ -33,18 +33,18 @@
 //! Using this crate is quite simple, there is a single trait [`PixelGame`] with two required functions, [`PixelGame::update`] and [`PixelGame::render`], that need to be implemented for a game state object.
 //!
 //! ```no_run
-//! use chuot::{PixelGame, Context, GameConfig};
+//! use chuot::{Context, GameConfig, PixelGame};
 //!
 //! struct MyGame;
 //!
 //! impl PixelGame for MyGame {
-//!   fn update(&mut self, ctx: Context) {
-//!     // ..
-//!   }
+//!     fn update(&mut self, ctx: Context) {
+//!         // ..
+//!     }
 //!
-//!   fn render(&mut self, ctx: Context) {
-//!     // ..
-//!   }
+//!     fn render(&mut self, ctx: Context) {
+//!         // ..
+//!     }
 //! }
 //!
 //! # fn try_main() -> miette::Result<()> {
@@ -99,7 +99,11 @@
 //! When the 'Escape' key is pressed[^escape-key] the game will exit and the window will close.
 //!
 //! ```no_run
-//! use chuot::{PixelGame, Context, GameConfig, MouseButton, KeyCode, glamour::Vector2};
+//! use chuot::{
+//!   PixelGame, Context, GameConfig,
+//!   context::{MouseButton, KeyCode},
+//!   glamour::Vector2
+//! };
 //!
 //! /// Object holding all game state.
 //! struct MyGame {
@@ -228,21 +232,21 @@ where
     /// # Example
     ///
     /// ```
-    /// use chuot::{PixelGame, Context, GameConfig, KeyCode};
+    /// use chuot::{Context, GameConfig, KeyCode, PixelGame};
     ///
     /// struct MyGame;
     ///
     /// impl PixelGame for MyGame {
-    ///   fn update(&mut self, ctx: Context) {
-    ///     // Stop the game and close the window when 'Escape' is pressed
-    ///     if ctx.key_pressed(KeyCode::Escape) {
-    ///       ctx.exit();
+    ///     fn update(&mut self, ctx: Context) {
+    ///         // Stop the game and close the window when 'Escape' is pressed
+    ///         if ctx.key_pressed(KeyCode::Escape) {
+    ///             ctx.exit();
+    ///         }
     ///     }
-    ///   }
     ///
-    ///   fn render(&mut self, ctx: Context) {
-    ///     // ..
-    ///   }
+    ///     fn render(&mut self, ctx: Context) {
+    ///         // ..
+    ///     }
     /// }
     /// ```
     fn update(&mut self, ctx: Context);
@@ -261,19 +265,19 @@ where
     /// # Example
     ///
     /// ```
-    /// use chuot::{PixelGame, Context, GameConfig, KeyCode};
+    /// use chuot::{Context, GameConfig, KeyCode, PixelGame};
     ///
     /// struct MyGame;
     ///
     /// impl PixelGame for MyGame {
-    ///   fn render(&mut self, ctx: Context) {
-    ///     // Draw a sprite on the screen
-    ///     ctx.sprite("sprite").draw();
-    ///   }
+    ///     fn render(&mut self, ctx: Context) {
+    ///         // Draw a sprite on the screen
+    ///         ctx.sprite("sprite").draw();
+    ///     }
     ///
-    ///   fn update(&mut self, ctx: Context) {
-    ///     // ..
-    ///   }
+    ///     fn update(&mut self, ctx: Context) {
+    ///         // ..
+    ///     }
     /// }
     /// ```
     fn render(&mut self, ctx: Context);
@@ -293,21 +297,21 @@ where
     /// # Example
     ///
     /// ```no_run
-    /// use chuot::{PixelGame, Context, GameConfig, KeyCode};
+    /// use chuot::{Context, GameConfig, KeyCode, PixelGame};
     ///
     /// struct MyGame;
     ///
     /// impl PixelGame for MyGame {
-    ///   fn update(&mut self, ctx: Context) {
-    ///     // Stop the game and close the window when 'Escape' is pressed
-    ///     if ctx.key_pressed(KeyCode::Escape) {
-    ///       ctx.exit();
+    ///     fn update(&mut self, ctx: Context) {
+    ///         // Stop the game and close the window when 'Escape' is pressed
+    ///         if ctx.key_pressed(KeyCode::Escape) {
+    ///             ctx.exit();
+    ///         }
     ///     }
-    ///   }
     ///
-    ///   fn render(&mut self, ctx: Context) {
-    ///     // ..
-    ///   }
+    ///     fn render(&mut self, ctx: Context) {
+    ///         // ..
+    ///     }
     /// }
     ///
     /// # fn try_main() -> miette::Result<()> {

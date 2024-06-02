@@ -11,8 +11,8 @@ use glamour::Size2;
 /// ```rust
 /// # use chuot::GameConfig;
 /// GameConfig {
-///   title: "My Game".to_owned(),
-///   ..Default::default()
+///     title: "My Game".to_owned(),
+///     ..Default::default()
 /// };
 /// ```
 ///

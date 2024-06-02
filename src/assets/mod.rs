@@ -46,24 +46,24 @@ pub type Id = SmolStr;
 /// # Example
 ///
 /// ```
-/// use chuot::assets::{AssetSource, Id, Loadable, loader::toml::TomlLoader};
+/// use chuot::assets::{loader::toml::TomlLoader, AssetSource, Id, Loadable};
 /// use serde::Deserialize;
 ///
 /// /// We define a custom settings object that will be loaded from a '.toml' file.
 /// #[derive(Deserialize)]
 /// struct Settings {
-///   property_a: String,
-///   property_b: i32,
+///     property_a: String,
+///     property_b: i32,
 /// }
 ///
 /// impl Loadable for Settings {
-///   fn load_if_exists(id: &Id, assets: &AssetSource) -> Option<Self>
-///   where
-///     Self: Sized,
-///   {
-///     // Use the TOML loader to load our asset
-///     assets.load_if_exists::<TomlLoader, _>(id)
-///   }
+///     fn load_if_exists(id: &Id, assets: &AssetSource) -> Option<Self>
+///     where
+///         Self: Sized,
+///     {
+///         // Use the TOML loader to load our asset
+///         assets.load_if_exists::<TomlLoader, _>(id)
+///     }
 /// }
 /// ```
 pub trait Loadable: Downcast {

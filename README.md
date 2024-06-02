@@ -45,18 +45,18 @@ AGPL licensed and opinionated game engine for 2D pixel-art games.
 Using this crate is quite simple, there is a single trait [`PixelGame`] with two required functions, [`PixelGame::update`] and [`PixelGame::render`], that need to be implemented for a game state object.
 
 ```rust
-use chuot::{PixelGame, Context, GameConfig};
+use chuot::{Context, GameConfig, PixelGame};
 
 struct MyGame;
 
 impl PixelGame for MyGame {
-  fn update(&mut self, ctx: Context) {
-    // ..
-  }
+    fn update(&mut self, ctx: Context) {
+        // ..
+    }
 
-  fn render(&mut self, ctx: Context) {
-    // ..
-  }
+    fn render(&mut self, ctx: Context) {
+        // ..
+    }
 }
 
 // In main
@@ -108,7 +108,11 @@ The counter is rendered as text[^text] loaded from a font in the top-left corner
 When the 'Escape' key is pressed[^escape-key] the game will exit and the window will close.
 
 ```rust
-use chuot::{PixelGame, Context, GameConfig, MouseButton, KeyCode, glamour::Vector2};
+use chuot::{
+  PixelGame, Context, GameConfig,
+  context::{MouseButton, KeyCode},
+  glamour::Vector2
+};
 
 /// Object holding all game state.
 struct MyGame {
