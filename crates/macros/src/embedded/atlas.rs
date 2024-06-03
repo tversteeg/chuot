@@ -36,26 +36,25 @@ pub fn parse_textures(textures: &[(String, PathBuf)]) -> TokenStream {
 
             // Ensure we can use the PNG colors
             let (color_type, bits) = reader.output_color_type();
-            if color_type != ColorType::Rgba || bits != BitDepth::Eight {
-                panic!(
-                    "Error reading PNG: image is not 8 bit RGBA but {} bit {}: {}",
-                    match bits {
-                        BitDepth::One => 1,
-                        BitDepth::Two => 2,
-                        BitDepth::Four => 4,
-                        BitDepth::Eight => 8,
-                        BitDepth::Sixteen => 16,
-                    },
-                    match color_type {
-                        ColorType::Grayscale => "grayscale",
-                        ColorType::Rgb => "RGB",
-                        ColorType::Indexed => "indexed",
-                        ColorType::GrayscaleAlpha => "grayscale+alpha",
-                        ColorType::Rgba => "RGBA",
-                    },
-                    path.display(),
-                );
-            }
+            assert!(
+                !(color_type != ColorType::Rgba || bits != BitDepth::Eight),
+                "Error reading PNG: image is not 8 bit RGBA but {} bit {}: {}",
+                match bits {
+                    BitDepth::One => 1,
+                    BitDepth::Two => 2,
+                    BitDepth::Four => 4,
+                    BitDepth::Eight => 8,
+                    BitDepth::Sixteen => 16,
+                },
+                match color_type {
+                    ColorType::Grayscale => "grayscale",
+                    ColorType::Rgb => "RGB",
+                    ColorType::Indexed => "indexed",
+                    ColorType::GrayscaleAlpha => "grayscale+alpha",
+                    ColorType::Rgba => "RGBA",
+                },
+                path.display(),
+            );
 
             // Resize the texture buffer so it fits the output
             buf.resize(reader.output_buffer_size(), 0);
@@ -181,6 +180,10 @@ pub fn parse_textures(textures: &[(String, PathBuf)]) -> TokenStream {
                         diced: glamour::Point2 { x: #diced_u, y: #diced_v },
                         texture: glamour::Point2 { x: #texture_u, y: #texture_v },
                         size: glamour::Size2 { width: #width, height: #height },
+                        #[cfg(feature = "read-image")]
+                        index: #texture_index,
+                        #[cfg(feature = "read-image")]
+                        source: glamour::Point2 { x: #top_left_u, y: #top_left_v },
                     }
                 }
             })
