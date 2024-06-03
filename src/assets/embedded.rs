@@ -4,7 +4,7 @@ use std::io::Cursor;
 
 use glamour::{Point2, Rect, Size2};
 use hashbrown::HashMap;
-use imgref::Img;
+use imgref::ImgVec;
 use png::Decoder;
 
 use crate::{
@@ -48,6 +48,12 @@ pub struct TextureMapping {
     pub texture: Point2<u16>,
     /// Size of the diced sub image.
     pub size: Size2<u16>,
+    /// Texture index in the atlas.
+    #[cfg(feature = "read-image")]
+    pub index: usize,
+    /// U & V coordinates for reconstructing the source texture.
+    #[cfg(feature = "read-image")]
+    pub source: Point2<u16>,
 }
 
 /// Embedded diced sprite atlas in the binary.
@@ -77,26 +83,10 @@ impl EmbeddedRawStaticAtlas {
     pub(crate) fn parse_and_upload(self, gpu: &Gpu) -> Atlas {
         // First decode the PNG bytes
 
-        // Create a consuming cursor from the bytes
-        let cursor = Cursor::new(self.diced_atlas_png_bytes);
+        // TODO: move this call to a higher level so it's only called once when `read-image` feature flag is enabled
+        let png = self.compressed_png();
 
-        // Decode the PNG
-        let decoder = Decoder::new(cursor);
-        // Start parsing the PNG
-        let mut reader = decoder.read_info().unwrap();
-
-        // Allocate the buffer for the pixels
-        let mut png_pixels = vec![0_u32; reader.output_buffer_size()];
-
-        // Read the bytes into the buffer
-        let info = reader
-            .next_frame(bytemuck::cast_slice_mut(&mut png_pixels))
-            .unwrap();
-
-        // Treat the 4 color components as a single numeric value
-        let png = Img::new(png_pixels, info.width as usize, info.height as usize);
-
-        // Lastly create a new GPU atlas texture
+        // Then create a new GPU atlas texture
 
         // Create the atlas
         let atlas = Atlas::new(self.texture_rects.to_vec(), gpu);
@@ -126,6 +116,63 @@ impl EmbeddedRawStaticAtlas {
         atlas
     }
 
+    /// Read the images from the assets into memory.
+    #[cfg(feature = "read-image")]
+    fn to_memory(&self) -> HashMap<Id, ImgVec<u32>> {
+        log::debug!("Reading images into memory because the `read-image` feature flag is enabled");
+
+        // TODO: move this call to a higher level so it's only called once when `read-image` feature flag is enabled
+        let png = self.compressed_png();
+
+        // Pre-allocate the images that will be filled by the diced slices
+        let mut images = self
+            .texture_rects
+            .iter()
+            .map(|texture_rect| {
+                let width = texture_rect.width() as usize;
+                let height = texture_rect.height() as usize;
+
+                ImgVec::new(vec![0_u32; width * height], width, height)
+            })
+            .collect::<Vec<_>>();
+
+        // Read and push all sections
+        for mapping in self.texture_mappings {
+            let width = mapping.size.width as usize;
+            let height = mapping.size.height as usize;
+
+            // Source region to copy
+            let diced_texture = png.sub_image(
+                mapping.diced.x as usize,
+                mapping.diced.y as usize,
+                width,
+                height,
+            );
+            // Target region to copy to
+            let mut target_texture = images[mapping.index].sub_image_mut(
+                mapping.source.x as usize,
+                mapping.source.y as usize,
+                width,
+                height,
+            );
+
+            // Copy the pixels
+            diced_texture
+                .rows()
+                .zip(target_texture.rows_mut())
+                .for_each(|(source, target)| {
+                    target.copy_from_slice(source);
+                });
+        }
+
+        // Create a hashmap from the array
+        images
+            .into_iter()
+            .zip(self.texture_ids.iter())
+            .map(|(image, id)| (Id::new_static(id), image))
+            .collect()
+    }
+
     /// Create a texture mapping to atlas index table.
     pub(crate) fn texture_id_to_atlas_id_map(&self) -> HashMap<Id, u16> {
         self.texture_ids
@@ -148,6 +195,28 @@ impl EmbeddedRawStaticAtlas {
             })
             .collect()
     }
+
+    /// Read the compressed atlas PNG.
+    pub(crate) fn compressed_png(&self) -> ImgVec<u32> {
+        // Create a consuming cursor from the bytes
+        let cursor = Cursor::new(self.diced_atlas_png_bytes);
+
+        // Decode the PNG
+        let decoder = Decoder::new(cursor);
+        // Start parsing the PNG
+        let mut reader = decoder.read_info().unwrap();
+
+        // Allocate the buffer for the pixels
+        let mut png_pixels = vec![0_u32; reader.output_buffer_size()];
+
+        // Read the bytes into the buffer
+        let info = reader
+            .next_frame(bytemuck::cast_slice_mut(&mut png_pixels))
+            .unwrap();
+
+        // Treat the 4 color components as a single numeric value
+        ImgVec::new(png_pixels, info.width as usize, info.height as usize)
+    }
 }
 
 /// Asset source for all assets embedded in the binary.
@@ -158,19 +227,23 @@ pub struct AssetSource {
     static_texture_id_to_size: HashMap<Id, Size2<u32>>,
     /// All loaded assets by parsed path.
     assets: &'static [EmbeddedRawAsset],
+    /// Pixels of the images.
+    #[cfg(feature = "read-image")]
+    images: HashMap<Id, ImgVec<u32>>,
 }
 
 impl AssetSource {
     /// Construct a new source from embedded raw assets.
-    pub(crate) fn new(
-        assets: &'static [EmbeddedRawAsset],
-        static_texture_id_to_atlas_id: HashMap<Id, u16>,
-        static_texture_id_to_size: HashMap<Id, Size2<u32>>,
-    ) -> Self {
+    pub(crate) fn new(assets: &'static [EmbeddedRawAsset], atlas: &EmbeddedRawStaticAtlas) -> Self {
+        let static_texture_id_to_atlas_id = atlas.texture_id_to_atlas_id_map();
+        let static_texture_id_to_size = atlas.texture_id_to_size_map();
+
         Self {
             assets,
             static_texture_id_to_atlas_id,
             static_texture_id_to_size,
+            #[cfg(feature = "read-image")]
+            images: atlas.to_memory(),
         }
     }
 
@@ -225,7 +298,7 @@ impl AssetSource {
                     atlas_id: *atlas_id,
                     size: *size,
                     #[cfg(feature = "read-image")]
-                    pixels: todo!(),
+                    image_source: self.images[id].clone(),
                 })
             })
     }

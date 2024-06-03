@@ -159,11 +159,7 @@ where
     // Construct the asset source based on where it comes from
     // Needed to be called here because the render state will consume the atlas
     #[cfg(feature = "embed-assets")]
-    let asset_source = AssetSource::new(
-        assets.assets,
-        assets.atlas.texture_id_to_atlas_id_map(),
-        assets.atlas.texture_id_to_size_map(),
-    );
+    let asset_source = AssetSource::new(assets.assets, &assets.atlas);
     #[cfg(not(feature = "embed-assets"))]
     let asset_source = AssetSource::new(assets.0);
 
