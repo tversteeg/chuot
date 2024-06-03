@@ -165,6 +165,7 @@ impl<'path, 'ctx> DrawSpriteContext<'path, 'ctx> {
     ///
     /// - When asset failed loading.
     #[inline]
+    #[must_use]
     #[cfg(feature = "read-image")]
     pub fn read_pixels(self) -> (Size2, Vec<u32>) {
         self.ctx.write(|ctx| {

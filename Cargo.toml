@@ -45,7 +45,7 @@ embed-assets = ["chuot-macros/embed-assets"]
 # Keep the image data in memory so the pixel data can be retrieved.
 #
 # If disabled some image functionality is not available because all textures are uploaded to the GPU and then removed from memory.
-read-image = []
+read-image = ["chuot-macros/read-image"]
 
 # Enable assets and hot-reload assets from disk when they are saved.
 #
