@@ -298,7 +298,7 @@ impl AssetSource {
                     atlas_id: *atlas_id,
                     size: *size,
                     #[cfg(feature = "read-image")]
-                    image_source: self.images[id].clone(),
+                    pixels: self.images[id].clone(),
                 })
             })
     }
