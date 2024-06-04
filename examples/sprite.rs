@@ -7,21 +7,13 @@
 //! offset = "Middle"
 //! ```
 
-use chuot::{context::KeyCode, glamour::Size2, Context, GameConfig, PixelGame};
+use chuot::{glamour::Size2, Context, GameConfig, PixelGame};
 
 /// Define a game state for our example.
 #[derive(Default)]
 struct GameState;
 
 impl PixelGame for GameState {
-    /// Update the game.
-    fn update(&mut self, ctx: Context) {
-        // Exit when escape is pressed
-        if ctx.key_pressed(KeyCode::Escape) {
-            ctx.exit();
-        }
-    }
-
     /// Render the game.
     fn render(&mut self, ctx: Context) {
         // Load a sprite asset and draw it
@@ -31,6 +23,9 @@ impl PixelGame for GameState {
             // Draw the sprite on the screen
             .draw();
     }
+
+    /// Do nothing during the update loop.
+    fn update(&mut self, _ctx: Context) {}
 }
 
 /// Open an empty window.

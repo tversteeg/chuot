@@ -9,7 +9,7 @@
 
 use chuot::{
     config::RotationAlgorithm,
-    context::{KeyCode, MouseButton},
+    context::MouseButton,
     glamour::{Size2, Vector2},
     Context, GameConfig, PixelGame,
 };
@@ -24,13 +24,6 @@ struct GameState;
 impl PixelGame for GameState {
     /// Update the game.
     fn update(&mut self, ctx: Context) {
-        // Exit when escape is pressed
-        if ctx.key_pressed(KeyCode::Escape) {
-            ctx.exit();
-
-            return;
-        }
-
         // Only do something when the mouse is on a pixel
         let Some(mouse) = ctx.mouse() else { return };
 

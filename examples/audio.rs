@@ -2,10 +2,7 @@
 //!
 //! To play it press the left mouse button on the canvas.
 
-use chuot::{
-    context::{KeyCode, MouseButton},
-    Context, GameConfig, PixelGame,
-};
+use chuot::{context::MouseButton, Context, GameConfig, PixelGame};
 
 /// Define empty game state.
 struct GameState;
@@ -19,11 +16,6 @@ impl PixelGame for GameState {
             ctx.audio("switch31")
                 // Play the loaded sound
                 .play();
-        }
-
-        // Exit when escape is pressed
-        if ctx.key_pressed(KeyCode::Escape) {
-            ctx.exit();
         }
     }
 

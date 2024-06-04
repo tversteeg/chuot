@@ -1,10 +1,6 @@
 //! Show how to interpolate a sprite in the render loop by keeping a previous state in the update loop.
 
-use chuot::{
-    context::{KeyCode, MouseButton},
-    glamour::Vector2,
-    Context, GameConfig, PixelGame,
-};
+use chuot::{context::MouseButton, glamour::Vector2, Context, GameConfig, PixelGame};
 
 /// Define a game state for our example.
 #[derive(Default)]
@@ -20,13 +16,6 @@ struct GameState {
 impl PixelGame for GameState {
     /// Update the game.
     fn update(&mut self, ctx: Context) {
-        // Exit when escape is pressed
-        if ctx.key_pressed(KeyCode::Escape) {
-            ctx.exit();
-
-            return;
-        }
-
         // Store the previous position so it can be interpolated on in the render function
         self.previous_position = self.position;
 

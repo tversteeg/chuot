@@ -14,11 +14,6 @@ impl PixelGame for GameState {
         if ctx.key_released(KeyCode::KeyF) {
             ctx.toggle_fullscreen();
         }
-
-        // Exit when escape is pressed
-        if ctx.key_pressed(KeyCode::Escape) {
-            ctx.exit();
-        }
     }
 
     /// Render text explaining what to do.

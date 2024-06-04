@@ -10,7 +10,6 @@
 
 use chuot::{
     assets::{loader::Loader, AssetSource, Id, Loadable},
-    context::KeyCode,
     glamour::Size2,
     Context, GameConfig, PixelGame,
 };
@@ -57,13 +56,8 @@ impl PixelGame for GameState {
         ctx.text("Beachball", &example_txt.0).draw();
     }
 
-    /// Game update tick, this is where you would handle the game logic.
-    fn update(&mut self, ctx: Context) {
-        // Exit when escape is pressed
-        if ctx.key_pressed(KeyCode::Escape) {
-            ctx.exit();
-        }
-    }
+    /// Do nothing during the update loop.
+    fn update(&mut self, _ctx: Context) {}
 }
 
 /// Open an empty window.

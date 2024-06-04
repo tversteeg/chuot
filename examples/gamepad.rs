@@ -4,7 +4,7 @@
 //! The state of the gamepads is checked in the `render` function, which is something you normally would not want to do, you would want to check it in the `update` function. But for this example that doesn't matter because the update delta time is low enough that it lasts multiple render functions.
 
 use chuot::{
-    context::{Axis, Button, KeyCode},
+    context::{Axis, Button},
     Context, GameConfig, PixelGame,
 };
 
@@ -12,14 +12,6 @@ use chuot::{
 struct GameState;
 
 impl PixelGame for GameState {
-    /// We don't handle any state, only exit when escape is pressed.
-    fn update(&mut self, ctx: Context) {
-        // Exit when escape is pressed
-        if ctx.key_pressed(KeyCode::Escape) {
-            ctx.exit();
-        }
-    }
-
     /// Show some text with gamepad buttons being pressed.
     fn render(&mut self, ctx: Context) {
         // Position of the next line of text
@@ -118,6 +110,9 @@ impl PixelGame for GameState {
             }
         }
     }
+
+    /// Do nothing during the update loop.
+    fn update(&mut self, _ctx: Context) {}
 }
 
 /// Run the game.

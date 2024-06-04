@@ -7,9 +7,7 @@
 //! offset = "Middle"
 //! ```
 
-use chuot::{
-    config::RotationAlgorithm, context::KeyCode, glamour::Size2, Context, GameConfig, PixelGame,
-};
+use chuot::{config::RotationAlgorithm, glamour::Size2, Context, GameConfig, PixelGame};
 
 /// Define a game state for our example.
 #[derive(Default)]
@@ -21,13 +19,6 @@ struct GameState {
 impl PixelGame for GameState {
     /// Update the game.
     fn update(&mut self, ctx: Context) {
-        // Exit when escape is pressed
-        if ctx.key_pressed(KeyCode::Escape) {
-            ctx.exit();
-
-            return;
-        }
-
         // Increment the rotation with with the timestep so it rotates smoothly
         self.rotation += ctx.delta_time();
     }

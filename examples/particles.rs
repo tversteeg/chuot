@@ -2,7 +2,7 @@
 
 use chuot::{
     config::RotationAlgorithm,
-    context::{KeyCode, MouseButton},
+    context::MouseButton,
     glamour::{Size2, Vector2},
     Context, GameConfig, PixelGame,
 };
@@ -32,13 +32,6 @@ struct GameState {
 impl PixelGame for GameState {
     /// Update the game.
     fn update(&mut self, ctx: Context) {
-        // Exit when escape is pressed
-        if ctx.key_pressed(KeyCode::Escape) {
-            ctx.exit();
-
-            return;
-        }
-
         // Spawn the particles from the mouse
         if let Some(mouse) = ctx.mouse() {
             if ctx.mouse_pressed(MouseButton::Left) {
