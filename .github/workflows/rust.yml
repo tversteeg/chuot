@@ -72,6 +72,8 @@ jobs:
         run: cargo check --no-default-features
       - name: Build (dialogue)
         run: cargo check --no-default-features --features dialogue
+      - name: Build (read-image)
+        run: cargo check --no-default-features --features read-image
       # - name: Build (in-game-profiler)
       #   run: cargo check --no-default-features --features in-game-profiler
       - name: Build (embed-assets)
