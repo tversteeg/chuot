@@ -1,6 +1,6 @@
 [package]
 name = "chuot"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 authors = ["Thomas Versteeg <t@versteeg.email>"]
 license = "AGPL-3.0"
@@ -73,7 +73,7 @@ in-game-profiler = [
 ]
 
 [dependencies]
-chuot-macros = { path = "crates/macros", version = "0.1.1" }
+chuot-macros = { path = "crates/macros", version = "0.1.2" }
 chuot-packer = { path = "crates/packer", version = "0.1.1" }
 
 miette = "7.2.0"
