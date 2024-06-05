@@ -124,32 +124,26 @@ impl AssetSource {
         // Get or load the image
         let atlas_id = self.image_cache.borrow_mut().get_or_load(id);
 
-        Some(Image {
-            atlas_id,
-            // TODO: offset this somehow
-            size: self.image_size(id)?,
-            #[cfg(feature = "read-image")]
-            pixels: self.image_pixels(id)?,
-        })
-    }
+        // Load the pixels when `read-image` is enabled
+        #[cfg(feature = "read-image")]
+        {
+            let pixels = self.image_pixels(id)?;
+            let size = Size2::new(pixels.width() as u32, pixels.height() as u32);
 
-    /// Get the size of an image based on a texture asset ID.
-    ///
-    /// # Arguments
-    ///
-    /// * `id` - Asset ID passed to the [`Loadable`] function to get the size from.
-    ///
-    /// # Returns
-    ///
-    /// - A size when the asset is found and has the correct type.
-    /// - `None` if the asset could not be found.
-    pub(crate) fn image_size(&self, id: &Id) -> Option<Size2<u32>> {
-        // Hacky way to get the texture by reading the whole PNG
-        // TODO: find better way
-        let png = self.load_if_exists::<PngLoader, _>(id)?;
-        let info = png.info();
+            Some(Image {
+                atlas_id,
+                size,
+                pixels,
+            })
+        }
 
-        Some(Size2::new(info.width, info.height))
+        // Otherwise just load the image size
+        #[cfg(not(feature = "read-image"))]
+        {
+            let size = self.image_size(id)?;
+
+            Some(Image { atlas_id, size })
+        }
     }
 
     /// Take and load all images for uploading.
@@ -205,6 +199,25 @@ impl AssetSource {
             info.height as usize,
         ))
     }
+
+    /// Get the size of an image based on a texture asset ID.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - Asset ID passed to the [`Loadable`] function to get the size from.
+    ///
+    /// # Returns
+    ///
+    /// - A size when the asset is found and has the correct type.
+    /// - `None` if the asset could not be found.
+    #[cfg(not(feature = "read-image"))]
+    pub(crate) fn image_size(&self, id: &Id) -> Option<Size2<u32>> {
+        // Hacky way to get the texture by reading the whole PNG
+        let png = self.load_if_exists::<PngLoader, _>(id)?;
+        let info = png.info();
+
+        Some(Size2::new(info.width, info.height))
+    }
 }
 
 /// Image cache for allowing multiple code paths to upload and reference images.
@@ -233,8 +246,6 @@ impl ImageCache {
 
     /// Get or load a new image if it doesn't exist.
     pub(crate) fn get_or_load(&mut self, id: &Id) -> AtlasRef {
-        // TODO: check if path exists
-
         // First look if it's already uploaded
         if let Some(atlas_id) = self.atlas_id(id) {
             return atlas_id;
