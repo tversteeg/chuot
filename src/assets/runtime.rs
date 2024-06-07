@@ -162,6 +162,9 @@ impl AssetSource {
             })
             .collect::<Vec<_>>();
 
+        // Create the images
+        // TODO
+
         // Sort so all atlas references are inserted in the proper order
         to_load.sort_by_key(|(atlas_id, _img)| *atlas_id);
 
@@ -179,6 +182,24 @@ impl AssetSource {
         {
             self.image_cache.borrow_mut().remove(changed_asset);
         }
+    }
+
+    /// Create a new empty image.
+    pub(crate) fn create_image(&mut self, id: Id, size: Size2<u32>) {
+        log::debug!("Creating empty image asset '{id}'");
+
+        // Get or load the image
+        let atlas_id = self.image_cache.borrow_mut().create(id, size);
+
+        // Create the full empty image in memory
+        #[cfg(feature = "read-image")]
+        todo!();
+        /*
+        self.images.insert(
+            id,
+            imgref::ImgVec::new(vec![0; width * height], width, height),
+        );
+        */
     }
 
     /// Get the raw pixels of an image based on a texture asset ID.
@@ -211,7 +232,7 @@ impl AssetSource {
     /// - A size when the asset is found and has the correct type.
     /// - `None` if the asset could not be found.
     #[cfg(not(feature = "read-image"))]
-    pub(crate) fn image_size(&self, id: &Id) -> Option<Size2<u32>> {
+    fn image_size(&self, id: &Id) -> Option<Size2<u32>> {
         // Hacky way to get the texture by reading the whole PNG
         let png = self.load_if_exists::<PngLoader, _>(id)?;
         let info = png.info();
@@ -222,6 +243,8 @@ impl AssetSource {
 
 /// Image cache for allowing multiple code paths to upload and reference images.
 pub(crate) struct ImageCache {
+    /// Empty images to still create on the GPU.
+    to_create: HashMap<Id, (AtlasRef, Size2<u32>)>,
     /// Images to still load and upload to the GPU.
     to_load: HashMap<Id, AtlasRef>,
     /// Map of already uploaded images with their atlas ID.
@@ -233,15 +256,32 @@ pub(crate) struct ImageCache {
 impl ImageCache {
     /// Create a new empty image cache.
     pub(crate) fn new() -> Self {
+        let to_create = HashMap::new();
         let to_load = HashMap::new();
         let uploaded = HashMap::new();
         let atlas_index = 0;
 
         Self {
+            to_create,
             to_load,
             uploaded,
             atlas_index,
         }
+    }
+
+    /// Create an empty image.
+    pub(crate) fn create(&mut self, id: Id, size: Size2<u32>) -> AtlasRef {
+        // Throw an error if it's already uploaded
+        assert!(
+            self.atlas_id(&id).is_none(),
+            "Asset with ID '{id}' already exists"
+        );
+
+        // It's not uploaded, add it to the queue
+        self.to_create.insert(id, (self.atlas_index, size));
+
+        // Push it to the next atlas array item
+        self.increment_atlas_index()
     }
 
     /// Get or load a new image if it doesn't exist.
@@ -251,15 +291,11 @@ impl ImageCache {
             return atlas_id;
         }
 
-        let atlas_index = self.atlas_index;
-        // Take the next item in the atlas
-        self.atlas_index += 1;
-
         // It's not uploaded, add it to the queue
-        self.to_load.insert(id.clone(), atlas_index);
+        self.to_load.insert(id.clone(), self.atlas_index);
 
-        // Return the new incremented reference
-        atlas_index
+        // Push it to the next atlas array item
+        self.increment_atlas_index()
     }
 
     /// Take all images that need to be uploaded.
@@ -290,5 +326,16 @@ impl ImageCache {
     #[cfg(feature = "hot-reload-assets")]
     pub(crate) fn remove(&mut self, id: &Id) {
         self.uploaded.remove(id);
+    }
+
+    /// Increment the atlas reference.
+    fn increment_atlas_index(&mut self) -> AtlasRef {
+        let atlas_index = self.atlas_index;
+
+        // Take the next item in the atlas
+        self.atlas_index += 1;
+
+        // Return the new incremented reference
+        atlas_index
     }
 }

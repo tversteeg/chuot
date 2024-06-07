@@ -191,4 +191,26 @@ impl<'path, 'ctx> DrawSpriteContext<'path, 'ctx> {
     pub fn size(&self) -> Size2 {
         self.ctx.write(|ctx| ctx.assets.sprite(self.path).size())
     }
+
+    /// Create a new empty sprite at runtime.
+    ///
+    /// # Arguments
+    ///
+    /// * `size` - Size of the new sprite in pixels.
+    ///
+    /// # Returns
+    ///
+    /// - Instance of this context so it can be chained for further operations.
+    ///
+    /// # Panics
+    ///
+    /// - When a sprite with the same ID already exists.
+    #[inline]
+    #[must_use]
+    pub fn new(self, size: impl Into<Size2>) -> Self {
+        self.ctx
+            .write(|ctx| ctx.assets.new_sprite(self.path, size.into()));
+
+        self
+    }
 }

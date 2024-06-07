@@ -4,7 +4,6 @@ use std::io::Cursor;
 
 use glamour::{Point2, Rect, Size2};
 use hashbrown::HashMap;
-use imgref::ImgVec;
 use png::Decoder;
 
 use crate::{
@@ -118,7 +117,7 @@ impl EmbeddedRawStaticAtlas {
 
     /// Read the images from the assets into memory.
     #[cfg(feature = "read-image")]
-    fn to_memory(&self) -> HashMap<Id, ImgVec<u32>> {
+    fn to_memory(&self) -> HashMap<Id, imgref::ImgVec<u32>> {
         log::debug!("Reading images into memory because the `read-image` feature flag is enabled");
 
         // TODO: move this call to a higher level so it's only called once when `read-image` feature flag is enabled
@@ -132,7 +131,7 @@ impl EmbeddedRawStaticAtlas {
                 let width = texture_rect.width() as usize;
                 let height = texture_rect.height() as usize;
 
-                ImgVec::new(vec![0_u32; width * height], width, height)
+                imgref::ImgVec::new(vec![0_u32; width * height], width, height)
             })
             .collect::<Vec<_>>();
 
@@ -197,7 +196,7 @@ impl EmbeddedRawStaticAtlas {
     }
 
     /// Read the compressed atlas PNG.
-    pub(crate) fn compressed_png(&self) -> ImgVec<u32> {
+    pub(crate) fn compressed_png(&self) -> imgref::ImgVec<u32> {
         // Create a consuming cursor from the bytes
         let cursor = Cursor::new(self.diced_atlas_png_bytes);
 
@@ -215,7 +214,7 @@ impl EmbeddedRawStaticAtlas {
             .unwrap();
 
         // Treat the 4 color components as a single numeric value
-        ImgVec::new(png_pixels, info.width as usize, info.height as usize)
+        imgref::ImgVec::new(png_pixels, info.width as usize, info.height as usize)
     }
 }
 
@@ -229,7 +228,7 @@ pub struct AssetSource {
     assets: &'static [EmbeddedRawAsset],
     /// Pixels of the images.
     #[cfg(feature = "read-image")]
-    images: HashMap<Id, ImgVec<u32>>,
+    images: HashMap<Id, imgref::ImgVec<u32>>,
 }
 
 impl AssetSource {
@@ -301,6 +300,22 @@ impl AssetSource {
                     pixels: self.images[id].clone(),
                 })
             })
+    }
+
+    /// Create a new empty image.
+    pub(crate) fn create_image(&mut self, id: Id, size: Size2<u32>) {
+        let width = size.width as usize;
+        let height = size.height as usize;
+
+        // Create the full empty image in memory
+        #[cfg(feature = "read-image")]
+        self.images.insert(
+            id,
+            imgref::ImgVec::new(vec![0; width * height], width, height),
+        );
+
+        // Implement uploading things at runtime to the GPU
+        todo!()
     }
 
     /// Get the bytes of an asset that matches the ID and the extension.

@@ -20,6 +20,7 @@ pub mod runtime;
 use std::rc::Rc;
 
 use downcast_rs::Downcast;
+use glamour::Size2;
 use hashbrown::HashMap;
 use smol_str::SmolStr;
 
@@ -78,11 +79,12 @@ pub trait Loadable: Downcast {
 
     /// Convert a file object to this type.
     ///
+    /// # Panics
+    ///
     /// - When parsing binary bytes of asset into type fails.
     /// - When asset does not exist in the source.
     #[inline]
     #[must_use]
-    #[allow(clippy::option_if_let_else)]
     fn load(id: &Id, asset_source: &AssetSource) -> Self
     where
         Self: Sized,
@@ -91,6 +93,16 @@ pub trait Loadable: Downcast {
             Some(asset) => asset,
             None => panic!("Error loading asset: '{id}' does not exist"),
         }
+    }
+
+    /// Create a new runtime asset from the default value.
+    #[inline]
+    #[must_use]
+    fn new() -> Self
+    where
+        Self: Default,
+    {
+        Self::default()
     }
 }
 downcast_rs::impl_downcast!(Loadable);
@@ -113,7 +125,7 @@ impl<T: Loadable> AssetManager<T> {
         // Return a reference to the asset when it already exists, otherwise insert it
         self.get(id)
             // Asset not found, load it
-            .map_or_else(|| self.insert(id, asset_source), |asset| asset)
+            .map_or_else(|| self.load(id, asset_source), |asset| asset)
     }
 
     /// Return an asset if it exists.
@@ -123,18 +135,28 @@ impl<T: Loadable> AssetManager<T> {
         self.assets.get(id).cloned()
     }
 
-    /// Upload a new asset.
+    /// Upload a asset from an asset source.
     #[inline]
     #[track_caller]
     #[allow(clippy::option_if_let_else)]
-    pub(crate) fn insert(&mut self, id: &str, asset_source: &AssetSource) -> Rc<T> {
+    pub(crate) fn load(&mut self, id: &str, asset_source: &AssetSource) -> Rc<T> {
         log::debug!("Asset '{id}' not loaded yet, loading from source");
 
-        // Create owned ID
+        // Create the ID
         let id = Id::new(id);
 
         // Load the asset
         let asset = T::load(&id, asset_source);
+
+        // Upload it
+        self.insert(id, asset)
+    }
+
+    /// Insert the loaded asset so it can be accessed.
+    #[inline]
+    #[track_caller]
+    pub(crate) fn insert(&mut self, id: Id, asset: T) -> Rc<T> {
+        // Wrap the asset
         let asset = Rc::new(asset);
 
         // Store the asset so it can be accessed later again
@@ -257,6 +279,20 @@ impl AssetsManager {
             custom,
             source,
         }
+    }
+
+    /// Create a new empty sprite asset.
+    ///
+    /// # Panics
+    ///
+    /// - When sprite asset could not be created.
+    #[inline]
+    pub(crate) fn new_sprite(&mut self, id: &str, size: Size2) {
+        let width = size.width as u32;
+        let height = size.width as u32;
+
+        self.source
+            .create_image(Id::new(id), Size2::new(width, height));
     }
 
     /// Get or load a sprite.
