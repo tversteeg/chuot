@@ -210,7 +210,7 @@ pub use config::GameConfig;
 pub use context::Context;
 pub use random::random;
 
-use assets::EmbeddedAssets;
+use assets::AssetSource;
 use miette::Result;
 
 /// Main entrypoint containing game state for running the game.
@@ -327,7 +327,7 @@ where
     /// # try_main().unwrap();
     /// ```
     #[inline]
-    fn run(self, assets: EmbeddedAssets, game_config: GameConfig) -> Result<()> {
+    fn run(self, assets: AssetSource, game_config: GameConfig) -> Result<()> {
         // Spawn the window with the game loop
         window::window(self, game_config, Self::update, Self::render, assets)
     }

@@ -1,6 +1,6 @@
 //! Create an embedded asset source.
 
-use std::path::Path;
+use std::{path::Path, result::Result};
 
 use proc_macro::TokenStream;
 use quote::quote;
@@ -16,7 +16,7 @@ pub fn parse_dir(asset_dir: &Path) -> TokenStream {
         // Make it deterministic
         .sort_by_file_name()
         .into_iter()
-        .filter_map(|entry| entry.ok())
+        .filter_map(Result::ok)
         .filter_map(|entry| {
             // Skip all directories
             if !entry.path().is_file() {
@@ -39,7 +39,7 @@ pub fn parse_dir(asset_dir: &Path) -> TokenStream {
                 .join(".");
 
             // Remove the extension
-            let id = id.strip_suffix(&format!(".{}", extension))?;
+            let id = id.strip_suffix(&format!(".{extension}"))?;
 
             // Parse images separately
             if extension == "png" {
@@ -53,7 +53,7 @@ pub fn parse_dir(asset_dir: &Path) -> TokenStream {
 
             // Define the asset
             Some(quote!(
-                chuot::assets::embedded::EmbeddedRawAsset {
+                chuot::assets::source::EmbeddedRawAsset {
                     id: #id,
                     extension: #extension,
                     bytes: include_bytes!(#path)
@@ -66,10 +66,9 @@ pub fn parse_dir(asset_dir: &Path) -> TokenStream {
     let atlas = super::atlas::parse_textures(&textures);
 
     quote! {
-        chuot::assets::embedded::EmbeddedAssets {
-            assets: &[#(#assets),*],
-            atlas: #atlas
-        }
+        chuot::assets::AssetSource::new()
+            .with_embedded_assets(&[#(#assets),*])
+            .with_embedded_atlas(#atlas)
     }
     .into()
 }

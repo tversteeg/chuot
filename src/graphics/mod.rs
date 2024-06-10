@@ -1,6 +1,7 @@
 //! Types and helpers for drawing on the GPU.
 
 pub(crate) mod atlas;
+pub(crate) mod command;
 pub(crate) mod component;
 pub(crate) mod data;
 pub(crate) mod gpu;
@@ -10,10 +11,9 @@ pub(crate) mod state;
 pub(crate) mod uniform;
 
 use state::PREFERRED_TEXTURE_FORMAT;
-use wgpu::Color;
 
 /// Convert an `u32` color to a WGPU [`wgpu::Color`] taking in account sRGB.
-fn u32_to_wgpu_color(argb: u32) -> Color {
+fn u32_to_wgpu_color(argb: u32) -> wgpu::Color {
     let a = ((argb & 0xFF000000) >> 24) as f64 / 255.0;
     let r = ((argb & 0x00FF0000) >> 16) as f64 / 255.0;
     let g = ((argb & 0x0000FF00) >> 8) as f64 / 255.0;
@@ -26,8 +26,8 @@ fn u32_to_wgpu_color(argb: u32) -> Color {
         let g = g.powf(2.2);
         let b = b.powf(2.2);
 
-        Color { r, g, b, a }
+        wgpu::Color { r, g, b, a }
     } else {
-        Color { r, g, b, a }
+        wgpu::Color { r, g, b, a }
     }
 }

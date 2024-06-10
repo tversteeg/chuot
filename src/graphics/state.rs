@@ -4,10 +4,10 @@ use glamour::{Contains, Rect, Size2, Vector2};
 use miette::Result;
 use winit::window::Window;
 
-use crate::{assets::EmbeddedRawStaticAtlas, window::InGameProfiler, Context, GameConfig};
+use crate::{window::InGameProfiler, Context, GameConfig};
 
 use super::{
-    atlas::Atlas, component::SpriteRenderState, data::ScreenInfo, gpu::Gpu,
+    atlas::Atlas, command::GpuCommand, component::SpriteRenderState, data::ScreenInfo, gpu::Gpu,
     post_processing::PostProcessingState, uniform::UniformState,
 };
 
@@ -43,11 +43,7 @@ pub(crate) struct MainRenderState<'window> {
 
 impl<'window> MainRenderState<'window> {
     /// Create a GPU surface on the window.
-    pub(crate) async fn new<W>(
-        game_config: &GameConfig,
-        embedded_atlas: EmbeddedRawStaticAtlas,
-        window: W,
-    ) -> Result<Self>
+    pub(crate) async fn new<W>(game_config: &GameConfig, window: W) -> Result<Self>
     where
         W: wgpu::WindowHandle + 'window,
     {
@@ -72,7 +68,8 @@ impl<'window> MainRenderState<'window> {
         );
 
         // Create the texture atlas
-        let atlas = embedded_atlas.parse_and_upload(&gpu);
+        // TODO: remove empty vec
+        let atlas = Atlas::new(vec![], &gpu);
 
         // Create a custom pipeline for each component
         let sprite_render_state = SpriteRenderState::new(
@@ -187,6 +184,14 @@ impl<'window> MainRenderState<'window> {
         in_game_profiler.finish_profile_heap("Present frame", profile_region);
     }
 
+    /// Execute commands on the GPU.
+    pub(crate) fn execute_commands(&mut self, commands: &mut Vec<GpuCommand>) {
+        for command in commands.drain(..) {
+            todo!()
+        }
+    }
+
+    /*
     /// Upload everything that gets added at another point in time where the graphics state wasn't available.
     pub(crate) fn upload(&mut self, ctx: &Context) {
         ctx.write(|ctx| {
@@ -217,7 +222,7 @@ impl<'window> MainRenderState<'window> {
 
                 // Apply texture updates
                 ctx.texture_update_queue
-                    .drain(..)
+                   .drain(..)
                     .for_each(|(atlas_id, sub_rect, pixels)| {
                         self.atlas
                             .update_pixels(atlas_id, sub_rect, &pixels, &self.gpu.queue);
@@ -232,6 +237,7 @@ impl<'window> MainRenderState<'window> {
             self.atlas.rects.upload(&self.gpu.queue);
         }
     }
+    */
 
     /// Resize the surface.
     ///

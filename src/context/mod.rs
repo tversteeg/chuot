@@ -31,7 +31,7 @@ use winit_input_helper::WinitInputHelper;
 
 use crate::{
     assets::{AssetSource, AssetsManager, Loadable},
-    graphics::{atlas::AtlasRef, instance::Instances},
+    graphics::{atlas::AtlasRef, command::GpuCommand, instance::Instances},
     GameConfig,
 };
 
@@ -688,6 +688,8 @@ pub(crate) struct ContextInner {
     pub(crate) audio_manager: AudioManager<DefaultBackend>,
     /// Where all assets live.
     pub(crate) assets: AssetsManager,
+    /// Queue of commands that should be send to the GPU before drawing the frame.
+    pub(crate) gpu_command_queue: Vec<GpuCommand>,
 }
 
 impl ContextInner {
@@ -709,6 +711,7 @@ impl ContextInner {
         let frames_per_second = 0.0;
         let blending_factor = 0.0;
         let assets = AssetsManager::new(asset_source);
+        let gpu_command_queue = Vec::new();
 
         Self {
             exit,
@@ -724,6 +727,7 @@ impl ContextInner {
             window,
             audio_manager,
             assets,
+            gpu_command_queue,
         }
     }
 }

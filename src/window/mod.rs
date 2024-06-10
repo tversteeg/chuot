@@ -27,11 +27,7 @@ use winit::{
     window::{Window, WindowBuilder},
 };
 
-use crate::{
-    assets::{AssetSource, EmbeddedAssets},
-    graphics::state::MainRenderState,
-    Context, GameConfig,
-};
+use crate::{assets::AssetSource, graphics::state::MainRenderState, Context, GameConfig};
 
 /// How fast old FPS values decay in the smoothed average.
 const FPS_SMOOTHED_AVERAGE_ALPHA: f32 = 0.8;
@@ -62,7 +58,7 @@ pub(crate) fn window<G, U, R>(
     window_config: GameConfig,
     update: U,
     render: R,
-    assets: EmbeddedAssets,
+    asset_source: AssetSource,
 ) -> Result<()>
 where
     G: 'static,
@@ -71,7 +67,7 @@ where
 {
     // Start the watcher for the assets folder
     #[cfg(feature = "hot-reload-assets")]
-    let _asset_watcher = crate::assets::hot_reload::watch_assets_folder(assets.0)
+    let _asset_watcher = crate::assets::hot_reload::watch_assets_folder(asset_source.0)
         .wrap_err("Error setting up hot-reload watcher for assets folder")?;
 
     // Build the window builder with the event loop the user supplied
@@ -100,7 +96,7 @@ where
                 window_config,
                 update,
                 render,
-                assets,
+                asset_source,
             )
             .await
         })
@@ -121,7 +117,7 @@ where
                 window_config,
                 update,
                 render,
-                assets,
+                asset_source,
             )
             .await
             .expect("Error opening WASM window")
@@ -140,7 +136,7 @@ async fn winit_start<G, U, R>(
     mut update: U,
     mut render: R,
     game_config: GameConfig,
-    assets: EmbeddedAssets,
+    asset_source: AssetSource,
 ) -> Result<()>
 where
     G: 'static,
@@ -156,15 +152,8 @@ where
         game_config.buffer_size.height * game_config.scaling,
     ));
 
-    // Construct the asset source based on where it comes from
-    // Needed to be called here because the render state will consume the atlas
-    #[cfg(feature = "embed-assets")]
-    let asset_source = AssetSource::new(assets.assets, &assets.atlas);
-    #[cfg(not(feature = "embed-assets"))]
-    let asset_source = AssetSource::new(assets.0);
-
     // Create a surface on the window and setup the render state to it
-    let mut render_state = MainRenderState::new(&game_config, assets.atlas(), Arc::clone(&window))
+    let mut render_state = MainRenderState::new(&game_config, Arc::clone(&window))
         .await
         .wrap_err("Error setting up the rendering pipeline")?;
 
@@ -332,8 +321,8 @@ where
                             {
                                 profiling::scope!("Render Internal");
 
-                                // Upload assets to the GPU
-                                render_state.upload(&ctx);
+                                // // Upload assets to the GPU
+                                // render_state.upload(&ctx);
 
                                 // Render everything
                                 #[cfg(feature = "in-game-profiler")]

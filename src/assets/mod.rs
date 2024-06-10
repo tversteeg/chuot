@@ -6,16 +6,10 @@
 //! Asset loading is done through the various calls in [`crate::Context`].
 
 mod audio;
-#[cfg(feature = "embed-assets")]
-#[doc(hidden)]
-pub mod embedded;
-#[cfg(feature = "hot-reload-assets")]
-pub(crate) mod hot_reload;
 pub(crate) mod image;
 pub mod loader;
-#[cfg(not(feature = "embed-assets"))]
 #[doc(hidden)]
-pub mod runtime;
+pub mod source;
 
 use std::rc::Rc;
 
@@ -24,18 +18,16 @@ use glamour::Size2;
 use hashbrown::HashMap;
 use smol_str::SmolStr;
 
-#[cfg(feature = "embed-assets")]
-pub use embedded::AssetSource;
-#[cfg(feature = "embed-assets")]
-pub(crate) use embedded::{EmbeddedAssets, EmbeddedRawStaticAtlas};
-#[cfg(not(feature = "embed-assets"))]
-pub use runtime::AssetSource;
-#[cfg(not(feature = "embed-assets"))]
-pub(crate) use runtime::{EmbeddedAssets, EmbeddedRawStaticAtlas};
+#[doc(hidden)]
+pub use source::AssetSource;
 
-use crate::{font::Font, graphics::atlas::AtlasRef, sprite::Sprite};
+use crate::{
+    font::Font,
+    graphics::{atlas::AtlasRef, command::GpuCommand},
+    sprite::Sprite,
+};
 
-use self::{audio::Audio, loader::png::PngReader};
+use self::{audio::Audio, image::ImageManager, loader::png::PngReader};
 
 /// Identifier for any loadable asset, can be assigned multiple times for different types.
 ///
@@ -260,6 +252,8 @@ pub(crate) struct AssetsManager {
     audio: AssetManager<Audio>,
     /// Custom type erased assets.
     custom: CustomAssetManager,
+    /// Special manager for images.
+    images: ImageManager,
     /// Source for all un-loaded assets.
     source: AssetSource,
 }
@@ -270,6 +264,7 @@ impl AssetsManager {
         let sprites = AssetManager::default();
         let fonts = AssetManager::default();
         let audio = AssetManager::default();
+        let images = ImageManager::new();
         let custom = CustomAssetManager::default();
 
         Self {
@@ -277,6 +272,7 @@ impl AssetsManager {
             fonts,
             audio,
             custom,
+            images,
             source,
         }
     }
@@ -291,8 +287,11 @@ impl AssetsManager {
         let width = size.width as u32;
         let height = size.width as u32;
 
+        /*
         self.source
             .create_image(Id::new(id), Size2::new(width, height));
+            */
+        todo!()
     }
 
     /// Get or load a sprite.
@@ -354,12 +353,7 @@ impl AssetsManager {
         Rc::<T>::unwrap_or_clone(self.custom.get_or_insert::<T>(id, &self.source))
     }
 
-    /// Take a list of unuploaded images we still need to upload.
-    #[cfg(not(feature = "embed-assets"))]
-    pub(crate) fn take_images_for_uploading(&mut self) -> Vec<(AtlasRef, PngReader)> {
-        self.source.take_images_for_uploading()
-    }
-
+    /*
     /// Take a list of unuploaded images we still need to upload.
     #[cfg(feature = "embed-assets")]
     pub(crate) fn take_images_for_uploading(&mut self) -> Vec<(AtlasRef, PngReader)> {
@@ -384,4 +378,5 @@ impl AssetsManager {
             self.custom.assets.remove(&changed_asset);
         }
     }
+    */
 }

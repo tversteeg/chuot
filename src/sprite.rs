@@ -10,14 +10,12 @@ use serde::{
 use serde_untagged::UntaggedEnumVisitor;
 
 use crate::{
-    assets::{image::Image, loader::toml::TomlLoader, AssetSource, Id, Loadable},
+    assets::{loader::toml::TomlLoader, AssetSource, Id, Loadable},
     graphics::{data::TexturedVertex, instance::Instances},
 };
 
 /// Sprite that can be drawn on the  canvas.
 pub(crate) struct Sprite {
-    /// Reference of the texture to render.
-    pub(crate) image: Image,
     /// Sub rectangle of the sprite to draw, can be used to split a sprite sheet.
     sub_rectangle: Rect,
     /// Sprite metadata.
@@ -40,8 +38,6 @@ impl Sprite {
 
         (0..sub_images)
             .map(|index| {
-                let image = self.image.clone();
-
                 // Use the same sub rectangle only changing the position and size
                 let mut sub_rectangle = self.sub_rectangle;
                 sub_rectangle.origin.x += part_width * index as f32;
@@ -51,7 +47,6 @@ impl Sprite {
                 let size = self.size;
 
                 Self {
-                    image,
                     sub_rectangle,
                     metadata,
                     size,
@@ -63,11 +58,14 @@ impl Sprite {
     /// Draw the sprite if the texture is already uploaded.
     #[inline]
     pub(crate) fn draw(&self, position: Vector2, rotation: Angle, instances: &mut Instances) {
+        todo!()
+        /*
         instances.push(
             self.matrix(position, rotation),
             self.sub_rectangle,
             self.image.atlas_id,
         );
+        */
     }
 
     /// Draw the sprites if the texture is already uploaded.
@@ -82,6 +80,7 @@ impl Sprite {
         // Calculate the base transformation
         let transform = self.matrix(base_translation, base_rotation);
 
+        /*
         // Transform each instance on top of the base transformation
         instances.extend(translations.map(|translation| {
             let mut transform = transform;
@@ -89,6 +88,8 @@ impl Sprite {
 
             (transform, self.sub_rectangle, self.image.atlas_id)
         }));
+        */
+        todo!()
     }
 
     /// Get the size of the sprite in pixels.
@@ -115,6 +116,7 @@ impl Sprite {
             "Image size cannot be negative"
         );
 
+        /*
         let (sub_image, width, height) = self
             .image
             .pixels
@@ -126,6 +128,9 @@ impl Sprite {
         assert_eq!(height, self.size.height as usize);
 
         sub_image.into_owned()
+        */
+
+        todo!()
     }
 
     /// Calculate the transformation matrix.
@@ -168,6 +173,7 @@ impl Loadable for Sprite {
     where
         Self: Sized,
     {
+        /*
         // Load the image
         let image = asset_source.get_or_load_image_if_exists(id)?;
         let size = Size2::new(image.size.width as f32, image.size.height as f32);
@@ -191,6 +197,8 @@ impl Loadable for Sprite {
             metadata,
             size,
         })
+        */
+        todo!()
     }
 }
 

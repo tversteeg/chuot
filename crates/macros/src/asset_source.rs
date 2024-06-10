@@ -48,7 +48,7 @@ impl Input {
 
         // Just return the asset directory, all files will be loaded from there during runtime
         quote::quote! {
-            chuot::assets::runtime::EmbeddedAssets(#asset_path)
+            chuot::assets::AssetSource::new().with_runtime_dir(#asset_path)
         }
         .into()
     }

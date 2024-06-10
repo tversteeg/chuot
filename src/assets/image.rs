@@ -6,29 +6,12 @@ use std::io::Cursor;
 
 use glamour::{Point2, Size2};
 use hashbrown::HashMap;
-use imgref::{ImgRef, ImgVec};
+use imgref::ImgVec;
 use png::{BitDepth, ColorType, Decoder, Transformations};
-
-use crate::graphics::{
-    atlas::{Atlas, AtlasRef},
-    gpu::Gpu,
-};
 
 use super::Id;
 
-/// Core of a sprite loaded from disk.
-#[derive(Clone)]
-pub(crate) struct Image {
-    /// Image atlas ID.
-    pub(crate) atlas_id: AtlasRef,
-
-    /// Size of the image in pixels.
-    pub(crate) size: Size2<u16>,
-
-    /// Image RGBA pixels.
-    #[cfg(feature = "read-image")]
-    pub(crate) pixels: imgref::ImgVec<u32>,
-}
+use crate::graphics::command::GpuCommand;
 
 /// How a diced image source should be translated into a result.
 pub(crate) struct DicedImageMapping {
@@ -45,38 +28,40 @@ pub(crate) struct DicedImageMapping {
 /// Basically the same as the asset managers but separated because of the complex state the images can be in before being uploaded to the GPU.
 pub(crate) struct ImageManager {
     /// Collection of all images mapped by ID.
-    images: HashMap<Id, Image>,
-    /// Events that should be executed on the GPU for the image.
-    gpu_commands: Vec<ImageGpuCommand>,
+    sizes: HashMap<Id, Size2<u16>>,
     /// Collection of all image pixel sources mapped by ID.
     #[cfg(feature = "read-image")]
-    image_sources: HashMap<Id, ImgVec<u32>>,
+    sources: HashMap<Id, ImgVec<u32>>,
 }
 
 impl ImageManager {
     /// Setup the image manager and upload the empty atlas to the GPU.
     #[inline]
     pub(crate) fn new() -> Self {
-        let images = HashMap::new();
-        let gpu_commands = Vec::new();
+        let sizes = HashMap::new();
         #[cfg(feature = "read-image")]
-        let image_sources = HashMap::new();
+        let sources = HashMap::new();
 
         Self {
-            images,
-            gpu_commands,
+            sizes,
             #[cfg(feature = "read-image")]
-            image_sources,
+            sources,
         }
     }
 
     /// Create and upload a new image from an array of pixels.
     #[inline]
-    pub(crate) fn insert(&mut self, id: Id, source: ImgVec<u32>) {
+    pub(crate) fn insert(
+        &mut self,
+        gpu_command_queue: &mut Vec<GpuCommand>,
+        id: Id,
+        source: ImgVec<u32>,
+    ) {
         let size = Size2::new(source.width() as u16, source.height() as u16);
 
         // We can just upload as a single diced image to simplify
         self.insert_diced(
+            gpu_command_queue,
             id,
             source,
             vec![DicedImageMapping {
@@ -91,6 +76,7 @@ impl ImageManager {
     #[inline]
     pub(crate) fn insert_diced(
         &mut self,
+        gpu_command_queue: &mut Vec<GpuCommand>,
         id: Id,
         source: ImgVec<u32>,
         mappings: Vec<DicedImageMapping>,
@@ -109,44 +95,77 @@ impl ImageManager {
         let size = Size2::new(width, height);
 
         // Create the image
-        self.insert_empty(id.clone(), size);
+        self.insert_empty(gpu_command_queue, id.clone(), size);
 
         // Push the pixels
-        self.update_diced(id, source, mappings);
+        self.update_diced(gpu_command_queue, id, source, mappings);
     }
 
     /// Create and upload a new image from PNG bytes.
     #[inline]
-    pub(crate) fn insert_png(&mut self, id: Id, png_bytes: Vec<u8>) {
+    pub(crate) fn insert_png(
+        &mut self,
+        gpu_command_queue: &mut Vec<GpuCommand>,
+        id: Id,
+        png_bytes: Vec<u8>,
+    ) {
         // Decode and insert as a regular image with the mappings
-        self.insert(id, decode_png(png_bytes))
+        self.insert(gpu_command_queue, id, decode_png(png_bytes))
     }
 
     /// Create and upload a new image from diced PNG bytes.
     #[inline]
     pub(crate) fn insert_png_diced(
         &mut self,
+        gpu_command_queue: &mut Vec<GpuCommand>,
         id: Id,
         diced_png_bytes: Vec<u8>,
         mappings: Vec<DicedImageMapping>,
     ) {
         // Decode and insert as a regular image with the mappings
-        self.insert_diced(id, decode_png(diced_png_bytes), mappings)
+        self.insert_diced(gpu_command_queue, id, decode_png(diced_png_bytes), mappings)
     }
 
     /// Create and upload a new empty image.
     #[inline]
-    pub(crate) fn insert_empty(&mut self, id: Id, size: Size2<u16>) {
-        self.gpu_commands.push(ImageGpuCommand::Create { id, size });
+    pub(crate) fn insert_empty(
+        &mut self,
+        gpu_command_queue: &mut Vec<GpuCommand>,
+        id: Id,
+        size: Size2<u16>,
+    ) {
+        // Keep track of the image
+        self.sizes.insert(id.clone(), size);
+
+        // Keep track of the image source if needed
+        #[cfg(feature = "read-image")]
+        self.sources.insert(
+            id.clone(),
+            ImgVec::new(
+                vec![0_u32; size.width as usize * size.height as usize],
+                size.width as usize,
+                size.height as usize,
+            ),
+        );
+
+        // Push to the GPU
+        gpu_command_queue.push(GpuCommand::CreateImage { id, size });
     }
 
     /// Update the pixels of an image in a sub rectangle.
     #[inline]
-    pub(crate) fn update(&mut self, id: Id, source: ImgVec<u32>, offset: Point2<u16>) {
+    pub(crate) fn update(
+        &mut self,
+        gpu_command_queue: &mut Vec<GpuCommand>,
+        id: Id,
+        source: ImgVec<u32>,
+        offset: Point2<u16>,
+    ) {
         let size = Size2::new(source.width() as u16, source.height() as u16);
 
         // We can just upload as a single diced image to simplify
         self.update_diced(
+            gpu_command_queue,
             id,
             source,
             vec![DicedImageMapping {
@@ -164,64 +183,75 @@ impl ImageManager {
     #[inline]
     pub(crate) fn update_diced(
         &mut self,
+        gpu_command_queue: &mut Vec<GpuCommand>,
         id: Id,
         source: ImgVec<u32>,
         mappings: Vec<DicedImageMapping>,
     ) {
-        self.gpu_commands.push(ImageGpuCommand::Update {
+        // Push to the GPU
+        gpu_command_queue.push(GpuCommand::UpdateImage {
             id,
             source,
             mappings,
         });
+
+        // TODO: implement on read-image image
     }
 
     /// Replace the pixels of an image with another image.
     ///
     /// Will resize if sizes don't align.
     #[inline]
-    pub(crate) fn replace(&mut self, id: Id, source: ImgVec<u32>) {
-        let image = &self.images[&id];
-
+    pub(crate) fn replace(
+        &mut self,
+        gpu_command_queue: &mut Vec<GpuCommand>,
+        id: Id,
+        source: ImgVec<u32>,
+    ) {
         // Resize if the size mismatches
-        if image.size.width as usize != source.width()
-            || image.size.height as usize != source.height()
-        {
+        let size = &self.sizes[&id];
+        if size.width as usize != source.width() || size.height as usize != source.height() {
             self.resize(
+                gpu_command_queue,
                 id.clone(),
                 Size2::new(source.width() as u16, source.height() as u16),
             );
         }
 
         // Write the new pixels
-        self.update(id, source, Point2::ZERO);
+        self.update(gpu_command_queue, id, source, Point2::ZERO);
     }
 
     /// Remove an image.
     #[inline]
-    pub(crate) fn remove(&mut self, id: Id) {
-        self.gpu_commands.push(ImageGpuCommand::Remove { id });
+    pub(crate) fn remove(&mut self, gpu_command_queue: &mut Vec<GpuCommand>, id: Id) {
+        gpu_command_queue.push(GpuCommand::RemoveImage { id });
     }
 
     /// Resize the image.
     ///
     /// If the new size is bigger the contents of the resized pixels is undefined and should be filled manually.
     #[inline]
-    pub(crate) fn resize(&mut self, id: Id, new_size: Size2<u16>) {
-        self.gpu_commands
-            .push(ImageGpuCommand::Resize { id, new_size });
+    pub(crate) fn resize(
+        &mut self,
+        gpu_command_queue: &mut Vec<GpuCommand>,
+        id: Id,
+        new_size: Size2<u16>,
+    ) {
+        gpu_command_queue.push(GpuCommand::ResizeImage { id, new_size });
     }
 
     /// Get the size of an image.
     #[inline]
     pub(crate) fn size(&self, id: Id) -> Size2<u16> {
-        self.images[&id].size
+        self.sizes[&id]
     }
 
     /// Read the pixels of an image.
     #[cfg(feature = "read-image")]
     #[inline]
-    pub(crate) fn read(&mut self, id: Id) -> ImgVec<u32> {
-        todo!()
+    pub(crate) fn read(&mut self, id: Id) -> &'_ ImgVec<u32> {
+        &self.sources[&id]
     }
 }
 
@@ -261,36 +291,4 @@ fn decode_png(bytes: Vec<u8>) -> ImgVec<u32> {
 
     // Convert to image
     ImgVec::new(buf, info.width as usize, info.height as usize)
-}
-
-/// Different commands for image manipulation on the GPU.
-pub(crate) enum ImageGpuCommand {
-    /// Create a new empty image.
-    Create {
-        /// Image ID.
-        id: Id,
-        /// Size of the new image.
-        size: Size2<u16>,
-    },
-    /// Remove the image.
-    Remove {
-        /// Image ID.
-        id: Id,
-    },
-    /// Resize an existing image.
-    Resize {
-        /// Image ID.
-        id: Id,
-        /// Size of the image to resize to.
-        new_size: Size2<u16>,
-    },
-    /// Update a portion of the image.
-    Update {
-        /// Image ID.
-        id: Id,
-        /// Source of the image to update.
-        source: ImgVec<u32>,
-        /// Mappings of each part to update in relative coordinates.
-        mappings: Vec<DicedImageMapping>,
-    },
 }

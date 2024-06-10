@@ -141,11 +141,14 @@ impl<'path, 'ctx> DrawSpriteContext<'path, 'ctx> {
             let sprite = ctx.assets.sprite(self.path);
 
             // Put the update the pixels of the sprite on a queue
+            /*
             ctx.texture_update_queue.push((
                 sprite.image.atlas_id,
                 sub_rectangle.into(),
                 pixels.into(),
             ));
+            */
+            todo!()
         });
     }
 

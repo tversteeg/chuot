@@ -7,7 +7,7 @@ use hashbrown::HashMap;
 use png::Decoder;
 
 use crate::{
-    assets::{image::Image, Id},
+    assets::Id,
     graphics::{atlas::Atlas, gpu::Gpu},
 };
 
@@ -273,6 +273,7 @@ impl AssetSource {
         Some(L::load(self.raw_asset(id, L::EXTENSION)?))
     }
 
+    /*
     /// Load a new image based on the loader.
     ///
     /// This is a special case because images need to be uploaded to the GPU at a later stage.
@@ -317,6 +318,7 @@ impl AssetSource {
         // Implement uploading things at runtime to the GPU
         todo!()
     }
+    */
 
     /// Get the bytes of an asset that matches the ID and the extension.
     fn raw_asset(&self, id: &Id, extension: &str) -> Option<&'static [u8]> {

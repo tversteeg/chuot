@@ -176,7 +176,7 @@ pub fn parse_textures(textures: &[(String, PathBuf)]) -> TokenStream {
 
                 // Convert to array to save space
                 quote! {
-                    chuot::assets::embedded::TextureMapping {
+                    chuot::assets::source::TextureMapping {
                         diced: glamour::Point2 { x: #diced_u, y: #diced_v },
                         texture: glamour::Point2 { x: #texture_u, y: #texture_v },
                         size: glamour::Size2 { width: #width, height: #height },
@@ -215,14 +215,14 @@ pub fn parse_textures(textures: &[(String, PathBuf)]) -> TokenStream {
 
     // Create the object from the tightly packed arrays
     quote! {
-        chuot::assets::embedded::EmbeddedRawStaticAtlas {
+        chuot::assets::source::EmbeddedRawStaticAtlas {
             diced_atlas_png_bytes: {
                 static BYTES: &[u8] = &[#(#png_bytes),*];
 
                 BYTES
             },
             texture_mappings: {
-                static MAPPINGS: &[chuot::assets::embedded::TextureMapping] = &[#(#texture_mappings),*];
+                static MAPPINGS: &[chuot::assets::source::TextureMapping] = &[#(#texture_mappings),*];
 
                 MAPPINGS
             },
