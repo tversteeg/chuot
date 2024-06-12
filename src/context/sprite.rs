@@ -2,7 +2,7 @@
 
 use glamour::{Angle, Rect, Size2, Vector2};
 
-use crate::Context;
+use crate::{assets::Id, Context};
 
 /// Specify how a sprite should be drawn.
 ///
@@ -211,8 +211,12 @@ impl<'path, 'ctx> DrawSpriteContext<'path, 'ctx> {
     #[inline]
     #[must_use]
     pub fn new(self, size: impl Into<Size2>) -> Self {
-        self.ctx
-            .write(|ctx| ctx.assets.new_sprite(self.path, size.into()));
+        let id = Id::new(self.path);
+
+        self.ctx.write(|ctx| {
+            ctx.sprites
+                .insert_empty(id, size.into(), &mut ctx.gpu_command_queue)
+        });
 
         self
     }

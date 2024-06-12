@@ -1,8 +1,13 @@
 //! Blittable sprite definitions.
 
+use std::io::Cursor;
+
 use glam::Affine2;
 use glamour::{Angle, AsRaw, Point2, Rect, Size2, Transform2, Vector2};
+use hashbrown::HashMap;
+use imgref::ImgVec;
 use miette::Result;
+use png::{BitDepth, ColorType, Decoder, Transformations};
 use serde::{
     de::{Error, Unexpected},
     Deserialize, Deserializer,
@@ -11,11 +16,13 @@ use serde_untagged::UntaggedEnumVisitor;
 
 use crate::{
     assets::{loader::toml::TomlLoader, AssetSource, Id, Loadable},
-    graphics::{data::TexturedVertex, instance::Instances},
+    graphics::{atlas::AtlasRef, command::GpuCommand, data::TexturedVertex, instance::Instances},
 };
 
 /// Sprite that can be drawn on the  canvas.
 pub(crate) struct Sprite {
+    /// Reference to the image in the atlas.
+    atlas_ref: AtlasRef,
     /// Sub rectangle of the sprite to draw, can be used to split a sprite sheet.
     sub_rectangle: Rect,
     /// Sprite metadata.
@@ -45,8 +52,10 @@ impl Sprite {
 
                 let metadata = self.metadata.clone();
                 let size = self.size;
+                let atlas_ref = self.atlas_ref;
 
                 Self {
+                    atlas_ref,
                     sub_rectangle,
                     metadata,
                     size,
@@ -58,14 +67,11 @@ impl Sprite {
     /// Draw the sprite if the texture is already uploaded.
     #[inline]
     pub(crate) fn draw(&self, position: Vector2, rotation: Angle, instances: &mut Instances) {
-        todo!()
-        /*
         instances.push(
             self.matrix(position, rotation),
             self.sub_rectangle,
-            self.image.atlas_id,
+            self.atlas_ref,
         );
-        */
     }
 
     /// Draw the sprites if the texture is already uploaded.
@@ -80,16 +86,13 @@ impl Sprite {
         // Calculate the base transformation
         let transform = self.matrix(base_translation, base_rotation);
 
-        /*
         // Transform each instance on top of the base transformation
         instances.extend(translations.map(|translation| {
             let mut transform = transform;
             transform.translation += *translation.as_raw();
 
-            (transform, self.sub_rectangle, self.image.atlas_id)
+            (transform, self.sub_rectangle, self.atlas_ref)
         }));
-        */
-        todo!()
     }
 
     /// Get the size of the sprite in pixels.
@@ -168,40 +171,6 @@ impl Sprite {
     }
 }
 
-impl Loadable for Sprite {
-    fn load_if_exists(id: &Id, asset_source: &AssetSource) -> Option<Self>
-    where
-        Self: Sized,
-    {
-        /*
-        // Load the image
-        let image = asset_source.get_or_load_image_if_exists(id)?;
-        let size = Size2::new(image.size.width as f32, image.size.height as f32);
-
-        // Draw the full sprite
-        let sub_rectangle = Rect::new(Point2::ZERO, size);
-
-        // Load the metadata
-        let metadata = SpriteMetadata::load_if_exists(id, asset_source).map_or_else(
-            || {
-                log::warn!("Sprite metadata for '{id}' not found, using default");
-
-                SpriteMetadata::default()
-            },
-            |metadata| metadata,
-        );
-
-        Some(Self {
-            image,
-            sub_rectangle,
-            metadata,
-            size,
-        })
-        */
-        todo!()
-    }
-}
-
 /// Center of the sprite.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub(crate) enum SpriteOffset {
@@ -265,4 +234,290 @@ impl Loadable for SpriteMetadata {
     {
         asset_source.load_if_exists::<TomlLoader, _>(id)
     }
+}
+
+/// How a diced image source should be translated into a result.
+pub(crate) struct ImageMapping {
+    /// Coordinates of the rectangle on the diced source.
+    source: Point2,
+    /// Coordinates of the rectangle on the target output complete image in relative coordinates.
+    target: Point2,
+    /// Size of both the rectangle on the source and on the target.
+    size: Size2,
+}
+
+/// Handle reading and passing sprites to the GPU.
+///
+/// Basically the same as the asset managers but separated because of the complex state the images can be in before being uploaded to the GPU.
+pub(crate) struct SpriteManager {
+    /// Collection of all sprites mapped by ID.
+    sprites: HashMap<Id, Sprite>,
+    /// Collection of all image pixel sources mapped by ID.
+    #[cfg(feature = "read-image")]
+    sources: HashMap<Id, ImgVec<u32>>,
+}
+
+impl SpriteManager {
+    /// Setup the image manager and upload the empty atlas to the GPU.
+    #[inline]
+    pub(crate) fn new() -> Self {
+        let sizes = HashMap::new();
+        #[cfg(feature = "read-image")]
+        let sources = HashMap::new();
+
+        Self {
+            sprites: sizes,
+            #[cfg(feature = "read-image")]
+            sources,
+        }
+    }
+
+    /// Create and upload a new image from an array of pixels.
+    #[inline]
+    pub(crate) fn insert(
+        &mut self,
+        id: Id,
+        source: ImgVec<u32>,
+        gpu_command_queue: &mut Vec<GpuCommand>,
+    ) {
+        let size = Size2::new(source.width() as f32, source.height() as f32);
+
+        // We can just upload as a single diced image to simplify
+        self.insert_diced(
+            id,
+            source,
+            vec![ImageMapping {
+                source: Point2::ZERO,
+                target: Point2::ZERO,
+                size,
+            }],
+            gpu_command_queue,
+        )
+    }
+
+    /// Create and upload a new image from an array of pixels with diced mappings.
+    #[inline]
+    pub(crate) fn insert_diced(
+        &mut self,
+        id: Id,
+        source: ImgVec<u32>,
+        mappings: Vec<ImageMapping>,
+        gpu_command_queue: &mut Vec<GpuCommand>,
+    ) {
+        // Calculate the total size of the mappings
+        let width = mappings.iter().fold(0.0_f32, |init, mapping| {
+            init.max(mapping.target.x + mapping.size.width)
+        });
+        let height = mappings.iter().fold(0.0_f32, |init, mapping| {
+            init.max(mapping.target.y + mapping.size.height)
+        });
+        let size = Size2::new(width, height);
+
+        // Create the image
+        self.insert_empty(id.clone(), size, gpu_command_queue);
+
+        // Push the pixels
+        self.update_diced(id, source, mappings, gpu_command_queue);
+    }
+
+    /// Create and upload a new image from PNG bytes.
+    #[inline]
+    pub(crate) fn insert_png(
+        &mut self,
+        id: Id,
+        png_bytes: Vec<u8>,
+        gpu_command_queue: &mut Vec<GpuCommand>,
+    ) {
+        // Decode and insert as a regular image with the mappings
+        self.insert(id, decode_png(png_bytes), gpu_command_queue)
+    }
+
+    /// Create and upload a new image from diced PNG bytes.
+    #[inline]
+    pub(crate) fn insert_png_diced(
+        &mut self,
+        id: Id,
+        diced_png_bytes: Vec<u8>,
+        mappings: Vec<ImageMapping>,
+        gpu_command_queue: &mut Vec<GpuCommand>,
+    ) {
+        // Decode and insert as a regular image with the mappings
+        self.insert_diced(id, decode_png(diced_png_bytes), mappings, gpu_command_queue)
+    }
+
+    /// Create and upload a new empty image.
+    #[inline]
+    pub(crate) fn insert_empty(
+        &mut self,
+        id: Id,
+        size: Size2,
+        gpu_command_queue: &mut Vec<GpuCommand>,
+    ) {
+        // Keep track of the image
+        self.sprites.insert(
+            id.clone(),
+            Sprite {
+                atlas_ref: todo!(),
+                sub_rectangle: todo!(),
+                metadata: SpriteMetadata::default(),
+                size: todo!(),
+            },
+        );
+
+        // Keep track of the image source if needed
+        #[cfg(feature = "read-image")]
+        self.sources.insert(
+            id.clone(),
+            ImgVec::new(
+                vec![0_u32; size.width as usize * size.height as usize],
+                size.width as usize,
+                size.height as usize,
+            ),
+        );
+
+        // Push to the GPU
+        gpu_command_queue.push(GpuCommand::CreateImage { id, size });
+    }
+
+    /// Update the pixels of an image in a sub rectangle.
+    #[inline]
+    pub(crate) fn update(
+        &mut self,
+        id: Id,
+        source: ImgVec<u32>,
+        offset: Point2,
+        gpu_command_queue: &mut Vec<GpuCommand>,
+    ) {
+        let size = Size2::new(source.width() as f32, source.height() as f32);
+
+        // We can just upload as a single diced image to simplify
+        self.update_diced(
+            id,
+            source,
+            vec![ImageMapping {
+                // Use the full source image
+                source: Point2::ZERO,
+                // Use the offset as the offset in the target
+                target: offset,
+                // Update the whole source sice
+                size,
+            }],
+            gpu_command_queue,
+        )
+    }
+
+    /// Update the pixels of an image in a sub rectangle with diced mappings.
+    #[inline]
+    pub(crate) fn update_diced(
+        &mut self,
+        id: Id,
+        source: ImgVec<u32>,
+        mappings: Vec<ImageMapping>,
+        gpu_command_queue: &mut Vec<GpuCommand>,
+    ) {
+        // Push to the GPU
+        gpu_command_queue.push(GpuCommand::UpdateImage {
+            id,
+            source,
+            mappings,
+        });
+
+        // TODO: implement on read-image image
+    }
+
+    /// Replace the pixels of an image with another image.
+    ///
+    /// Will resize if sizes don't align.
+    #[inline]
+    pub(crate) fn replace(
+        &mut self,
+        id: Id,
+        source: ImgVec<u32>,
+        gpu_command_queue: &mut Vec<GpuCommand>,
+    ) {
+        // Resize if the size mismatches
+        let sprite = &self.sprites[&id];
+        if sprite.size.width as usize != source.width()
+            || sprite.size.height as usize != source.height()
+        {
+            self.resize(
+                id.clone(),
+                Size2::new(source.width() as f32, source.height() as f32),
+                gpu_command_queue,
+            );
+        }
+
+        // Write the new pixels
+        self.update(id, source, Point2::ZERO, gpu_command_queue);
+    }
+
+    /// Remove an image.
+    #[inline]
+    pub(crate) fn remove(&mut self, id: Id, gpu_command_queue: &mut Vec<GpuCommand>) {
+        gpu_command_queue.push(GpuCommand::RemoveImage { id });
+    }
+
+    /// Resize the image.
+    ///
+    /// If the new size is bigger the contents of the resized pixels is undefined and should be filled manually.
+    #[inline]
+    pub(crate) fn resize(
+        &mut self,
+        id: Id,
+        new_size: Size2,
+        gpu_command_queue: &mut Vec<GpuCommand>,
+    ) {
+        gpu_command_queue.push(GpuCommand::ResizeImage { id, new_size });
+    }
+
+    /// Get the size of an image.
+    #[inline]
+    pub(crate) fn size(&self, id: Id) -> Size2 {
+        self.sprites[&id].size
+    }
+
+    /// Read the pixels of an image.
+    #[cfg(feature = "read-image")]
+    #[inline]
+    pub(crate) fn read(&mut self, id: Id) -> &'_ ImgVec<u32> {
+        &self.sources[&id]
+    }
+}
+
+/// Decode a PNG.
+fn decode_png(bytes: Vec<u8>) -> ImgVec<u32> {
+    // Copy the bytes into a cursor
+    let cursor = Cursor::new(bytes);
+
+    // Decode the PNG
+    let mut decoder = Decoder::new(cursor);
+
+    // Discard text chunks
+    decoder.set_ignore_text_chunk(true);
+    // Make it faster by not checking if it's correct
+    decoder.ignore_checksums(true);
+
+    // Convert indexed images to RGBA
+    decoder.set_transformations(Transformations::normalize_to_color8() | Transformations::ALPHA);
+
+    // Start parsing the PNG
+    let mut reader = decoder.read_info().expect("Error reading PNG");
+
+    // Ensure we can use the PNG colors
+    let (color_type, bits) = reader.output_color_type();
+
+    // Must be 8 bit RGBA or indexed
+    assert!(
+        color_type == ColorType::Rgba && bits == BitDepth::Eight,
+        "PNG is not 8 bit RGB with an alpha channel"
+    );
+
+    // Read the PNG
+    let mut buf = vec![0_u32; reader.output_buffer_size()];
+    let info = reader
+        .next_frame(bytemuck::cast_slice_mut(&mut buf))
+        .expect("Error reading image");
+
+    // Convert to image
+    ImgVec::new(buf, info.width as usize, info.height as usize)
 }

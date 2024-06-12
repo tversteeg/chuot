@@ -3,7 +3,7 @@
 use glamour::Size2;
 use imgref::ImgVec;
 
-use crate::assets::{image::DicedImageMapping, Id};
+use crate::{assets::Id, sprite::ImageMapping};
 
 /// Different commands for to be executed on the GPU.
 pub(crate) enum GpuCommand {
@@ -12,7 +12,7 @@ pub(crate) enum GpuCommand {
         /// Image ID.
         id: Id,
         /// Size of the new image.
-        size: Size2<u16>,
+        size: Size2,
     },
     /// Remove the image.
     RemoveImage {
@@ -24,7 +24,7 @@ pub(crate) enum GpuCommand {
         /// Image ID.
         id: Id,
         /// Size of the image to resize to.
-        new_size: Size2<u16>,
+        new_size: Size2,
     },
     /// Update a portion of the image.
     UpdateImage {
@@ -33,6 +33,6 @@ pub(crate) enum GpuCommand {
         /// Source of the image to update.
         source: ImgVec<u32>,
         /// Mappings of each part to update in relative coordinates.
-        mappings: Vec<DicedImageMapping>,
+        mappings: Vec<ImageMapping>,
     },
 }

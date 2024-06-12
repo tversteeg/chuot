@@ -5,7 +5,7 @@ use serde::Deserialize;
 
 use crate::{
     assets::{loader::toml::TomlLoader, AssetSource, Id, Loadable},
-    graphics::instance::Instances,
+    graphics::{atlas::AtlasRef, instance::Instances},
     sprite::Sprite,
 };
 

@@ -6,7 +6,6 @@
 //! Asset loading is done through the various calls in [`crate::Context`].
 
 mod audio;
-pub(crate) mod image;
 pub mod loader;
 #[doc(hidden)]
 pub mod source;
@@ -27,7 +26,7 @@ use crate::{
     sprite::Sprite,
 };
 
-use self::{audio::Audio, image::ImageManager, loader::png::PngReader};
+use self::{audio::Audio, loader::png::PngReader};
 
 /// Identifier for any loadable asset, can be assigned multiple times for different types.
 ///
@@ -244,16 +243,12 @@ impl Default for CustomAssetManager {
 
 /// Assets for all types used in- and outside the engine.
 pub(crate) struct AssetsManager {
-    /// Sprite assets.
-    sprites: AssetManager<Sprite>,
     /// Font assets.
     fonts: AssetManager<Font>,
     /// Audio assets.
     audio: AssetManager<Audio>,
     /// Custom type erased assets.
     custom: CustomAssetManager,
-    /// Special manager for images.
-    images: ImageManager,
     /// Source for all un-loaded assets.
     source: AssetSource,
 }
@@ -261,47 +256,16 @@ pub(crate) struct AssetsManager {
 impl AssetsManager {
     /// Create from an asset source.
     pub(crate) fn new(source: AssetSource) -> Self {
-        let sprites = AssetManager::default();
         let fonts = AssetManager::default();
         let audio = AssetManager::default();
-        let images = ImageManager::new();
         let custom = CustomAssetManager::default();
 
         Self {
-            sprites,
             fonts,
             audio,
             custom,
-            images,
             source,
         }
-    }
-
-    /// Create a new empty sprite asset.
-    ///
-    /// # Panics
-    ///
-    /// - When sprite asset could not be created.
-    #[inline]
-    pub(crate) fn new_sprite(&mut self, id: &str, size: Size2) {
-        let width = size.width as u32;
-        let height = size.width as u32;
-
-        /*
-        self.source
-            .create_image(Id::new(id), Size2::new(width, height));
-            */
-        todo!()
-    }
-
-    /// Get or load a sprite.
-    ///
-    /// # Panics
-    ///
-    /// - When sprite asset could not be loaded.
-    #[inline]
-    pub(crate) fn sprite(&mut self, id: &str) -> Rc<Sprite> {
-        self.sprites.get_or_insert(id, &self.source)
     }
 
     /// Get or load a font.

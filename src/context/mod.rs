@@ -32,6 +32,7 @@ use winit_input_helper::WinitInputHelper;
 use crate::{
     assets::{AssetSource, AssetsManager, Loadable},
     graphics::{atlas::AtlasRef, command::GpuCommand, instance::Instances},
+    sprite::SpriteManager,
     GameConfig,
 };
 
@@ -686,8 +687,10 @@ pub(crate) struct ContextInner {
     pub(crate) window: Arc<Window>,
     /// Audio manager for playing audio.
     pub(crate) audio_manager: AudioManager<DefaultBackend>,
-    /// Where all assets live.
+    /// Where all loadable assets live.
     pub(crate) assets: AssetsManager,
+    /// Where all sprites live.
+    pub(crate) sprites: SpriteManager,
     /// Queue of commands that should be send to the GPU before drawing the frame.
     pub(crate) gpu_command_queue: Vec<GpuCommand>,
 }
@@ -710,6 +713,7 @@ impl ContextInner {
         let size = config.buffer_size;
         let frames_per_second = 0.0;
         let blending_factor = 0.0;
+        let sprites = SpriteManager::new();
         let assets = AssetsManager::new(asset_source);
         let gpu_command_queue = Vec::new();
 
@@ -727,6 +731,7 @@ impl ContextInner {
             window,
             audio_manager,
             assets,
+            sprites,
             gpu_command_queue,
         }
     }
