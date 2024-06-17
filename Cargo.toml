@@ -34,6 +34,7 @@ targets = [
 rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
+mint = "0.5.9"
 pollster = "0.3.0"
 wgpu = "0.20.1"
 winit = "0.30.1"
