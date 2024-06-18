@@ -2,12 +2,12 @@
 //!
 //! To play it press the left mouse button on the canvas.
 
-use chuot::{context::MouseButton, Context, GameConfig, PixelGame};
+use chuot::{context::MouseButton, Config, Context, Game};
 
 /// Define empty game state.
 struct GameState;
 
-impl PixelGame for GameState {
+impl Game for GameState {
     /// Handle input events to play a sound.
     fn update(&mut self, ctx: Context) {
         // Play a sound when the mouse is pressed

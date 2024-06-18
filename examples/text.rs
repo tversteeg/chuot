@@ -8,13 +8,13 @@
 //! glyph_size = { width = 10, height = 10 }
 //! ```
 
-use chuot::{glamour::Size2, Context, GameConfig, PixelGame};
+use chuot::{glamour::Size2, Config, Context, Game};
 
 /// Define a game state for our example.
 #[derive(Default)]
 struct GameState;
 
-impl PixelGame for GameState {
+impl Game for GameState {
     /// Render the game.
     fn render(&mut self, ctx: Context) {
         // Load a text asset and draw it

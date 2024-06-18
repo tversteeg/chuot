@@ -9,7 +9,7 @@
 //! offset = "Middle"
 //! ```
 
-use chuot::{glamour::Size2, Context, GameConfig, PixelGame};
+use chuot::{glamour::Size2, Config, Context, Game};
 
 /// Which sprite to draw.
 const SPRITE: &str = "threeforms";
@@ -25,7 +25,7 @@ struct GameState {
     pixels: Option<(Size2, Vec<u32>)>,
 }
 
-impl PixelGame for GameState {
+impl Game for GameState {
     /// Update the game.
     fn update(&mut self, ctx: Context) {
         // Cache the pixels of the sprite once

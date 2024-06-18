@@ -1,22 +1,30 @@
 #![forbid(unsafe_code)]
 
-pub mod backend;
 pub mod config;
 pub mod context;
+mod graphics;
 
-use backend::{wgpu::WgpuWinitBackend, Backend};
-use config::GameConfig;
-use context::Context;
+pub use config::Config;
+pub use context::Context;
+
+use std::{sync::Arc, time::Instant};
+
+use winit::{
+    application::ApplicationHandler,
+    dpi::{LogicalSize, PhysicalSize},
+    event::WindowEvent,
+    event_loop::{ActiveEventLoop, EventLoop, EventLoopProxy},
+    window::{Window, WindowAttributes, WindowId},
+};
 
 /// Main entrypoint containing game state for running the game.
 ///
 /// This is the main interface with the game engine.
 ///
 /// See [`Context`] for all functions interfacing with the game engine from both functions.
-pub trait PixelGame<B = WgpuWinitBackend>: Sized
+pub trait Game: Sized
 where
     Self: 'static,
-    B: Backend,
 {
     /// A single update tick in the game loop.
     ///
@@ -87,7 +95,7 @@ where
     /// # Arguments
     ///
     /// * `assets` - Source of the assets, needs to be `chuot::load_assets!()`.
-    /// * `game_config` - Configuration for the window, can be used to set the buffer size, the window title and other things.
+    /// * `config` - Configuration for the window, can be used to set the buffer size, the window title and other things.
     ///
     /// # Errors
     ///
@@ -123,13 +131,130 @@ where
     /// # try_main().unwrap();
     /// ```
     #[inline]
-    fn run(self, game_config: GameConfig) {
-        // Construct the backend
-        let backend = B::new(&game_config);
-
-        // Create the context with this backend
-        let context = Context::new(backend);
-
-        B::run(self, game_config);
+    fn run(self, config: Config) {
+        run(self, config);
     }
+}
+
+/// State of setting up a window that can still be uninitialized.
+///
+/// All optional fields are tied to the window creation flow of winit.
+struct State<G: Game> {
+    /// Game context.
+    ///
+    /// `None` if the window still needs to be initialized.
+    ctx: Option<Context>,
+    /// User supplied game.
+    game: G,
+    /// User supplied configuration.
+    config: Config,
+    /// Time for calculating the update rate.
+    last_time: Instant,
+    /// Timestep accumulator for the update rate.
+    accumulator: f32,
+}
+
+impl<G: Game> ApplicationHandler<()> for State<G> {
+    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+        // Setup the window
+        if self.ctx.is_none() {
+            // Spawn a new window using the event loop
+            let window = event_loop
+                .create_window(
+                    WindowAttributes::default()
+                        .with_title(&self.config.title)
+                        // Apply scaling for the requested size
+                        .with_inner_size(LogicalSize::new(
+                            self.config.buffer_width * self.config.scaling,
+                            self.config.buffer_height * self.config.scaling,
+                        ))
+                        // Don't allow the window to be smaller than the pixel size
+                        .with_min_inner_size(LogicalSize::new(
+                            self.config.buffer_width,
+                            self.config.buffer_height,
+                        )),
+                )
+                .expect("Error creating window");
+
+            // Setup the context
+            let context =
+                pollster::block_on(async { Context::new(self.config.clone(), window).await });
+
+            self.ctx = Some(context);
+        }
+    }
+
+    fn window_event(
+        &mut self,
+        event_loop: &ActiveEventLoop,
+        _window_id: WindowId,
+        event: WindowEvent,
+    ) {
+        // Do nothing if the window is not set up yet
+        let Some(ctx) = &mut self.ctx else {
+            return;
+        };
+
+        // Handle the window events
+        match event {
+            // Handle the update loop and render loop
+            WindowEvent::RedrawRequested => {
+                // Update the timestep
+                let current_time = Instant::now();
+                let frame_time = (current_time - self.last_time).as_secs_f32();
+                self.last_time = current_time;
+
+                self.accumulator += frame_time
+                    // Ensure the frametime will never surpass this amount
+                    .min(self.config.max_frame_time_secs);
+
+                // Call the user update function with the context
+                while self.accumulator >= self.config.update_delta_time {
+                    // Call the implemented update function on the 'PixelGame' trait
+                    self.game.update(ctx.clone());
+
+                    // Mark this tick as executed
+                    self.accumulator -= self.config.update_delta_time;
+                }
+
+                // Call the user render function with the context
+                self.game.render(ctx.clone());
+
+                // Draw the window and GPU graphics
+                ctx.write(|ctx| ctx.graphics.render());
+            }
+            // Resize the render surface
+            WindowEvent::Resized(PhysicalSize { width, height }) => {
+                ctx.write(|ctx| {
+                    // Resize the GPU surface
+                    ctx.graphics.resize(width, height);
+
+                    // On MacOS the window needs to be redrawn manually after resizing
+                    ctx.window.request_redraw();
+                });
+            }
+            // Close the window if requested
+            WindowEvent::CloseRequested => event_loop.exit(),
+            _ => (),
+        }
+    }
+}
+
+/// Run the game.
+fn run(game: impl Game, config: Config) {
+    // Setup the timestep variables for calculating the update loop
+    let accumulator = 0.0;
+    let last_time = Instant::now();
+
+    // Context must be initialized later when creating the window
+    let context = None;
+
+    // Create an event loop that injects the game struct into the window
+    let _ = EventLoop::new().unwrap().run_app(&mut State {
+        ctx: context,
+        game,
+        config,
+        last_time,
+        accumulator,
+    });
 }

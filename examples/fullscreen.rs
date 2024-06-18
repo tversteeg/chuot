@@ -2,12 +2,12 @@
 //!
 //! Press 'f' to toggle fullscreen.
 
-use chuot::{context::KeyCode, Context, GameConfig, PixelGame};
+use chuot::{context::KeyCode, Config, Context, Game};
 
 /// Define empty game state.
 struct GameState;
 
-impl PixelGame for GameState {
+impl Game for GameState {
     /// Handle input events to toggle fullscreen.
     fn update(&mut self, ctx: Context) {
         // Toggle fullscreen when 'f' is pressed

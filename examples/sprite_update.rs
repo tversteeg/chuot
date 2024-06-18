@@ -11,7 +11,7 @@ use chuot::{
     config::RotationAlgorithm,
     context::MouseButton,
     glamour::{Size2, Vector2},
-    Context, GameConfig, PixelGame,
+    Config, Context, Game,
 };
 use glamour::Rect;
 
@@ -21,7 +21,7 @@ const SPRITE: &str = "threeforms";
 /// Define a game state for our example.
 struct GameState;
 
-impl PixelGame for GameState {
+impl Game for GameState {
     /// Update the game.
     fn update(&mut self, ctx: Context) {
         // Only do something when the mouse is on a pixel

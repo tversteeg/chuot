@@ -22,7 +22,7 @@
 /// ```
 #[derive(Debug, Clone)]
 #[allow(clippy::exhaustive_structs)]
-pub struct GameConfig {
+pub struct Config {
     /// Amount of horizontal pixels for the canvas.
     ///
     /// Defaults to `320.0`.
@@ -75,7 +75,7 @@ pub struct GameConfig {
     pub update_delta_time: f32,
 }
 
-impl GameConfig {
+impl Config {
     /// Set the amount of horizontal pixels for the canvas.
     #[inline]
     #[must_use]
@@ -178,7 +178,7 @@ impl GameConfig {
     }
 }
 
-impl Default for GameConfig {
+impl Default for Config {
     #[inline]
     fn default() -> Self {
         Self {

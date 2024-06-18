@@ -7,7 +7,7 @@
 //! offset = "Middle"
 //! ```
 
-use chuot::{config::RotationAlgorithm, glamour::Size2, Context, GameConfig, PixelGame};
+use chuot::{config::RotationAlgorithm, glamour::Size2, Config, Context, Game};
 
 /// Define a game state for our example.
 #[derive(Default)]
@@ -16,7 +16,7 @@ struct GameState {
     rotation: f32,
 }
 
-impl PixelGame for GameState {
+impl Game for GameState {
     /// Update the game.
     fn update(&mut self, ctx: Context) {
         // Increment the rotation with with the timestep so it rotates smoothly

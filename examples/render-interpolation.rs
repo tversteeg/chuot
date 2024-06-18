@@ -1,6 +1,6 @@
 //! Show how to interpolate a sprite in the render loop by keeping a previous state in the update loop.
 
-use chuot::{context::MouseButton, glamour::Vector2, Context, GameConfig, PixelGame};
+use chuot::{context::MouseButton, glamour::Vector2, Config, Context, Game};
 
 /// Define a game state for our example.
 #[derive(Default)]
@@ -13,7 +13,7 @@ struct GameState {
     interpolate: bool,
 }
 
-impl PixelGame for GameState {
+impl Game for GameState {
     /// Update the game.
     fn update(&mut self, ctx: Context) {
         // Store the previous position so it can be interpolated on in the render function

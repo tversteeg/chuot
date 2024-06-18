@@ -5,13 +5,13 @@
 
 use chuot::{
     context::{Axis, Button},
-    Context, GameConfig, PixelGame,
+    Config, Context, Game,
 };
 
 /// Define empty game state.
 struct GameState;
 
-impl PixelGame for GameState {
+impl Game for GameState {
     /// Show some text with gamepad buttons being pressed.
     fn render(&mut self, ctx: Context) {
         // Position of the next line of text

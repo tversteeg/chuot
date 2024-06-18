@@ -11,7 +11,7 @@
 use chuot::{
     assets::{loader::Loader, AssetSource, Id, Loadable},
     glamour::Size2,
-    Context, GameConfig, PixelGame,
+    Config, Context, Game,
 };
 use serde::Deserialize;
 
@@ -46,7 +46,7 @@ impl Loadable for TxtString {
 /// Define an empty game state, because all asset state will be loaded using the context.
 struct GameState;
 
-impl PixelGame for GameState {
+impl Game for GameState {
     /// Game render tick, handle drawing things here.
     fn render(&mut self, ctx: Context) {
         // Load a reference to the asset

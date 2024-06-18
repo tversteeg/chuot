@@ -4,7 +4,7 @@ use chuot::{
     config::RotationAlgorithm,
     context::MouseButton,
     glamour::{Size2, Vector2},
-    Context, GameConfig, PixelGame,
+    Config, Context, Game,
 };
 
 /// How long a particle lives in seconds.
@@ -29,7 +29,7 @@ struct GameState {
     particles: Vec<Particle>,
 }
 
-impl PixelGame for GameState {
+impl Game for GameState {
     /// Update the game.
     fn update(&mut self, ctx: Context) {
         // Spawn the particles from the mouse
