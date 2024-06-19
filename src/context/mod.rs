@@ -1,12 +1,20 @@
+//! Main interface with the game.
+
+pub mod sprite;
+
 use std::{cell::RefCell, rc::Rc, sync::Arc};
 
-use winit::window::Window;
+use winit::window::{Fullscreen, Window};
 
-use crate::{config::Config, graphics::Graphics};
+use crate::{
+    assets::{source::AssetSource, Assets},
+    config::Config,
+    graphics::Graphics,
+};
 
 /// Context containing most functionality for interfacing with the game engine.
 ///
-/// Exposed in [`crate::PixelGame::update`] and [`crate::PixelGame::render`].
+/// Exposed in [`crate::Game::update`] and [`crate::Game::render`].
 ///
 /// [`Context`] is safe and cheap to clone due to being a `Rc<RefCell<..>>` under the hood.
 ///
@@ -18,11 +26,87 @@ use crate::{config::Config, graphics::Graphics};
 /// | `ctx.sprite("gui.widgets.button")` | `assets/gui/widgets/button.png` & `assets/gui/widgets/button.toml` (optional) |
 /// | `ctx.audio("song")` | `assets/song.ogg` |
 ///
-/// It's assumed for this table that [`crate::load_assets`] in [`crate::PixelGame`] is called without any arguments or with `chuot::load_assets!("assets/")`.
+/// It's assumed for this table that [`crate::load_assets`] in [`crate::Game`] is called without any arguments or with `chuot::load_assets!("assets/")`.
 #[derive(Clone)]
 pub struct Context {
     /// Implementation of all non-primitive parts.
     inner: Rc<RefCell<ContextInner>>,
+}
+
+/// Window methods.
+impl Context {
+    /// Width of the drawable part of the window in pixels.
+    ///
+    /// This ignores any scaling.
+    ///
+    /// # Returns
+    ///
+    /// - Width of the drawable part of the window.
+    #[inline]
+    #[must_use]
+    pub fn width(&self) -> f32 {
+        self.size().0
+    }
+
+    /// Height of the drawable part of the window in pixels.
+    ///
+    /// This ignores any scaling.
+    ///
+    /// # Returns
+    ///
+    /// - Height of the drawable part of the window.
+    #[inline]
+    #[must_use]
+    pub fn height(&self) -> f32 {
+        self.size().0
+    }
+
+    /// Size of the drawable part of the window in pixels.
+    ///
+    /// This ignores any scaling.
+    ///
+    /// # Returns
+    ///
+    /// - (`width, `height): width and height of the drawable part of the window.
+    #[inline]
+    #[must_use]
+    pub fn size(&self) -> (f32, f32) {
+        self.read(|ctx| {
+            (
+                ctx.graphics.config.width as f32,
+                ctx.graphics.config.height as f32,
+            )
+        })
+    }
+
+    /// Show the OS cursor or hide it.
+    ///
+    /// # Arguments
+    ///
+    /// * `visible` - `true` to show the OS cursor, `false` to hide it.
+    #[inline]
+    pub fn set_cursor_visible(&self, visible: bool) {
+        self.write(|ctx| ctx.window.set_cursor_visible(visible));
+    }
+
+    /// Toggle fullscreen mode.
+    ///
+    /// Uses a borderless fullscreen mode, not exclusive.
+    #[inline]
+    pub fn toggle_fullscreen(&self) {
+        self.write(|ctx| {
+            // Check if we currently are in fullscreen mode
+            let is_fullscreen = ctx.window.fullscreen().is_some();
+
+            ctx.window.set_fullscreen(if is_fullscreen {
+                // Turn fullscreen off
+                None
+            } else {
+                // Enable fullscreen
+                Some(Fullscreen::Borderless(None))
+            });
+        });
+    }
 }
 
 /// Internally used methods.
@@ -36,7 +120,12 @@ impl Context {
         // Wrap in a reference counted refcell so it can safely be passed to any of the user functions
         let inner = Rc::new(RefCell::new(context_inner));
 
-        Self { inner }
+        let this = Self { inner };
+
+        // Set the created context so it can be referenced
+        this.write(|ctx| ctx.assets.source.ctx = Some(this.clone()));
+
+        this
     }
 
     /// Get a read-only reference to the inner struct.
@@ -66,6 +155,8 @@ pub(crate) struct ContextInner {
     pub(crate) window: Arc<Window>,
     /// Graphics state.
     pub(crate) graphics: Graphics,
+    // /// Assets.
+    pub(crate) assets: Assets,
     /// User supplied game configuration.
     config: Config,
 }
@@ -79,10 +170,14 @@ impl ContextInner {
         // Setup the initial graphics
         let graphics = Graphics::new(&config, Arc::clone(&window)).await;
 
+        // Load the assets
+        let assets = Assets::new(AssetSource::new());
+
         Self {
-            config,
-            graphics,
             window,
+            graphics,
+            assets,
+            config,
         }
     }
 }

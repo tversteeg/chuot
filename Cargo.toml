@@ -34,10 +34,16 @@ targets = [
 rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
-mint = "0.5.9"
+downcast-rs = "1.2.1"
+glam = { version = "0.28.0", features = ["bytemuck", "fast-math"] }
+hashbrown = "0.14.5"
+kira = { version = "0.9.3", default-features = false, features = ["cpal", "ogg"] }
+nanoserde = "0.1.37"
+png = "0.17.13"
 pollster = "0.3.0"
+smol_str = "0.2.2"
 wgpu = "0.20.1"
-winit = "0.30.1"
+winit = "0.30.2"
 
 [build-dependencies]
 wgsl-minifier = "0.4.1"

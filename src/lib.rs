@@ -1,20 +1,22 @@
 #![forbid(unsafe_code)]
 
+pub mod assets;
 pub mod config;
 pub mod context;
 mod graphics;
 
+use assets::{source::AssetSource, Assets};
 pub use config::Config;
 pub use context::Context;
 
-use std::{sync::Arc, time::Instant};
+use std::time::Instant;
 
 use winit::{
     application::ApplicationHandler,
     dpi::{LogicalSize, PhysicalSize},
     event::WindowEvent,
-    event_loop::{ActiveEventLoop, EventLoop, EventLoopProxy},
-    window::{Window, WindowAttributes, WindowId},
+    event_loop::{ActiveEventLoop, EventLoop},
+    window::{WindowAttributes, WindowId},
 };
 
 /// Main entrypoint containing game state for running the game.

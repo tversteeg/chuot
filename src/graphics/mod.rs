@@ -15,13 +15,13 @@ pub(crate) const PREFERRED_TEXTURE_FORMAT: wgpu::TextureFormat =
 /// Interface with the GPU.
 pub(crate) struct Graphics {
     /// GPU device.
-    device: wgpu::Device,
+    pub(crate) device: wgpu::Device,
     /// GPU surface.
-    surface: wgpu::Surface<'static>,
+    pub(crate) surface: wgpu::Surface<'static>,
     /// GPU queue.
-    queue: wgpu::Queue,
+    pub(crate) queue: wgpu::Queue,
     /// GPU surface configuration.
-    config: wgpu::SurfaceConfiguration,
+    pub(crate) config: wgpu::SurfaceConfiguration,
 }
 
 impl Graphics {
