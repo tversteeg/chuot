@@ -1,5 +1,8 @@
 //! Graphics state handling drawing items.
 
+pub mod atlas;
+mod uniform;
+
 use std::sync::Arc;
 
 use winit::window::Window;

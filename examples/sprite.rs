@@ -19,7 +19,11 @@ impl Game for GameState {
         // Load a sprite asset and draw it
         ctx.sprite("threeforms")
             // Place the sprite in the middle of the screen
-            .translate(ctx.width() / 2.0, ctx.height() / 2.0)
+            .translate({
+                let (width, height) = ctx.size();
+
+                (width / 2.0, height / 2.0)
+            })
             // Draw the sprite on the screen
             .draw();
     }

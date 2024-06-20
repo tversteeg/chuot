@@ -4,13 +4,13 @@
 //!
 //! Removes all features for actually creating the textures and allows inserting already defined rectangles.
 
-use glamour::{Point2, Rect, Size2};
-
 /// 2D rectangle packer.
 #[derive(Debug, Clone)]
 pub struct Packer {
-    /// Max size of the output rectangle.
-    max_size: Size2<u16>,
+    /// Max width of the output rectangle.
+    max_width: u16,
+    /// Max height of the output rectangle.
+    max_height: u16,
     /// Skylines for the skyline packing algorithm.
     skylines: Vec<Skyline>,
 }
@@ -20,18 +20,25 @@ impl Packer {
     ///
     /// # Arguments
     ///
-    /// * `max_size` - Maximum size of the output atlas.
+    /// * `(max_width, max_height)` - Tuple of maximum size of the output atlas.
     #[inline]
     #[must_use]
-    pub fn new(max_size: Size2<u16>) -> Self {
+    pub fn new(max_size: impl Into<(u16, u16)>) -> Self {
+        let (max_width, max_height) = max_size.into();
+
         // Start with a single skyline of the full width
         let skyline = Skyline {
-            position: Point2::ZERO,
-            width: max_size.width,
+            x: 0,
+            y: 0,
+            width: max_width,
         };
         let skylines = vec![skyline];
 
-        Self { max_size, skylines }
+        Self {
+            max_width,
+            max_height,
+            skylines,
+        }
     }
 
     /// Fill the packer with already existing rectangles.
@@ -40,23 +47,27 @@ impl Packer {
     ///
     /// # Arguments
     ///
-    /// * `existing_rectangles` - Iterator of pre-set rectangles that should be filled into the positions.
+    /// * `existing_rectangles` - Iterator of pre-set tuple rectangles with `(x, y, width, height)` that should be filled into the positions.
     ///
     /// # Panics
     ///
     /// - When any rectangle is out of bounds.
     #[inline]
     #[must_use]
-    pub fn with_existing_rectangles_iter(
+    pub fn with_existing_rectangles_iter<R>(
         mut self,
-        existing_rectangles: impl Iterator<Item = Rect<u16>>,
-    ) -> Self {
+        existing_rectangles: impl Iterator<Item = R>,
+    ) -> Self
+    where
+        R: Into<(u16, u16, u16, u16)>,
+    {
         for rect in existing_rectangles {
+            let (x, y, width, height) = rect.into();
+
+            let y = y + height;
+
             // Construct the new skyline to check for overlaps and inserts
-            let new_skyline = Skyline {
-                position: Point2::new(rect.origin.x, rect.origin.y + rect.height()),
-                width: rect.width(),
-            };
+            let new_skyline = Skyline { x, y, width };
 
             // Split overlapping skylines
             let mut index = 0;
@@ -64,7 +75,7 @@ impl Packer {
             while index < self.skylines.len() {
                 let skyline = self.skylines[index];
 
-                if skyline.position.y > new_skyline.position.y || !skyline.overlaps(new_skyline) {
+                if skyline.y > new_skyline.y || !skyline.overlaps(new_skyline) {
                     // Only take higher skylines that also overlap
                     continue;
                 }
@@ -82,7 +93,8 @@ impl Packer {
                     self.skylines.insert(
                         index + 1,
                         Skyline {
-                            position: Point2::new(new_skyline.right(), skyline.position.y),
+                            x: new_skyline.right(),
+                            y: skyline.y,
                             width: skyline.right() - new_skyline.right(),
                         },
                     );
@@ -106,7 +118,7 @@ impl Packer {
                 if skyline.right() > new_skyline.right() {
                     // Cut the left part of the old skyline
                     self.skylines[index].width = skyline.right() - new_skyline.right();
-                    self.skylines[index].position.x = new_skyline.right();
+                    self.skylines[index].x = new_skyline.right();
 
                     // Insert before this skyline
                     index_to_insert = index;
@@ -129,66 +141,70 @@ impl Packer {
     ///
     /// # Arguments
     ///
-    /// * `rectangle_size` - Size of the rectangle to place in the atlas.
+    /// * `(width, height)` - Size tuple of the rectangle to place in the atlas.
     ///
     /// # Returns
     ///
     /// - `None` when there's not enough space to pack the rectangle.
-    /// - The offset inside the atlas when the rectangle fits.
+    /// - Offset tuple `(width, height)` inside the atlas when the rectangle fits.
     #[inline]
-    pub fn insert(&mut self, rectangle_size: Size2<u16>) -> Option<Point2<u16>> {
+    pub fn insert(&mut self, rectangle_size: impl Into<(u16, u16)>) -> Option<(u16, u16)> {
+        let (rectangle_width, rectangle_height) = rectangle_size.into();
+
         // Find the rectangle with the skyline, keep the bottom and width as small as possible
-        let mut bottom = std::u16::MAX;
-        let mut width = std::u16::MAX;
+        let mut bottom = u16::MAX;
+        let mut width = u16::MAX;
         let mut result = None;
 
         // Try to find the skyline gap with the smallest Y
         for (index, skyline) in self.skylines.iter().enumerate() {
-            if let Some(offset) = self.can_put(index, rectangle_size) {
-                let rect_bottom = offset.y + rectangle_size.height;
+            if let Some((offset_x, offset_y)) =
+                self.can_put(index, rectangle_width, rectangle_height)
+            {
+                let rect_bottom = offset_y + rectangle_height;
                 if rect_bottom < bottom || (rect_bottom == bottom && skyline.width < width) {
                     bottom = rect_bottom;
                     width = skyline.width;
-                    result = Some((offset, index));
+                    result = Some((offset_x, offset_y, index));
                 }
             }
         }
 
         // If no rect is found do nothing
-        let (position, index) = result?;
+        let (x, y, index) = result?;
 
         // Insert the skyline
-        self.split(index, position, rectangle_size);
+        self.split(index, x, y, rectangle_width, rectangle_height);
 
         // Merge the skylines on the same height
         self.merge();
 
-        Some(position)
+        Some((x, y))
     }
 
     /// Return the rect fitting in a skyline if possible.
-    fn can_put(&self, skyline_index: usize, size: Size2<u16>) -> Option<Point2<u16>> {
+    fn can_put(&self, skyline_index: usize, width: u16, height: u16) -> Option<(u16, u16)> {
         // Right side of the rectangle, doesn't change because only the Y position will shift in the next loop
-        let x = self.skylines[skyline_index].position.x;
-        let right = x + size.width;
+        let x = self.skylines[skyline_index].x;
+        let right = x + width;
 
         let mut y = 0;
-        let mut width_left = size.width;
+        let mut width_left = width;
 
         // Loop over each skyline to the right starting from the current position to try to find a spot where the rectangle can be put
         self.skylines[skyline_index..].iter().find_map(|skyline| {
             // Get the highest position of each available skyline
-            y = y.max(skyline.position.y);
+            y = y.max(skyline.y);
 
             // Check if the rectangle still fits in the output
-            let bottom = y + size.height;
-            if right > self.max_size.width || bottom > self.max_size.height {
+            let bottom = y + height;
+            if right > self.max_width || bottom > self.max_height {
                 return None;
             }
 
             if skyline.width >= width_left {
                 // Rectangle fits, return it
-                Some(Point2::new(x, y))
+                Some((x, y))
             } else {
                 width_left -= skyline.width;
 
@@ -200,15 +216,10 @@ impl Packer {
     /// Split the skylines at the index.
     ///
     /// Will shorten or remove the overlapping skylines to the right.
-    fn split(&mut self, skyline_index: usize, position: Point2<u16>, size: Size2<u16>) {
+    fn split(&mut self, skyline_index: usize, x: u16, y: u16, width: u16, height: u16) {
         // Add the new skyline
-        self.skylines.insert(
-            skyline_index,
-            Skyline {
-                position: Point2::new(position.x, position.y + size.height),
-                width: size.width,
-            },
-        );
+        let y = y + height;
+        self.skylines.insert(skyline_index, Skyline { x, y, width });
 
         // Shrink all skylines to the right of the inserted skyline
         self.shrink(skyline_index);
@@ -231,7 +242,7 @@ impl Packer {
                     self.skylines.remove(index);
                 } else {
                     // Skyline is partially overlapped, shorten it
-                    self.skylines[index].position.x += shrink;
+                    self.skylines[index].x += shrink;
                     self.skylines[index].width -= shrink;
                     break;
                 }
@@ -248,7 +259,7 @@ impl Packer {
             let previous = &self.skylines[index - 1];
             let current = &self.skylines[index];
 
-            if previous.position.y == current.position.y {
+            if previous.y == current.y {
                 // Merge the skylines
                 self.skylines[index - 1].width += current.width;
                 self.skylines.remove(index);
@@ -263,8 +274,10 @@ impl Packer {
 /// Single skyline with only a width.
 #[derive(Debug, Clone, Copy)]
 struct Skyline {
-    /// Position on the rectangle.
-    position: Point2<u16>,
+    /// X position on the rectangle.
+    x: u16,
+    /// Y position on the rectangle.
+    y: u16,
     /// Width of the line.
     width: u16,
 }
@@ -273,13 +286,13 @@ impl Skyline {
     /// Left split position.
     #[inline(always)]
     pub const fn left(self) -> u16 {
-        self.position.x
+        self.x
     }
 
     /// Right split position.
     #[inline(always)]
     pub const fn right(self) -> u16 {
-        self.position.x + self.width
+        self.x + self.width
     }
 
     /// Whether it overlaps with another skyline.
@@ -296,55 +309,52 @@ mod tests {
     #[test]
     fn packer_fill_squares() {
         // Filling the 32x32 square with 64 equal blocks of 4x4 should fill the box exactly
-        let mut packer = Packer::new(Size2::new(32, 32));
+        let mut packer = Packer::new((32, 32));
         for _ in 0..64 {
-            assert!(packer.insert(Size2::new(4, 4)).is_some());
+            assert!(packer.insert((4, 4)).is_some());
         }
 
         // Filling the 32x32 square with 128 equal blocks of 4x2 should fill the box exactly
-        let mut packer = Packer::new(Size2::new(32, 32));
+        let mut packer = Packer::new((32, 32));
         for _ in 0..128 {
-            assert!(packer.insert(Size2::new(4, 2)).is_some());
+            assert!(packer.insert((4, 2)).is_some());
         }
     }
 
     #[test]
     fn packer_fill_squares_overflow() {
         // Filling the 32x32 square with 64 + 1 equal blocks of 4x4 should overflow the box
-        let mut packer = Packer::new(Size2::new(32, 32));
+        let mut packer = Packer::new((32, 32));
         for _ in 0..64 {
-            assert!(packer.insert(Size2::new(4, 4)).is_some());
+            assert!(packer.insert((4, 4)).is_some());
         }
-        assert!(packer.insert(Size2::new(4, 4)).is_none());
+        assert!(packer.insert((4, 4)).is_none());
     }
 
     #[test]
     fn existing_rects() {
         // Filling the 32x32 square with 63 + 1 predefined + 1 equal blocks of 4x4 should overflow the box
-        let mut packer = Packer::new(Size2::new(32, 32)).with_existing_rectangles_iter(
-            std::iter::once(Rect::new(Point2::new(0, 0), Size2::new(4, 4))),
-        );
+        let mut packer =
+            Packer::new((32, 32)).with_existing_rectangles_iter(std::iter::once((0, 0, 4, 4)));
         for _ in 0..63 {
-            assert!(packer.insert(Size2::new(4, 4)).is_some());
+            assert!(packer.insert((4, 4)).is_some());
         }
-        assert!(packer.insert(Size2::new(4, 4)).is_none());
+        assert!(packer.insert((4, 4)).is_none());
 
         // Filling the 32x32 square with 63 + 1 predefined + 1 equal blocks of 4x4 should overflow the box
-        let mut packer = Packer::new(Size2::new(32, 32)).with_existing_rectangles_iter(
-            std::iter::once(Rect::new(Point2::new(28, 0), Size2::new(4, 4))),
-        );
+        let mut packer =
+            Packer::new((32, 32)).with_existing_rectangles_iter(std::iter::once((28, 0, 4, 4)));
         for _ in 0..63 {
-            assert!(packer.insert(Size2::new(4, 4)).is_some());
+            assert!(packer.insert((4, 4)).is_some());
         }
-        assert!(packer.insert(Size2::new(4, 4)).is_none());
+        assert!(packer.insert((4, 4)).is_none());
 
         // Filling the 32x32 square with 63 + 1 predefined + 1 equal blocks of 4x4 should overflow the box
-        let mut packer = Packer::new(Size2::new(32, 32)).with_existing_rectangles_iter(
-            std::iter::once(Rect::new(Point2::new(4, 0), Size2::new(4, 4))),
-        );
+        let mut packer =
+            Packer::new((32, 32)).with_existing_rectangles_iter(std::iter::once((4, 0, 4, 4)));
         for _ in 0..63 {
-            assert!(packer.insert(Size2::new(4, 4)).is_some());
+            assert!(packer.insert((4, 4)).is_some());
         }
-        assert!(packer.insert(Size2::new(4, 4)).is_none());
+        assert!(packer.insert((4, 4)).is_none());
     }
 }

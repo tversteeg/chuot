@@ -7,7 +7,10 @@ use std::{
 
 use crate::Context;
 
-use super::{loader::Loader, Id};
+use super::{
+    loader::{png::PngReader, Loader},
+    Id,
+};
 
 /// Empty array when embedding nothing.
 static RUNTIME_EMBEDDED_ASSETS: &[EmbeddedRawAsset] = &[];
@@ -112,6 +115,16 @@ impl AssetSource {
         } else {
             None
         }
+    }
+
+    /// Upload a texture to the GPU.
+    ///
+    /// # Returns
+    ///
+    /// - A texture ID that can be used to reference this texture.
+    #[inline]
+    pub fn upload_texture(&self, png: PngReader) -> i32 {
+        todo!()
     }
 }
 

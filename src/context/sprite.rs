@@ -25,11 +25,11 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
     ///
     /// # Arguments
     ///
-    /// * `x` - Absolute X position of the target sprite on the buffer in pixels, will be offset by the sprite offset metadata.
-    /// * `y` - Absolute Y position of the target sprite on the buffer in pixels, will be offset by the sprite offset metadata.
+    /// * `(x, y)` - Absolute position tuple of the target sprite on the buffer in pixels, will be offset by the sprite offset metadata.
     #[inline(always)]
     #[must_use]
-    pub fn translate(mut self, x: f32, y: f32) -> Self {
+    pub fn translate(mut self, position: impl Into<(f32, f32)>) -> Self {
+        let (x, y) = position.into();
         self.x += x;
         self.y += y;
 
@@ -109,7 +109,10 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
     ///
     /// But this runs on my PC with an average FPS of 11 when rendering 100000 sprites.
     #[inline(always)]
-    pub fn draw_multiple_translated(self, translations: impl Iterator<Item = (f32, f32)>) {
+    pub fn draw_multiple_translated<T>(self, translations: impl Iterator<Item = T>)
+    where
+        T: Into<(f32, f32)>,
+    {
         self.ctx.write(|ctx| {
             let sprite = ctx.assets.sprite(self.path);
 
@@ -127,7 +130,7 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
     ///
     /// # Arguments
     ///
-    /// * `sub_rectangle` - Sub rectangle within the sprite to update. Width * height must be equal to the amount of pixels, and fall within the sprite's rectangle.
+    /// * `(x, y, width, height)` - Sub rectangle tuple within the sprite to update. Width * height must be equal to the amount of pixels, and fall within the sprite's rectangle.
     /// * `pixels` - Array of ARGB pixels, amount must match size of the sub rectangle.
     ///
     /// # Panics
@@ -206,7 +209,7 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
     ///
     /// # Arguments
     ///
-    /// * `size` - Size of the new sprite in pixels.
+    /// * `(width, height)` - Size tuple of the new sprite in pixels.
     ///
     /// # Returns
     ///
@@ -217,7 +220,7 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
     /// - When a sprite with the same ID already exists.
     #[inline]
     #[must_use]
-    pub fn new(self, width: f32, height: f32) -> Self {
+    pub fn new(self, size: impl Into<(f32, f32)>) -> Self {
         let id = Id::new(self.path);
 
         self.ctx.write(|ctx| {});

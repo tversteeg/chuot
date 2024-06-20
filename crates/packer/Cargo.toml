@@ -12,9 +12,5 @@ repository = "https://github.com/tversteeg/chuot.git"
 rust-version = "1.77.0"
 include = ["/src"]
 
-[dependencies]
-glam = { version = "0.28", features = ["fast-math"] }
-glamour = { version = "0.11.1", features = ["serde"] }
-
 [lints]
 workspace = true

@@ -35,32 +35,6 @@ pub struct Context {
 
 /// Window methods.
 impl Context {
-    /// Width of the drawable part of the window in pixels.
-    ///
-    /// This ignores any scaling.
-    ///
-    /// # Returns
-    ///
-    /// - Width of the drawable part of the window.
-    #[inline]
-    #[must_use]
-    pub fn width(&self) -> f32 {
-        self.size().0
-    }
-
-    /// Height of the drawable part of the window in pixels.
-    ///
-    /// This ignores any scaling.
-    ///
-    /// # Returns
-    ///
-    /// - Height of the drawable part of the window.
-    #[inline]
-    #[must_use]
-    pub fn height(&self) -> f32 {
-        self.size().0
-    }
-
     /// Size of the drawable part of the window in pixels.
     ///
     /// This ignores any scaling.
@@ -171,7 +145,7 @@ impl ContextInner {
         let graphics = Graphics::new(&config, Arc::clone(&window)).await;
 
         // Load the assets
-        let assets = Assets::new(AssetSource::new());
+        let assets = Assets::new(AssetSource::new().with_runtime_dir("assets"));
 
         Self {
             window,

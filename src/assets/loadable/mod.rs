@@ -39,7 +39,7 @@ pub trait Loadable: Downcast {
     /// # Panics
     ///
     /// - When parsing binary bytes of asset into type fails.
-    fn load_if_exists(id: &Id, assets: &AssetSource) -> Option<Self>
+    fn load_if_exists(id: &Id, asset_source: &AssetSource) -> Option<Self>
     where
         Self: Sized;
 
