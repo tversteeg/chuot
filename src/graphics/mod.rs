@@ -9,6 +9,8 @@ use winit::window::Window;
 
 use crate::config::Config;
 
+use self::atlas::{Atlas, TextureRef};
+
 /// Texture format we prefer to use for everything.
 ///
 /// We choose sRGB since most source images are created with this format and otherwise everything will be quite dark.
@@ -25,9 +27,16 @@ pub(crate) struct Graphics {
     pub(crate) queue: wgpu::Queue,
     /// GPU surface configuration.
     pub(crate) config: wgpu::SurfaceConfiguration,
+    /// Texture atlas.
+    pub(crate) atlas: Atlas,
 }
 
 impl Graphics {
+    /// Upload a texture to the GPU.
+    pub fn upload_texture(&mut self, width: u32, height: u32, pixels: &[u32]) -> TextureRef {
+        self.atlas.add_texture(width, height, pixels, &self.queue)
+    }
+
     /// Setup the GPU buffers and data structures.
     pub(crate) async fn new(config: &Config, window: Arc<Window>) -> Self {
         // Get a handle to our GPU
@@ -85,11 +94,15 @@ impl Graphics {
         };
         surface.configure(&device, &config);
 
+        // Setup the texture atlas
+        let atlas = Atlas::new(&device);
+
         Self {
             device,
             surface,
             queue,
             config,
+            atlas,
         }
     }
 

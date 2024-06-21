@@ -1,6 +1,6 @@
 //! Audio asset.
 
-use crate::assets::{source::AssetSource, Id};
+use crate::{assets::Id, context::ContextInner};
 
 use super::Loadable;
 
@@ -8,7 +8,7 @@ use super::Loadable;
 pub(crate) struct Audio;
 
 impl Loadable for Audio {
-    fn load_if_exists(id: &Id, assets: &AssetSource) -> Option<Self>
+    fn load_if_exists(id: &Id, ctx: &mut ContextInner) -> Option<Self>
     where
         Self: Sized,
     {

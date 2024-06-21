@@ -7,7 +7,11 @@ use std::{cell::RefCell, rc::Rc, sync::Arc};
 use winit::window::{Fullscreen, Window};
 
 use crate::{
-    assets::{source::AssetSource, Assets},
+    assets::{
+        loadable::{audio::Audio, font::Font, sprite::Sprite, Loadable},
+        source::AssetSource,
+        AssetManager, CustomAssetManager, Id,
+    },
     config::Config,
     graphics::Graphics,
 };
@@ -94,12 +98,7 @@ impl Context {
         // Wrap in a reference counted refcell so it can safely be passed to any of the user functions
         let inner = Rc::new(RefCell::new(context_inner));
 
-        let this = Self { inner };
-
-        // Set the created context so it can be referenced
-        this.write(|ctx| ctx.assets.source.ctx = Some(this.clone()));
-
-        this
+        Self { inner }
     }
 
     /// Get a read-only reference to the inner struct.
@@ -124,15 +123,23 @@ impl Context {
 }
 
 /// Internal wrapped implementation for [`Context`].
-pub(crate) struct ContextInner {
+pub struct ContextInner {
+    /// Sources for loading assets from memory or disk.
+    pub asset_source: AssetSource,
     /// Window instance.
     pub(crate) window: Arc<Window>,
     /// Graphics state.
     pub(crate) graphics: Graphics,
-    // /// Assets.
-    pub(crate) assets: Assets,
     /// User supplied game configuration.
     config: Config,
+    /// Sprite assets.
+    sprites: AssetManager<Sprite>,
+    /// Font assets.
+    fonts: AssetManager<Font>,
+    /// Audio assets.
+    audio: AssetManager<Audio>,
+    /// Custom type erased assets.
+    custom: CustomAssetManager,
 }
 
 impl ContextInner {
@@ -145,13 +152,120 @@ impl ContextInner {
         let graphics = Graphics::new(&config, Arc::clone(&window)).await;
 
         // Load the assets
-        let assets = Assets::new(AssetSource::new().with_runtime_dir("assets"));
+        let asset_source = AssetSource::new().with_runtime_dir("assets");
+        let sprites = AssetManager::default();
+        let fonts = AssetManager::default();
+        let audio = AssetManager::default();
+        let custom = CustomAssetManager::default();
 
         Self {
+            asset_source,
             window,
             graphics,
-            assets,
             config,
+            sprites,
+            fonts,
+            audio,
+            custom,
         }
+    }
+
+    /// Get or load a sprite.
+    ///
+    /// # Panics
+    ///
+    /// - When font sprite could not be loaded.
+    #[inline]
+    pub(crate) fn sprite(&mut self, id: &str) -> Rc<Sprite> {
+        // Create the ID
+        let id = Id::new(id);
+
+        // Try to load the asset first
+        if let Some(asset) = self.sprites.get(&id) {
+            return asset;
+        }
+
+        // Asset not found, load it
+        let asset = Sprite::load(&id, self);
+        self.sprites.insert(id, asset)
+    }
+
+    /// Get or load a font.
+    ///
+    /// # Panics
+    ///
+    /// - When font asset could not be loaded.
+    #[inline]
+    pub(crate) fn font(&mut self, id: &str) -> Rc<Font> {
+        // Create the ID
+        let id = Id::new(id);
+
+        // Try to load the asset first
+        if let Some(asset) = self.fonts.get(&id) {
+            return asset;
+        }
+
+        // Asset not found, load it
+        let asset = Font::load(&id, self);
+        self.fonts.insert(id, asset)
+    }
+
+    /// Get or load an audio file.
+    ///
+    /// # Panics
+    ///
+    /// - When audio asset could not be loaded.
+    #[inline]
+    pub(crate) fn audio(&mut self, id: &str) -> Rc<Audio> {
+        // Create the ID
+        let id = Id::new(id);
+
+        // Try to load the asset first
+        if let Some(asset) = self.audio.get(&id) {
+            return asset;
+        }
+
+        // Asset not found, load it
+        let asset = Audio::load(&id, self);
+        self.audio.insert(id, asset)
+    }
+
+    /// Get or load a custom asset.
+    ///
+    /// # Panics
+    ///
+    /// - When audio asset could not be loaded.
+    /// - When type used to load the asset mismatches the type used to get it.
+    #[inline]
+    pub(crate) fn custom<T>(&mut self, id: &str) -> Rc<T>
+    where
+        T: Loadable,
+    {
+        // Create the ID
+        let id = Id::new(id);
+
+        // Try to load the asset first
+        if let Some(asset) = self.custom.get(&id) {
+            return asset;
+        }
+
+        // Asset not found, load it
+        let asset = T::load(&id, self);
+        self.custom.insert(id, asset)
+    }
+
+    /// Get a clone or load a custom asset.
+    ///
+    /// # Panics
+    ///
+    /// - When audio asset could not be loaded.
+    /// - When type used to load the asset mismatches the type used to get it.
+    #[inline]
+    pub(crate) fn custom_owned<T>(&mut self, id: &str) -> T
+    where
+        T: Loadable + Clone,
+    {
+        // Create a clone of the asset
+        Rc::<T>::unwrap_or_clone(self.custom(id))
     }
 }

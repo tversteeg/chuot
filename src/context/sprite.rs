@@ -62,7 +62,7 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
     pub fn draw(self) {
         self.ctx.write(|ctx| {
             // Push the instance if the texture is already uploaded
-            ctx.assets.sprite(self.path);
+            ctx.sprite(self.path);
             // .draw(self.position, self.rotation, &mut ctx.instances);
         });
     }
@@ -114,7 +114,7 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
         T: Into<(f32, f32)>,
     {
         self.ctx.write(|ctx| {
-            let sprite = ctx.assets.sprite(self.path);
+            let sprite = ctx.sprite(self.path);
 
             // Push the instances if the texture is already uploaded
             // sprite.draw_multiple(
@@ -146,7 +146,7 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
     ) {
         self.ctx.write(|ctx| {
             // Get the sprite
-            let sprite = ctx.assets.sprite(self.path);
+            let sprite = ctx.sprite(self.path);
 
             // Put the update the pixels of the sprite on a queue
             /*

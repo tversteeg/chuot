@@ -6,6 +6,8 @@ pub(crate) mod sprite;
 
 use downcast_rs::Downcast;
 
+use crate::context::ContextInner;
+
 use super::{source::AssetSource, Id};
 
 /// Any asset that's loadable from any amount of binary files.
@@ -39,7 +41,7 @@ pub trait Loadable: Downcast {
     /// # Panics
     ///
     /// - When parsing binary bytes of asset into type fails.
-    fn load_if_exists(id: &Id, asset_source: &AssetSource) -> Option<Self>
+    fn load_if_exists(id: &Id, ctx: &mut ContextInner) -> Option<Self>
     where
         Self: Sized;
 
@@ -51,11 +53,11 @@ pub trait Loadable: Downcast {
     /// - When asset does not exist in the source.
     #[inline]
     #[must_use]
-    fn load(id: &Id, asset_source: &AssetSource) -> Self
+    fn load(id: &Id, ctx: &mut ContextInner) -> Self
     where
         Self: Sized,
     {
-        Self::load_if_exists(id, asset_source).map_or_else(
+        Self::load_if_exists(id, ctx).map_or_else(
             || panic!("Error loading asset: '{id}' does not exist"),
             |asset| asset,
         )

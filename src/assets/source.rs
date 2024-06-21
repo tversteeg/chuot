@@ -5,7 +5,10 @@ use std::{
     str::FromStr,
 };
 
-use crate::Context;
+use crate::{
+    graphics::{atlas::TextureRef, Graphics},
+    Context,
+};
 
 use super::{
     loader::{png::PngReader, Loader},
@@ -18,10 +21,6 @@ static RUNTIME_EMBEDDED_ASSETS: &[EmbeddedRawAsset] = &[];
 /// Source of all assets.
 #[allow(clippy::exhaustive_structs)]
 pub struct AssetSource {
-    /// Reference to the context.
-    ///
-    /// `None` until initialized.
-    pub(crate) ctx: Option<Context>,
     /// Path to the directory of all assets.
     ///
     /// Not set when using the `embed-assets` feature flag, because all assets will be embedded into the binary.
@@ -42,10 +41,8 @@ impl AssetSource {
         let runtime_asset_dir = None;
         let embedded_assets = RUNTIME_EMBEDDED_ASSETS;
         let embedded_atlas = EmbeddedRawStaticAtlas::default();
-        let ctx = None;
 
         Self {
-            ctx,
             runtime_asset_dir,
             embedded_assets,
             embedded_atlas,
@@ -115,16 +112,6 @@ impl AssetSource {
         } else {
             None
         }
-    }
-
-    /// Upload a texture to the GPU.
-    ///
-    /// # Returns
-    ///
-    /// - A texture ID that can be used to reference this texture.
-    #[inline]
-    pub fn upload_texture(&self, png: PngReader) -> i32 {
-        todo!()
     }
 }
 

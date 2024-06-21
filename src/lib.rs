@@ -5,7 +5,6 @@ pub mod config;
 pub mod context;
 mod graphics;
 
-use assets::{source::AssetSource, Assets};
 pub use config::Config;
 pub use context::Context;
 
