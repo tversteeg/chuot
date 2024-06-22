@@ -49,12 +49,7 @@ impl Context {
     #[inline]
     #[must_use]
     pub fn size(&self) -> (f32, f32) {
-        self.read(|ctx| {
-            (
-                ctx.graphics.config.width as f32,
-                ctx.graphics.config.height as f32,
-            )
-        })
+        self.read(|ctx| (ctx.graphics.buffer_width, ctx.graphics.buffer_height))
     }
 
     /// Show the OS cursor or hide it.
@@ -149,7 +144,7 @@ impl ContextInner {
         let window = Arc::new(window);
 
         // Setup the initial graphics
-        let graphics = Graphics::new(&config, Arc::clone(&window)).await;
+        let graphics = Graphics::new(config.clone(), Arc::clone(&window)).await;
 
         // Load the assets
         let asset_source = AssetSource::new().with_runtime_dir("assets");
