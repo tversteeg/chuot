@@ -35,24 +35,33 @@ const ATTRIBUTES: &[wgpu::VertexAttribute] = &[
 #[derive(Debug, Default, Copy, Clone, Pod, Zeroable)]
 struct Instance {
     /// Rotation and skewing.
-    matrix: Mat2,
-    /// Translation.
-    translation: Vec2,
+    matrix: [f32; 4],
+    /// Translation aka position on the screen.
+    translation: [f32; 2],
     /// Rectangle within the texture to render.
-    sub_rectangle: Vec4,
+    sub_rectangle: [f32; 4],
     /// Texture to render.
-    texture_ref: u16,
+    texture_ref: TextureRef,
     /// Empty padding.
     _padding: [u8; 6],
 }
 
-impl From<(Affine2, Vec4, TextureRef)> for Instance {
-    fn from((transformation, sub_rectangle, texture_ref): (Affine2, Vec4, TextureRef)) -> Self {
-        Self {
+impl Instance {
+    /// Create from the types used by the rest of the API.
+    pub(crate) fn new(
+        transformation: Affine2,
+        sub_rectangle: (f32, f32, f32, f32),
+        texture_ref: TextureRef,
+    ) -> Self {
+        let matrix = transformation.matrix2.to_cols_array();
+        let translation = transformation.translation.into();
+        let sub_rectangle = sub_rectangle.into();
+
+        Instance {
+            matrix,
+            translation,
             sub_rectangle,
             texture_ref,
-            matrix: transformation.matrix2.into(),
-            translation: transformation.translation.into(),
             ..Default::default()
         }
     }
@@ -71,15 +80,21 @@ impl Instances {
         &mut self,
         transformation: Affine2,
         sub_rectangle: (f32, f32, f32, f32),
-        atlas_ref: TextureRef,
+        texture_ref: TextureRef,
     ) {
         self.0
-            .push((transformation, sub_rectangle.into(), atlas_ref).into());
+            .push(Instance::new(transformation, sub_rectangle, texture_ref));
     }
 
     /// Push an iterator of instances to draw this frame.
-    pub(crate) fn extend(&mut self, items: impl Iterator<Item = (Affine2, Vec4, TextureRef)>) {
-        self.0.extend(items.map(Into::<Instance>::into));
+    pub(crate) fn extend(
+        &mut self,
+        items: impl Iterator<Item = (Affine2, (f32, f32, f32, f32), TextureRef)>,
+    ) {
+        self.0
+            .extend(items.map(|(transformation, sub_rectangle, texture_ref)| {
+                Instance::new(transformation, sub_rectangle, texture_ref)
+            }));
     }
 
     /// Remove all items.

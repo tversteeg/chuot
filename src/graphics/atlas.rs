@@ -168,7 +168,7 @@ impl Atlas {
         // Push the newly packed dimensions to the uniform buffer, returning the reference to it
         let uniform_index = self
             .rects
-            .push_immediately(&[x as f32, y as f32, width as f32, height as f32], queue);
+            .push(&[x as f32, y as f32, width as f32, height as f32], queue);
 
         uniform_index as TextureRef
     }

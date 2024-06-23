@@ -14,7 +14,7 @@ use winit::{
     application::ApplicationHandler,
     dpi::{LogicalSize, PhysicalSize},
     event::WindowEvent,
-    event_loop::{ActiveEventLoop, EventLoop},
+    event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
     window::{WindowAttributes, WindowId},
 };
 
@@ -221,8 +221,13 @@ impl<G: Game> ApplicationHandler<()> for State<G> {
                 // Call the user render function with the context
                 self.game.render(ctx.clone());
 
-                // Draw the window and GPU graphics
-                ctx.write(|ctx| ctx.graphics.render());
+                ctx.write(|ctx| {
+                    // Draw the window and GPU graphics
+                    ctx.graphics.render();
+
+                    // Request another frame for the window
+                    ctx.window.request_redraw();
+                });
             }
             // Resize the render surface
             WindowEvent::Resized(PhysicalSize { width, height }) => {
@@ -235,7 +240,13 @@ impl<G: Game> ApplicationHandler<()> for State<G> {
                 });
             }
             // Close the window if requested
-            WindowEvent::CloseRequested => event_loop.exit(),
+            WindowEvent::CloseRequested => {
+                // Destroy the context
+                self.ctx = None;
+
+                // Tell winit that we want to exit
+                event_loop.exit();
+            }
             _ => (),
         }
     }
@@ -250,8 +261,12 @@ fn run(game: impl Game, config: Config) {
     // Context must be initialized later when creating the window
     let context = None;
 
-    // Create an event loop that injects the game struct into the window
-    let _ = EventLoop::new().unwrap().run_app(&mut State {
+    // Create a polling event loop, which redraws the window whenever possible
+    let event_loop = EventLoop::new().unwrap();
+    event_loop.set_control_flow(ControlFlow::Poll);
+
+    // Run the game
+    let _ = event_loop.run_app(&mut State {
         ctx: context,
         game,
         config,

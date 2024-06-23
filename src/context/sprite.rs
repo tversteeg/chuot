@@ -62,8 +62,15 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
     pub fn draw(self) {
         self.ctx.write(|ctx| {
             // Push the instance if the texture is already uploaded
-            ctx.sprite(self.path);
-            // .draw(self.position, self.rotation, &mut ctx.instances);
+            let sprite = ctx.sprite(self.path);
+
+            // Create the affine matrix
+            let affine_matrix = sprite.affine_matrix(self.x, self.y, self.rotation);
+
+            // Push the graphics
+            ctx.graphics
+                .instances
+                .push(affine_matrix, sprite.sub_rectangle, sprite.texture);
         });
     }
 

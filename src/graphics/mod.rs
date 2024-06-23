@@ -82,12 +82,10 @@ impl Graphics {
             buffer_height,
             scaling,
             vsync,
-            title,
             viewport_color,
             background_color,
             rotation_algorithm,
-            max_frame_time_secs,
-            update_delta_time,
+            ..
         }: Config,
         window: Arc<Window>,
     ) -> Self {
@@ -291,24 +289,24 @@ impl Graphics {
             surface,
             queue,
             surface_config,
+            render_pipeline,
+            vertex_buffer,
+            index_buffer,
+            instance_buffer,
             atlas,
             buffer_width,
             buffer_height,
             screen_info,
             downscale,
+            instances,
             letterbox,
             background_color,
             viewport_color,
-            render_pipeline,
-            vertex_buffer,
-            index_buffer,
-            instance_buffer,
-            instances,
         }
     }
 
     /// Render to the GPU and window.
-    pub(crate) fn render(&self) {
+    pub(crate) fn render(&mut self) {
         // Create the encoder
         let mut encoder = self
             .device
@@ -317,7 +315,7 @@ impl Graphics {
             });
 
         // Get the main render texture
-        let surface_texture = { self.surface.get_current_texture().unwrap() };
+        let surface_texture = self.surface.get_current_texture().unwrap();
 
         // Create a texture view from the main render texture
         let surface_view = surface_texture
@@ -325,14 +323,12 @@ impl Graphics {
             .create_view(&wgpu::TextureViewDescriptor::default());
 
         // Determine whether we need a downscale pass, we know this if the letterbox is at position zero it fits exactly
-        let needs_downscale_pass =
-            !cfg!(target_arch = "wasm32") && (self.letterbox.0 != 0.0 || self.letterbox.1 != 0.0);
-
         // If we need a downscale pass use that as the texture target, otherwise use the framebuffer directly
-        let target_texture_view = needs_downscale_pass.then_some(&self.downscale.texture_view);
+        if !cfg!(target_arch = "wasm32") && (self.letterbox.0 != 0.0 || self.letterbox.1 != 0.0) {
+            // First pass, render all instances
+            self.render_instances(&mut encoder, None);
 
-        // Second optional pass, render the custom buffer to the viewport
-        if needs_downscale_pass {
+            // Second optional pass, render the custom buffer to the viewport
             self.downscale.render(
                 &mut encoder,
                 &surface_view,
@@ -340,6 +336,9 @@ impl Graphics {
                 Some(self.letterbox),
                 self.viewport_color,
             );
+        } else {
+            // Single pass, render all instances directly to the window
+            self.render_instances(&mut encoder, Some(&surface_view));
         }
 
         // Send all the queued items to draw to the surface texture
@@ -422,7 +421,11 @@ impl Graphics {
     }
 
     /// Render the instances if applicable.
-    fn render_instances(&mut self, encoder: &mut wgpu::CommandEncoder, view: &wgpu::TextureView) {
+    fn render_instances(
+        &mut self,
+        encoder: &mut wgpu::CommandEncoder,
+        custom_view: Option<&wgpu::TextureView>,
+    ) {
         if self.instances.is_empty() {
             // Nothing to render when there's no instances
             return;
@@ -457,7 +460,7 @@ impl Graphics {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Main Render Pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view,
+                    view: custom_view.unwrap_or(&self.downscale.texture_view),
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(self.background_color),
@@ -496,6 +499,9 @@ impl Graphics {
             self.queue
                 .write_buffer(&self.instance_buffer, 0, instances_bytes);
         }
+
+        // Clear the instances to write a new frame
+        self.instances.clear();
     }
 }
 

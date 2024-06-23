@@ -36,7 +36,7 @@ impl Loader<PngReader> for PngLoader {
             .set_transformations(Transformations::normalize_to_color8() | Transformations::ALPHA);
 
         // Start parsing the PNG
-        let reader = decoder.read_info().expect("Error reading PNG");
+        let reader = decoder.read_info().unwrap();
 
         // Ensure we can use the PNG colors
         let (color_type, bits) = reader.output_color_type();
