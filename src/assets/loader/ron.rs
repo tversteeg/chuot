@@ -1,6 +1,6 @@
 //! RON asset loading.
 
-use nanoserde::{DeRon, DeRonState};
+use nanoserde::DeRon;
 
 use super::Loader;
 
@@ -14,16 +14,9 @@ impl<T: DeRon> Loader<T> for RonLoader {
     #[inline]
     fn load(bytes: &[u8]) -> T {
         // Convert raw bytes to a valid UTF-8 string
-        let string = String::from_utf8(bytes.to_vec())
-            .expect("Error parsing file due to invalid UTF-8 bytes");
-
-        // Get an iterator over the characters
-        let mut string_chars = string.chars();
-
-        // RON deserialization state
-        let mut state = DeRonState::default();
+        let string = String::from_utf8(bytes.to_vec()).unwrap();
 
         // Deserialize the RON
-        T::de_ron(&mut state, &mut string_chars).expect("Error parsing RON file")
+        DeRon::deserialize_ron(&string).unwrap()
     }
 }

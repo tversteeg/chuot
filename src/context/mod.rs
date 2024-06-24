@@ -82,6 +82,50 @@ impl Context {
     }
 }
 
+/// Game state methods.
+impl Context {
+    /// Get the delta time in seconds for the update tick.
+    ///
+    /// This is a constant set by [`Config::with_update_delta_time`].
+    ///
+    /// # Returns
+    ///
+    /// - Seconds a single update tick took, this is a constant.
+    #[inline]
+    #[must_use]
+    pub fn delta_time(&self) -> f32 {
+        self.read(|ctx| ctx.config.update_delta_time)
+    }
+
+    /// Get the amount of frames drawn in a second.
+    ///
+    /// This counts the times [`crate::Game::render`] is called.
+    ///
+    /// # Returns
+    ///
+    /// - Frames per second drawn.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use chuot::{Context, KeyCode, glamour::Vector2};
+    ///
+    /// # struct Empty; impl Empty {
+    /// // In `PixelGame::render` trait implementation
+    /// // ..
+    /// fn render(&mut self, ctx: Context) {
+    ///   // Draw a simple FPS counter on the top-left of the screen
+    ///   let fps = ctx.delta_time().recip();
+    ///   ctx.text("Beachball", &format!("{:.1}", ctx.frames_per_second())).draw();
+    /// }
+    /// # }
+    #[inline]
+    #[must_use]
+    pub fn frames_per_second(&self) -> f32 {
+        self.read(|ctx| ctx.frames_per_second)
+    }
+}
+
 /// Internally used methods.
 impl Context {
     /// Create a new empty context.
@@ -125,6 +169,10 @@ pub struct ContextInner {
     pub(crate) window: Arc<Window>,
     /// Graphics state.
     pub(crate) graphics: Graphics,
+    /// Frames per second for the render tick.
+    pub(crate) frames_per_second: f32,
+    /// Interpolation alpha for the render tick.
+    pub(crate) blending_factor: f32,
     /// User supplied game configuration.
     config: Config,
     /// Sprite assets.
@@ -153,10 +201,16 @@ impl ContextInner {
         let audio = AssetManager::default();
         let custom = CustomAssetManager::default();
 
+        // Define default values for the timing functions
+        let frames_per_second = 0.0;
+        let blending_factor = 0.0;
+
         Self {
             asset_source,
             window,
             graphics,
+            frames_per_second,
+            blending_factor,
             config,
             sprites,
             fonts,

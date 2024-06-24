@@ -1,7 +1,7 @@
 //! Type for exposing instancing functionality in the [`crate::graphics::Render`] trait.
 
 use bytemuck::{Pod, Zeroable};
-use glam::{Affine2, Mat2, Vec2, Vec4};
+use glam::Affine2;
 
 use super::atlas::TextureRef;
 
@@ -35,7 +35,7 @@ const ATTRIBUTES: &[wgpu::VertexAttribute] = &[
 #[derive(Debug, Default, Copy, Clone, Pod, Zeroable)]
 struct Instance {
     /// Rotation and skewing.
-    matrix: [f32; 4],
+    matrix: [[f32; 2]; 2],
     /// Translation aka position on the screen.
     translation: [f32; 2],
     /// Rectangle within the texture to render.
@@ -53,11 +53,11 @@ impl Instance {
         sub_rectangle: (f32, f32, f32, f32),
         texture_ref: TextureRef,
     ) -> Self {
-        let matrix = transformation.matrix2.to_cols_array();
+        let matrix = transformation.matrix2.to_cols_array_2d();
         let translation = transformation.translation.into();
         let sub_rectangle = sub_rectangle.into();
 
-        Instance {
+        Self {
             matrix,
             translation,
             sub_rectangle,

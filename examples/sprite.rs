@@ -2,9 +2,9 @@
 //!
 //! The sprite image for this example is:
 //! {{ img(src="/assets/threeforms.png" alt="Font") }}
-//! With the following TOML:
-//! ```toml
-//! offset = "Middle"
+//! With the following RON configuration for positioning the center of the sprite:
+//! ```ron
+//! (offset: Middle)
 //! ```
 
 use chuot::{Config, Context, Game};

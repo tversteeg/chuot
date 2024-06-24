@@ -133,7 +133,6 @@ impl Graphics {
         let surface_config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format: PREFERRED_TEXTURE_FORMAT,
-            // Will be set by scaling
             width,
             height,
             present_mode: if vsync {
@@ -249,7 +248,7 @@ impl Graphics {
         ];
 
         // Indices for a rectangle
-        let indices = [0, 1, 3, 3, 1, 2];
+        let indices: [u16; 6] = [0, 1, 3, 3, 1, 2];
 
         // Create the vertex buffer
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {

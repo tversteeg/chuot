@@ -1,6 +1,9 @@
 //! Zero-cost abstraction types for building more complicated sprite drawing constructions.
 
-use crate::{assets::Id, Context};
+use crate::{
+    assets::{loadable::sprite::Sprite, Id},
+    Context,
+};
 
 /// Specify how a sprite should be drawn.
 ///
@@ -133,6 +136,36 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
         });
     }
 
+    /// Create a new empty sprite at runtime.
+    ///
+    /// # Arguments
+    ///
+    /// * `(width, height)` - Size tuple of the new sprite in pixels.
+    ///
+    /// # Returns
+    ///
+    /// - Instance of this context so it can be chained for further operations.
+    ///
+    /// # Panics
+    ///
+    /// - When a sprite with the same ID already exists.
+    #[inline]
+    #[allow(clippy::return_self_not_must_use)]
+    pub fn new(self, size: impl Into<(f32, f32)>, pixels: impl AsRef<[u32]>) -> Self {
+        let (width, height) = size.into();
+        let pixels = pixels.as_ref();
+
+        self.ctx.write(|ctx| {
+            // Create the sprite
+            let asset = Sprite::new_and_upload(width, height, pixels, ctx);
+
+            // Register the sprite
+            ctx.sprites.insert(Id::new(self.path), asset);
+        });
+
+        self
+    }
+
     /// Update the pixels of a portion of the sprite.
     ///
     /// # Arguments
@@ -149,21 +182,22 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
     pub fn update_pixels(
         self,
         sub_rectangle: impl Into<(f32, f32, f32, f32)>,
-        pixels: impl Into<Vec<u32>>,
+        pixels: impl AsRef<[u32]>,
     ) {
+        let sub_rectangle = sub_rectangle.into();
+        let pixels = pixels.as_ref();
+
         self.ctx.write(|ctx| {
             // Get the sprite
             let sprite = ctx.sprite(self.path);
 
-            // Put the update the pixels of the sprite on a queue
-            /*
-            ctx.texture_update_queue.push((
-                sprite.image.atlas_id,
-                sub_rectangle.into(),
-                pixels.into(),
-            ));
-            */
-            todo!()
+            // Push the sprite pixels to the GPU
+            ctx.graphics.atlas.update_pixels(
+                sprite.texture,
+                sub_rectangle,
+                pixels,
+                &ctx.graphics.queue,
+            );
         });
     }
 
@@ -210,29 +244,6 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
         // self.ctx.write(|ctx| ctx.assets.sprite(self.path).size())
 
         todo!()
-    }
-
-    /// Create a new empty sprite at runtime.
-    ///
-    /// # Arguments
-    ///
-    /// * `(width, height)` - Size tuple of the new sprite in pixels.
-    ///
-    /// # Returns
-    ///
-    /// - Instance of this context so it can be chained for further operations.
-    ///
-    /// # Panics
-    ///
-    /// - When a sprite with the same ID already exists.
-    #[inline]
-    #[must_use]
-    pub fn new(self, size: impl Into<(f32, f32)>) -> Self {
-        let id = Id::new(self.path);
-
-        self.ctx.write(|ctx| {});
-
-        self
     }
 }
 

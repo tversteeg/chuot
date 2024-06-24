@@ -1,6 +1,6 @@
 //! Branchless scale3x inspired by https://www.shadertoy.com/view/4l2SRz
 //!
-//! This shader applies a novel single-pass rotsprite rotation by using UV subpixel relative coordinates to "downscale" an "upscaled" Scale4X sample.
+//! This shader applies a novel single-pass rotsprite rotation by using UV subpixel relative coordinates to "downscale" an "upscaled" sample.
 
 // Size of both width and height of the atlas texture
 const ATLAS_TEXTURE_SIZE: f32 = 4096.0;
@@ -20,7 +20,7 @@ struct TextureInfo {
 
 struct ScreenInfo {
     @location(0) size: vec2<f32>,
-    // WASM needs to types to be aligned to 16 bytes
+    // WASM needs the types to be aligned to 16 bytes
     @location(1) _padding: vec2<f32>,
 }
 

@@ -18,6 +18,9 @@ use winit::{
     window::{WindowAttributes, WindowId},
 };
 
+/// How fast old FPS values decay in the smoothed average.
+const FPS_SMOOTHED_AVERAGE_ALPHA: f32 = 0.8;
+
 /// Main entrypoint containing game state for running the game.
 ///
 /// This is the main interface with the game engine.
@@ -217,6 +220,17 @@ impl<G: Game> ApplicationHandler<()> for State<G> {
                     // Mark this tick as executed
                     self.accumulator -= self.config.update_delta_time;
                 }
+
+                ctx.write(|ctx| {
+                    // Set the blending factor
+                    ctx.blending_factor = self.accumulator / self.config.update_delta_time;
+
+                    // Set the FPS with a smoothed average function
+                    ctx.frames_per_second = FPS_SMOOTHED_AVERAGE_ALPHA.mul_add(
+                        ctx.frames_per_second,
+                        (1.0 - FPS_SMOOTHED_AVERAGE_ALPHA) * frame_time.recip(),
+                    );
+                });
 
                 // Call the user render function with the context
                 self.game.render(ctx.clone());
