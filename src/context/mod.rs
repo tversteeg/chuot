@@ -1,6 +1,10 @@
 //! Main interface with the game.
 
 pub mod sprite;
+pub mod text;
+
+/// Re-exported `winit` types for [`crate::Context`] arguments.
+pub use winit::{event::MouseButton, keyboard::KeyCode};
 
 use std::{cell::RefCell, rc::Rc, sync::Arc};
 
@@ -14,6 +18,7 @@ use crate::{
     },
     config::Config,
     graphics::Graphics,
+    input::Input,
 };
 
 /// Context containing most functionality for interfacing with the game engine.
@@ -126,6 +131,312 @@ impl Context {
     }
 }
 
+/// Mouse input methods.
+impl Context {
+    /// Get the position if the mouse is inside the viewport frame.
+    ///
+    /// This is `Some(..`) if the mouse is inside the viewport frame, not the entire window.
+    /// The value of the coordinates corresponds to the pixel, when the frame is scaled this also encodes the subpixel in the fractional part.
+    ///
+    /// # Returns
+    ///
+    /// - `None` when the mouse is not on the buffer of pixels.
+    /// - `Some(..)` with the coordinates of the pixel if the mouse is on the buffer of pixels.
+    #[inline]
+    #[must_use]
+    pub fn mouse(&self) -> Option<(f32, f32)> {
+        self.read(|ctx| ctx.input.mouse())
+    }
+
+    /// Whether the mouse button goes from "not pressed" to "pressed".
+    ///
+    /// # Arguments
+    ///
+    /// * `mouse_button` - Mouse button to check the state of.
+    ///
+    /// # Returns
+    ///
+    /// - `true` when the mouse is pressed.
+    #[inline]
+    #[must_use]
+    pub fn mouse_pressed(&self, mouse_button: MouseButton) -> bool {
+        self.read(|ctx| ctx.input.mouse_pressed(mouse_button))
+    }
+
+    /// Whether the mouse button goes from "pressed" to "not pressed".
+    ///
+    /// # Arguments
+    ///
+    /// * `mouse_button` - Mouse button to check the state of.
+    ///
+    /// # Returns
+    ///
+    /// - `true` when the mouse is released.
+    #[inline]
+    #[must_use]
+    pub fn mouse_released(&self, mouse_button: MouseButton) -> bool {
+        self.read(|ctx| ctx.input.mouse_released(mouse_button))
+    }
+
+    /// Whether the mouse button is in a "pressed" state.
+    ///
+    /// # Arguments
+    ///
+    /// * `mouse_button` - Mouse button to check the state of.
+    ///
+    /// # Returns
+    ///
+    /// - `true` when the mouse is being held down.
+    #[inline]
+    #[must_use]
+    pub fn mouse_held(&self, mouse_button: MouseButton) -> bool {
+        self.read(|ctx| ctx.input.mouse_held(mouse_button))
+    }
+
+    /// How much the mouse scroll wheel changed in the last update tick.
+    ///
+    /// # Returns
+    ///
+    /// - Vector where the X dimension is horizontal scrolling and the Y dimension vertical scrolling.
+    #[inline]
+    #[must_use]
+    pub fn scroll_delta(&self) -> (f32, f32) {
+        self.read(|ctx| ctx.input.scroll_diff())
+    }
+}
+
+/// Keyboard input methods.
+impl Context {
+    /// Whether the key goes from "not pressed" to "pressed".
+    ///
+    /// Uses physical keys in the US layout, so for example the W key will be in the same physical key on both US and french keyboards.
+    ///
+    /// # Arguments
+    ///
+    /// * `keycode` - Key to check the state of.
+    ///
+    /// # Returns
+    ///
+    /// - `true` when the specified key is pressed.
+    #[inline]
+    #[must_use]
+    pub fn key_pressed(&self, keycode: KeyCode) -> bool {
+        self.read(|ctx| ctx.input.key_pressed(keycode))
+    }
+
+    /// Whether the key goes from "pressed" to "not pressed".
+    ///
+    /// Uses physical keys in the US layout, so for example the W key will be in the same physical key on both US and french keyboards.
+    ///
+    /// # Arguments
+    ///
+    /// * `keycode` - Key to check the state of.
+    ///
+    /// # Returns
+    ///
+    /// - `true` when the specified key is released.
+    #[inline]
+    #[must_use]
+    pub fn key_released(&self, keycode: KeyCode) -> bool {
+        self.read(|ctx| ctx.input.key_released(keycode))
+    }
+
+    /// Whether the key is in a "pressed" state.
+    ///
+    /// Uses physical keys in the US layout, so for example the W key will be in the same physical key on both US and french keyboards.
+    ///
+    /// # Arguments
+    ///
+    /// * `keycode` - Key to check the state of.
+    ///
+    /// # Returns
+    ///
+    /// - `true` when the specified key is being held.
+    #[inline]
+    #[must_use]
+    pub fn key_held(&self, keycode: KeyCode) -> bool {
+        self.read(|ctx| ctx.input.key_held(keycode))
+    }
+}
+
+/*
+/// Gamepad input methods.
+impl Context {
+    /// List all connected gamepads.
+    ///
+    /// Required for querying gamepad state and handling input in the other functions.
+    ///
+    /// The array is stack allocated up to 4 connected gamepads, after that it will be heap allocated.
+    ///
+    /// # Returns
+    ///
+    /// - Stack allocated array of all currently connected gamepad IDs.
+    #[inline]
+    #[must_use]
+    pub fn gamepads_ids(&self) -> SmallVec<[GamepadId; 4]> {
+        self.read(|ctx| ctx.gilrs.gamepads().map(|(id, _gamepad)| id).collect())
+    }
+
+    /// Whether a gamepad button goes from "not pressed" to "pressed".
+    ///
+    /// # Arguments
+    ///
+    /// * `gamepad_id` - ID of the gamepad to check the button of, must be retrieved with [`Context::gamepad_ids`].
+    /// * `button` - Which button on the gamepad to check.
+    ///
+    /// # Returns
+    ///
+    /// - `None` when gamepad is not found or is disconnected.
+    /// - `Some(true)` when gamepad button is being pressed this update tick.
+    #[inline]
+    #[must_use]
+    pub fn gamepad_button_pressed(&self, gamepad_id: GamepadId, button: Button) -> Option<bool> {
+        self.read(|ctx| {
+            ctx.gilrs.connected_gamepad(gamepad_id).and_then(|gamepad| {
+                gamepad.button_data(button).map(|button_data| {
+                    // The counter is updated once per update loop so we can keep track of that to ensure that the button only now changed state
+                    button_data.is_pressed() && button_data.counter() == ctx.gilrs.counter()
+                })
+            })
+        })
+    }
+
+    /// Whether a gamepad button goes from "pressed" to "not pressed".
+    ///
+    /// # Arguments
+    ///
+    /// * `gamepad_id` - ID of the gamepad to check the button of, must be retrieved with [`Context::gamepad_ids`].
+    /// * `button` - Which button on the gamepad to check.
+    ///
+    /// # Returns
+    ///
+    /// - `None` when gamepad is not found or is disconnected.
+    /// - `Some(true)` when gamepad button is being released this update tick.
+    #[inline]
+    #[must_use]
+    pub fn gamepad_button_released(&self, gamepad_id: GamepadId, button: Button) -> Option<bool> {
+        self.read(|ctx| {
+            ctx.gilrs.connected_gamepad(gamepad_id).and_then(|gamepad| {
+                gamepad.button_data(button).map(|button_data| {
+                    // The counter is updated once per update loop so we can keep track of that to ensure that the button only now changed state
+                    !button_data.is_pressed() && button_data.counter() == ctx.gilrs.counter()
+                })
+            })
+        })
+    }
+
+    /// Whether a gamepad button is in a "pressed" state.
+    ///
+    /// # Arguments
+    ///
+    /// * `gamepad_id` - ID of the gamepad to check the button of, must be retrieved with [`Context::gamepad_ids`].
+    /// * `button` - Which button on the gamepad to check.
+    ///
+    /// # Returns
+    ///
+    /// - `None` when gamepad is not found or is disconnected.
+    /// - `Some(true)` when gamepad button is being pressed.
+    /// - `Some(false)` when gamepad button is released.
+    #[inline]
+    #[must_use]
+    pub fn gamepad_button_held(&self, gamepad_id: GamepadId, button: Button) -> Option<bool> {
+        self.read(|ctx| {
+            ctx.gilrs
+                .connected_gamepad(gamepad_id)
+                .map(|gamepad| gamepad.is_pressed(button))
+        })
+    }
+
+    /// "Value" of a gamepad button between 0.0 and 1.0.
+    ///
+    /// Used for triggers.
+    ///
+    /// # Arguments
+    ///
+    /// * `gamepad_id` - ID of the gamepad to check the button of, must be retrieved with [`Context::gamepad_ids`].
+    /// * `button` - Which button element on the gamepad to check.
+    ///
+    /// # Returns
+    ///
+    /// - `None` when gamepad is not found or is disconnected.
+    /// - `Some(0.0)` when gamepad axis element is not moved.
+    /// - `Some(1.0)` when gamepad axis element is fully engaged.
+    #[inline]
+    #[must_use]
+    pub fn gamepad_button_value(&self, gamepad_id: GamepadId, button: Button) -> Option<f32> {
+        self.read(|ctx| {
+            ctx.gilrs
+                .connected_gamepad(gamepad_id)
+                .and_then(|gamepad| gamepad.button_data(button).map(ButtonData::value))
+        })
+    }
+
+    /// "Value" of a gamepad element between -1.0 and 1.0.
+    ///
+    /// Used for sticks.
+    ///
+    /// # Arguments
+    ///
+    /// * `gamepad_id` - ID of the gamepad to check the axis of, must be retrieved with [`Context::gamepad_ids`].
+    /// * `axis` - Which axis element on the gamepad to check.
+    ///
+    /// # Returns
+    ///
+    /// - `None` when gamepad is not found or is disconnected.
+    /// - `Some(0.0)` when gamepad axis element is not moved.
+    /// - `Some(1.0)` when gamepad axis element is fully engaged.
+    /// - `Some(-1.0)` when gamepad axis element is fully negatively engaged, for example a horizontal axis being moved left.
+    #[inline]
+    #[must_use]
+    pub fn gamepad_axis(&self, gamepad_id: GamepadId, axis: Axis) -> Option<f32> {
+        self.read(|ctx| {
+            ctx.gilrs
+                .connected_gamepad(gamepad_id)
+                .and_then(|gamepad| gamepad.axis_data(axis).map(AxisData::value))
+        })
+    }
+}
+*/
+
+/// Generic asset loading.
+impl Context {
+    /// Load a read-only reference to a custom defined asset.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Asset path of the custom asset, see [`Self`] for more information about asset loading and storing.
+    ///
+    /// # Panics
+    ///
+    /// - When asset with path does not exist.
+    /// - When asset could not be loaded due to an invalid format.
+    #[inline]
+    pub fn asset<T>(&self, path: impl AsRef<str>) -> Rc<T>
+    where
+        T: Loadable,
+    {
+        self.write(|ctx| ctx.custom(path.as_ref()))
+    }
+
+    /// Load a clone of a custom defined asset.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Asset path of the custom asset, see [`Self`] for more information about asset loading and storing.
+    ///
+    /// # Panics
+    ///
+    /// - When asset with path does not exist.
+    /// - When asset could not be loaded due to an invalid format.
+    #[inline]
+    pub fn asset_owned<T>(&self, path: impl AsRef<str>) -> T
+    where
+        T: Loadable + Clone,
+    {
+        self.write(|ctx| ctx.custom_owned(path.as_ref()))
+    }
+}
+
 /// Internally used methods.
 impl Context {
     /// Create a new empty context.
@@ -173,6 +484,8 @@ pub struct ContextInner {
     pub(crate) frames_per_second: f32,
     /// Interpolation alpha for the render tick.
     pub(crate) blending_factor: f32,
+    /// Input manager.
+    pub(crate) input: Input,
     /// User supplied game configuration.
     config: Config,
     /// Sprite assets.
@@ -205,6 +518,9 @@ impl ContextInner {
         let frames_per_second = 0.0;
         let blending_factor = 0.0;
 
+        // Default input values and state
+        let input = Input::default();
+
         Self {
             asset_source,
             window,
@@ -216,6 +532,7 @@ impl ContextInner {
             fonts,
             audio,
             custom,
+            input,
         }
     }
 

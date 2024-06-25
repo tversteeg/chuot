@@ -247,9 +247,7 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
     }
 }
 
-/// Render methods.
-///
-/// All methods use a `path` as the first argument, which is then used to retrieve the assets when they haven't been loaded before..
+/// Render methods for sprites.
 impl Context {
     /// Handle sprite assets, mostly used for drawing.
     ///

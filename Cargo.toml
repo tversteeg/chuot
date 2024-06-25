@@ -45,12 +45,12 @@ nanoserde = "0.1.37"
 png = "0.17.13"
 pollster = "0.3.0"
 smol_str = "0.2.2"
-wgpu = "0.20.1"
+wgpu = { version = "0.20.1", default-features = false, features = ["wgsl"] }
 winit = "0.30.3"
 
 [build-dependencies]
 wgsl-minifier = "0.5.0"
-naga = { version = "0.20.0", features = ["wgsl-in", "wgsl-out"] }
+naga = { version = "0.20.0", default-features = false, features = ["wgsl-in", "wgsl-out"] }
 
 [workspace]
 members = ["crates/macros", "crates/packer", "run-wasm"]

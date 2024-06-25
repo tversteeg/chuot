@@ -4,6 +4,7 @@ pub mod assets;
 pub mod config;
 pub mod context;
 mod graphics;
+mod input;
 
 pub use config::Config;
 pub use context::Context;
@@ -219,6 +220,11 @@ impl<G: Game> ApplicationHandler<()> for State<G> {
 
                     // Mark this tick as executed
                     self.accumulator -= self.config.update_delta_time;
+
+                    ctx.write(|ctx| {
+                        // Update the input so pressed and released events can be handled
+                        ctx.input.update();
+                    });
                 }
 
                 ctx.write(|ctx| {
@@ -261,7 +267,8 @@ impl<G: Game> ApplicationHandler<()> for State<G> {
                 // Tell winit that we want to exit
                 event_loop.exit();
             }
-            _ => (),
+            // Handle other window events with the input manager
+            other => ctx.write(|ctx| ctx.input.handle_event(other, &ctx.graphics)),
         }
     }
 }
