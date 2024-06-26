@@ -19,7 +19,7 @@ include = ["/src", "build.rs", "/shaders"]
 
 [package.metadata.docs.rs]
 # Only enable features that actually expose APIs
-features = ["dialogue"]
+features = []
 # Supported platforms
 targets = [
 	# Linux (X11 & Wayland)
@@ -47,6 +47,8 @@ pollster = "0.3.0"
 smol_str = "0.2.2"
 wgpu = { version = "0.20.1", default-features = false, features = ["wgsl"] }
 winit = "0.30.3"
+gilrs = "0.10.7"
+smallvec = { version = "1.13.2", features = ["const_new", "union"] }
 
 [build-dependencies]
 wgsl-minifier = "0.5.0"

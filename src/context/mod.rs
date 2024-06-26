@@ -3,7 +3,11 @@
 pub mod sprite;
 pub mod text;
 
-/// Re-exported `winit` types for [`crate::Context`] arguments.
+/// Re-exported `gilrs` types for [`Context`] arguments.
+pub use gilrs::ev::{Axis, Button};
+use gilrs::GamepadId;
+use smallvec::SmallVec;
+/// Re-exported `winit` types for [`Context`] arguments.
 pub use winit::{event::MouseButton, keyboard::KeyCode};
 
 use std::{cell::RefCell, rc::Rc, sync::Arc};
@@ -259,7 +263,6 @@ impl Context {
     }
 }
 
-/*
 /// Gamepad input methods.
 impl Context {
     /// List all connected gamepads.
@@ -274,7 +277,7 @@ impl Context {
     #[inline]
     #[must_use]
     pub fn gamepads_ids(&self) -> SmallVec<[GamepadId; 4]> {
-        self.read(|ctx| ctx.gilrs.gamepads().map(|(id, _gamepad)| id).collect())
+        self.read(|ctx| ctx.input.gamepads_ids())
     }
 
     /// Whether a gamepad button goes from "not pressed" to "pressed".
@@ -291,14 +294,7 @@ impl Context {
     #[inline]
     #[must_use]
     pub fn gamepad_button_pressed(&self, gamepad_id: GamepadId, button: Button) -> Option<bool> {
-        self.read(|ctx| {
-            ctx.gilrs.connected_gamepad(gamepad_id).and_then(|gamepad| {
-                gamepad.button_data(button).map(|button_data| {
-                    // The counter is updated once per update loop so we can keep track of that to ensure that the button only now changed state
-                    button_data.is_pressed() && button_data.counter() == ctx.gilrs.counter()
-                })
-            })
-        })
+        self.read(|ctx| ctx.input.gamepad_button_pressed(gamepad_id, button))
     }
 
     /// Whether a gamepad button goes from "pressed" to "not pressed".
@@ -315,14 +311,7 @@ impl Context {
     #[inline]
     #[must_use]
     pub fn gamepad_button_released(&self, gamepad_id: GamepadId, button: Button) -> Option<bool> {
-        self.read(|ctx| {
-            ctx.gilrs.connected_gamepad(gamepad_id).and_then(|gamepad| {
-                gamepad.button_data(button).map(|button_data| {
-                    // The counter is updated once per update loop so we can keep track of that to ensure that the button only now changed state
-                    !button_data.is_pressed() && button_data.counter() == ctx.gilrs.counter()
-                })
-            })
-        })
+        self.read(|ctx| ctx.input.gamepad_button_released(gamepad_id, button))
     }
 
     /// Whether a gamepad button is in a "pressed" state.
@@ -340,11 +329,7 @@ impl Context {
     #[inline]
     #[must_use]
     pub fn gamepad_button_held(&self, gamepad_id: GamepadId, button: Button) -> Option<bool> {
-        self.read(|ctx| {
-            ctx.gilrs
-                .connected_gamepad(gamepad_id)
-                .map(|gamepad| gamepad.is_pressed(button))
-        })
+        self.read(|ctx| ctx.input.gamepad_button_held(gamepad_id, button))
     }
 
     /// "Value" of a gamepad button between 0.0 and 1.0.
@@ -364,11 +349,7 @@ impl Context {
     #[inline]
     #[must_use]
     pub fn gamepad_button_value(&self, gamepad_id: GamepadId, button: Button) -> Option<f32> {
-        self.read(|ctx| {
-            ctx.gilrs
-                .connected_gamepad(gamepad_id)
-                .and_then(|gamepad| gamepad.button_data(button).map(ButtonData::value))
-        })
+        self.read(|ctx| ctx.input.gamepad_button_value(gamepad_id, button))
     }
 
     /// "Value" of a gamepad element between -1.0 and 1.0.
@@ -389,14 +370,9 @@ impl Context {
     #[inline]
     #[must_use]
     pub fn gamepad_axis(&self, gamepad_id: GamepadId, axis: Axis) -> Option<f32> {
-        self.read(|ctx| {
-            ctx.gilrs
-                .connected_gamepad(gamepad_id)
-                .and_then(|gamepad| gamepad.axis_data(axis).map(AxisData::value))
-        })
+        self.read(|ctx| ctx.input.gamepad_axis(gamepad_id, axis))
     }
 }
-*/
 
 /// Generic asset loading.
 impl Context {
@@ -519,7 +495,7 @@ impl ContextInner {
         let blending_factor = 0.0;
 
         // Default input values and state
-        let input = Input::default();
+        let input = Input::new();
 
         Self {
             asset_source,
@@ -527,12 +503,12 @@ impl ContextInner {
             graphics,
             frames_per_second,
             blending_factor,
+            input,
             config,
             sprites,
             fonts,
             audio,
             custom,
-            input,
         }
     }
 

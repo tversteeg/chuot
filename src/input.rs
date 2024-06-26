@@ -1,6 +1,11 @@
 //! Handle different input events.
 
+use gilrs::{
+    ev::state::{AxisData, ButtonData},
+    Axis, Button, GamepadId, Gilrs, GilrsBuilder,
+};
 use hashbrown::HashMap;
+use smallvec::SmallVec;
 use winit::{
     event::{ElementState, MouseButton, MouseScrollDelta, WindowEvent},
     keyboard::{KeyCode, PhysicalKey},
@@ -55,7 +60,6 @@ impl ButtonState {
 }
 
 /// Manager for handling different input events.
-#[derive(Default)]
 pub(crate) struct Input {
     /// Mouse position.
     ///
@@ -69,9 +73,35 @@ pub(crate) struct Input {
     scroll_delta_x: f32,
     /// Vertical scroll delta.
     scroll_delta_y: f32,
+    /// Gamepad input.
+    gilrs: Gilrs,
 }
 
 impl Input {
+    /// Setup the input.
+    pub(crate) fn new() -> Self {
+        let mouse = None;
+        let mouse_buttons = HashMap::new();
+        let keys = HashMap::new();
+        let scroll_delta_x = 0.0;
+        let scroll_delta_y = 0.0;
+
+        let gilrs = GilrsBuilder::new()
+            // Manually handle all updates
+            .set_update_state(false)
+            .build()
+            .unwrap();
+
+        Self {
+            mouse,
+            mouse_buttons,
+            keys,
+            scroll_delta_x,
+            scroll_delta_y,
+            gilrs,
+        }
+    }
+
     /// Handle a winit window event.
     #[inline]
     pub(crate) fn handle_event(&mut self, event: WindowEvent, graphics: &Graphics) {
@@ -129,10 +159,15 @@ impl Input {
     /// Only allowed to be called once per update tick.
     #[inline]
     pub(crate) fn update(&mut self) {
+        // Update all button states, needed to handle "pressed" and "released"
         self.mouse_buttons
             .iter_mut()
             .for_each(|(_, state)| state.update());
         self.keys.iter_mut().for_each(|(_, state)| state.update());
+
+        // Tell the gamepad that we handled all events
+        // This will increase the internal counter we can check on release and on press events with
+        self.gilrs.inc();
     }
 
     /// Check the mouse pressed state for a mouse button.
@@ -209,5 +244,67 @@ impl Input {
         };
 
         key_button_state.held()
+    }
+
+    /// List connected gamepads.
+    #[inline]
+    #[must_use]
+    pub(crate) fn gamepads_ids(&self) -> SmallVec<[GamepadId; 4]> {
+        self.gilrs.gamepads().map(|(id, _gamepad)| id).collect()
+    }
+
+    /// Whether a gamepad button goes from "not pressed" to "pressed".
+    #[inline]
+    #[must_use]
+    pub fn gamepad_button_pressed(&self, gamepad_id: GamepadId, button: Button) -> Option<bool> {
+        self.gilrs
+            .connected_gamepad(gamepad_id)
+            .and_then(|gamepad| {
+                gamepad.button_data(button).map(|button_data| {
+                    // The counter is updated once per update loop so we can keep track of that to ensure that the button only now changed state
+                    button_data.is_pressed() && button_data.counter() == self.gilrs.counter()
+                })
+            })
+    }
+
+    /// Whether a gamepad button goes from "pressed" to "not pressed".
+    #[inline]
+    #[must_use]
+    pub fn gamepad_button_released(&self, gamepad_id: GamepadId, button: Button) -> Option<bool> {
+        self.gilrs
+            .connected_gamepad(gamepad_id)
+            .and_then(|gamepad| {
+                gamepad.button_data(button).map(|button_data| {
+                    // The counter is updated once per update loop so we can keep track of that to ensure that the button only now changed state
+                    !button_data.is_pressed() && button_data.counter() == self.gilrs.counter()
+                })
+            })
+    }
+
+    /// Whether a gamepad button is in a "pressed" state.
+    #[inline]
+    #[must_use]
+    pub fn gamepad_button_held(&self, gamepad_id: GamepadId, button: Button) -> Option<bool> {
+        self.gilrs
+            .connected_gamepad(gamepad_id)
+            .map(|gamepad| gamepad.is_pressed(button))
+    }
+
+    /// "Value" of a gamepad button between 0.0 and 1.0.
+    #[inline]
+    #[must_use]
+    pub fn gamepad_button_value(&self, gamepad_id: GamepadId, button: Button) -> Option<f32> {
+        self.gilrs
+            .connected_gamepad(gamepad_id)
+            .and_then(|gamepad| gamepad.button_data(button).map(ButtonData::value))
+    }
+
+    /// "Value" of a gamepad element between -1.0 and 1.0.
+    #[inline]
+    #[must_use]
+    pub fn gamepad_axis(&self, gamepad_id: GamepadId, axis: Axis) -> Option<f32> {
+        self.gilrs
+            .connected_gamepad(gamepad_id)
+            .and_then(|gamepad| gamepad.axis_data(axis).map(AxisData::value))
     }
 }

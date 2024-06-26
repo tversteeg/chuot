@@ -24,6 +24,32 @@ pub struct SpriteContext<'path, 'ctx> {
 }
 
 impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
+    /// Only move the horizontal position of the sprite.
+    ///
+    /// # Arguments
+    ///
+    /// * `x` - Absolute horizontal position of the target sprite on the buffer in pixels, will be offset by the sprite offset metadata.
+    #[inline(always)]
+    #[must_use]
+    pub fn translate_x(mut self, x: f32) -> Self {
+        self.x += x;
+
+        self
+    }
+
+    /// Only move the vertical position of the sprite.
+    ///
+    /// # Arguments
+    ///
+    /// * `y` - Absolute vertical position of the target sprite on the buffer in pixels, will be offset by the sprite offset metadata.
+    #[inline(always)]
+    #[must_use]
+    pub fn translate_y(mut self, y: f32) -> Self {
+        self.y += y;
+
+        self
+    }
+
     /// Move the position of the sprite.
     ///
     /// # Arguments
@@ -142,16 +168,11 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
     ///
     /// * `(width, height)` - Size tuple of the new sprite in pixels.
     ///
-    /// # Returns
-    ///
-    /// - Instance of this context so it can be chained for further operations.
-    ///
     /// # Panics
     ///
     /// - When a sprite with the same ID already exists.
     #[inline]
-    #[allow(clippy::return_self_not_must_use)]
-    pub fn new(self, size: impl Into<(f32, f32)>, pixels: impl AsRef<[u32]>) -> Self {
+    pub fn create(self, size: impl Into<(f32, f32)>, pixels: impl AsRef<[u32]>) {
         let (width, height) = size.into();
         let pixels = pixels.as_ref();
 
@@ -162,8 +183,6 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
             // Register the sprite
             ctx.sprites.insert(Id::new(self.path), asset);
         });
-
-        self
     }
 
     /// Update the pixels of a portion of the sprite.
@@ -241,6 +260,40 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
     #[inline]
     #[must_use]
     pub fn size(&self) -> (f32, f32) {
+        // self.ctx.write(|ctx| ctx.assets.sprite(self.path).size())
+
+        todo!()
+    }
+
+    /// Get the width of the sprite in pixels.
+    ///
+    /// # Returns
+    ///
+    /// - `width`, horizontal size of the sprite in pixels.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
+    #[inline]
+    #[must_use]
+    pub fn width(&self) -> f32 {
+        // self.ctx.write(|ctx| ctx.assets.sprite(self.path).size())
+
+        todo!()
+    }
+
+    /// Get the height of the sprite in pixels.
+    ///
+    /// # Returns
+    ///
+    /// - `height`, vertical size of the sprite in pixels.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
+    #[inline]
+    #[must_use]
+    pub fn height(&self) -> f32 {
         // self.ctx.write(|ctx| ctx.assets.sprite(self.path).size())
 
         todo!()

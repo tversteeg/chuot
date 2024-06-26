@@ -76,10 +76,21 @@ pub struct Config {
 }
 
 impl Config {
+    /// Set the amount of horizontal and vertical pixels for the canvas.
+    #[inline]
+    #[must_use]
+    pub fn with_buffer_size(mut self, buffer_size: impl Into<(f32, f32)>) -> Self {
+        let (buffer_width, buffer_height) = buffer_size.into();
+        self.buffer_width = buffer_width;
+        self.buffer_height = buffer_height;
+
+        self
+    }
+
     /// Set the amount of horizontal pixels for the canvas.
     #[inline]
     #[must_use]
-    pub fn with_buffer_width(mut self, buffer_width: f32) -> Self {
+    pub const fn with_buffer_width(mut self, buffer_width: f32) -> Self {
         self.buffer_width = buffer_width;
 
         self
@@ -88,7 +99,7 @@ impl Config {
     /// Set the amount of horizontal pixels for the canvas.
     #[inline]
     #[must_use]
-    pub fn with_buffer_height(mut self, buffer_height: f32) -> Self {
+    pub const fn with_buffer_height(mut self, buffer_height: f32) -> Self {
         self.buffer_height = buffer_height;
 
         self

@@ -118,14 +118,11 @@ impl Game for GameState {
 /// Run the game.
 fn main() {
     // Start the game with defaults for the window
-    GameState
-        .run(
-            chuot::load_assets!(),
-            GameConfig::default()
-                .with_buffer_size((240.0, 192.0))
-                .with_scaling(3.0)
-                // Ensure the gamepads state only updates 10 times every frame for this example
-                .with_update_delta_time(0.1),
-        )
-        .expect("Error running game");
+    GameState.run(
+        Config::default()
+            .with_buffer_size((240.0, 192.0))
+            .with_scaling(3.0)
+            // Ensure the gamepads state only updates 10 times every frame for this example
+            .with_update_delta_time(0.1),
+    );
 }

@@ -29,7 +29,7 @@ impl Game for GameState {
                 .collect::<Vec<_>>();
 
             // Create a new sprite with the size of the screen
-            ctx.sprite("pattern").new(
+            ctx.sprite("pattern").create(
                 (width, height),
                 // Generate the pixels
                 &pixels,

@@ -92,7 +92,7 @@ impl AssetSource {
             (raw_asset.id == id && raw_asset.extension == L::EXTENSION).then_some(raw_asset.bytes)
         }) {
             // Create object
-            return Some(L::load(bytes));
+            return Some(L::load(bytes, id));
         }
 
         // If not found load from disk if dir set
@@ -108,7 +108,7 @@ impl AssetSource {
             let bytes = std::fs::read(file_path).ok()?;
 
             // Create object
-            Some(L::load(&bytes))
+            Some(L::load(&bytes, id))
         } else {
             None
         }

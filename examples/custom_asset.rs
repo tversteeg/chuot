@@ -22,7 +22,7 @@ impl Loader<String> for TxtLoader {
     const EXTENSION: &'static str = "txt";
 
     /// Load the bytes into UTF-8, ignoring invalid characters.
-    fn load(bytes: &[u8]) -> String {
+    fn load(bytes: &[u8], _id: &Id) -> String {
         String::from_utf8_lossy(bytes).into_owned()
     }
 }

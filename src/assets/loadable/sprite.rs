@@ -52,6 +52,32 @@ impl Sprite {
         }
     }
 
+    /// Split into equal horizontal parts.
+    pub(crate) fn horizontal_parts(&self, part_width: f32) -> Vec<Self> {
+        let (x, y, width, height) = self.sub_rectangle;
+
+        // Ensure that the image can be split into equal parts
+        assert!(
+            width % part_width == 0.0,
+            "Cannot split image into equal horizontal parts of {part_width} pixels"
+        );
+
+        // How many images we need to make
+        let sub_images = (width / part_width) as usize;
+
+        (0..sub_images)
+            .map(|index| {
+                // Use the same sub rectangle only changing the position and size
+                let sub_rectangle = (part_width.mul_add(index as f32, x), y, part_width, height);
+
+                Self {
+                    sub_rectangle,
+                    ..*self
+                }
+            })
+            .collect()
+    }
+
     /// Calculate the transformation matrix.
     #[inline]
     pub(crate) fn affine_matrix(&self, x: f32, y: f32, rotation: f32) -> Affine2 {
@@ -75,13 +101,9 @@ impl Sprite {
             affine
         }
     }
-}
 
-impl Loadable for Sprite {
-    fn load_if_exists(id: &Id, ctx: &mut ContextInner) -> Option<Self>
-    where
-        Self: Sized,
-    {
+    /// Load the sprite without metadata.
+    pub(crate) fn load_if_exists_without_metadata(id: &Id, ctx: &mut ContextInner) -> Option<Self> {
         // Load the PNG
         let mut png = ctx.asset_source.load_if_exists::<PngLoader, _>(id)?;
 
@@ -99,14 +121,29 @@ impl Loadable for Sprite {
         // Create the sub rectangle from the size
         let sub_rectangle = (0.0, 0.0, info.width as f32, info.height as f32);
 
-        // Load the metadata, or use the default if it doesn't exit
-        let metadata = SpriteMetadata::load_if_exists(id, ctx).unwrap_or_default();
+        // Use default metadata
+        let metadata = SpriteMetadata::default();
 
         Some(Self {
             texture,
             sub_rectangle,
             metadata,
         })
+    }
+}
+
+impl Loadable for Sprite {
+    fn load_if_exists(id: &Id, ctx: &mut ContextInner) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        // Load without metadata
+        let mut sprite = Self::load_if_exists_without_metadata(id, ctx)?;
+
+        // Load the metadata, or use the default if it doesn't exit
+        sprite.metadata = SpriteMetadata::load_if_exists(id, ctx).unwrap_or_default();
+
+        Some(sprite)
     }
 }
 
