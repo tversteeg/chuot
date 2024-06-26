@@ -5,9 +5,11 @@ pub mod config;
 pub mod context;
 mod graphics;
 mod input;
+mod random;
 
 pub use config::Config;
 pub use context::Context;
+pub use random::random;
 
 use std::time::Instant;
 

@@ -48,6 +48,32 @@ pub struct Context {
 
 /// Window methods.
 impl Context {
+    /// Horizontal size of the drawable part of the window in pixels.
+    ///
+    /// This ignores any scaling.
+    ///
+    /// # Returns
+    ///
+    /// - width: width of the drawable part of the window.
+    #[inline]
+    #[must_use]
+    pub fn width(&self) -> f32 {
+        self.read(|ctx| ctx.graphics.buffer_width)
+    }
+
+    /// Vertical size of the drawable part of the window in pixels.
+    ///
+    /// This ignores any scaling.
+    ///
+    /// # Returns
+    ///
+    /// - height: height of the drawable part of the window.
+    #[inline]
+    #[must_use]
+    pub fn height(&self) -> f32 {
+        self.read(|ctx| ctx.graphics.buffer_height)
+    }
+
     /// Size of the drawable part of the window in pixels.
     ///
     /// This ignores any scaling.

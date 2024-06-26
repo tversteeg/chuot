@@ -150,15 +150,29 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
         T: Into<(f32, f32)>,
     {
         self.ctx.write(|ctx| {
+            // Push the instance if the texture is already uploaded
             let sprite = ctx.sprite(self.path);
 
-            // Push the instances if the texture is already uploaded
-            // sprite.draw_multiple(
-            //     self.position,
-            //     self.rotation,
-            //     translations,
-            //     &mut ctx.instances,
-            // );
+            // Create the affine matrix
+            let affine_matrix = sprite.affine_matrix(self.x, self.y, self.rotation);
+
+            // Push the graphics
+            ctx.graphics
+                .instances
+                .extend(translations.map(|translation| {
+                    let (x_offset, y_offset) = translation.into();
+
+                    // Copy the matrix
+                    let mut affine_matrix_with_offset = affine_matrix;
+                    affine_matrix_with_offset.translation.x += x_offset;
+                    affine_matrix_with_offset.translation.y += y_offset;
+
+                    (
+                        affine_matrix_with_offset,
+                        sprite.sub_rectangle,
+                        sprite.texture,
+                    )
+                }));
         });
     }
 

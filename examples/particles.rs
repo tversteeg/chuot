@@ -1,23 +1,24 @@
 //! Show how we can efficiently draw tens of thousands of particles.
 
-use chuot::{
-    config::RotationAlgorithm,
-    context::MouseButton,
-    glamour::{Size2, Vector2},
-    Config, Context, Game,
-};
+use chuot::{config::RotationAlgorithm, context::MouseButton, Config, Context, Game};
 
 /// How long a particle lives in seconds.
 const PARTICLE_LIFE_SECS: f32 = 10.0;
 /// How much gravity is applied each second.
 const GRAVITY: f32 = 98.1;
+/// Border at which the particles bounce off from the edges.
+const BORDER: f32 = 10.0;
 
 /// A single particle instance to draw.
 struct Particle {
-    /// Absolute position in pixels on the buffer.
-    position: Vector2,
-    /// Velocity applied every second.
-    velocity: Vector2,
+    /// Absolute X position in pixels on the buffer.
+    x: f32,
+    /// Absolute Y position in pixels on the buffer.
+    y: f32,
+    /// Horizontal velocity applied every second.
+    velocity_x: f32,
+    /// Vertical velocity applied every second.
+    velocity_y: f32,
     /// How long the particle still lives.
     life: f32,
 }
@@ -33,16 +34,15 @@ impl Game for GameState {
     /// Update the game.
     fn update(&mut self, ctx: Context) {
         // Spawn the particles from the mouse
-        if let Some(mouse) = ctx.mouse() {
+        if let Some((mouse_x, mouse_y)) = ctx.mouse() {
             if ctx.mouse_pressed(MouseButton::Left) {
                 // Spawn many particles when clicking
                 for _ in 0..1000 {
                     self.particles.push(Particle {
-                        position: mouse,
-                        velocity: Vector2::new(
-                            chuot::random(-100.0, 100.0),
-                            chuot::random(-100.0, 100.0),
-                        ),
+                        x: mouse_x,
+                        y: mouse_y,
+                        velocity_x: chuot::random(-100.0, 100.0),
+                        velocity_y: chuot::random(-100.0, 100.0),
                         life: PARTICLE_LIFE_SECS,
                     });
                 }
@@ -52,11 +52,10 @@ impl Game for GameState {
                 // Spawn many particles when clicking
                 for _ in 0..10_000 {
                     self.particles.push(Particle {
-                        position: mouse,
-                        velocity: Vector2::new(
-                            chuot::random(-200.0, 200.0),
-                            chuot::random(-200.0, 200.0),
-                        ),
+                        x: mouse_x,
+                        y: mouse_y,
+                        velocity_x: chuot::random(-200.0, 200.0),
+                        velocity_y: chuot::random(-200.0, 200.0),
                         life: PARTICLE_LIFE_SECS,
                     });
                 }
@@ -66,11 +65,10 @@ impl Game for GameState {
                 // Spawn many particles when clicking
                 for _ in 0..100_000 {
                     self.particles.push(Particle {
-                        position: mouse,
-                        velocity: Vector2::new(
-                            chuot::random(-300.0, 300.0),
-                            chuot::random(-300.0, 300.0),
-                        ),
+                        x: mouse_x,
+                        y: mouse_y,
+                        velocity_x: chuot::random(-300.0, 300.0),
+                        velocity_y: chuot::random(-300.0, 300.0),
                         life: PARTICLE_LIFE_SECS,
                     });
                 }
@@ -78,41 +76,46 @@ impl Game for GameState {
 
             // Spawn a new particle at the mouse
             self.particles.push(Particle {
-                position: mouse,
-                velocity: Vector2::new(chuot::random(-10.0, 10.0), chuot::random(-10.0, 10.0)),
+                x: mouse_x,
+                y: mouse_y,
+                velocity_x: chuot::random(-10.0, 10.0),
+                velocity_y: chuot::random(-10.0, 10.0),
                 life: PARTICLE_LIFE_SECS,
             });
         }
+
+        // Load the context values outside of a hot loop, since all `ctx.` calls go through an `Rc<Refcell<..>>`
 
         // Get the deltatime once
         let dt = ctx.delta_time();
 
         // Get the size once
-        let border = Size2::splat(10.0);
-        let boundary = ctx.size() - border;
+        let boundary_width = ctx.width() - BORDER;
+        let boundary_height = ctx.height() - BORDER;
 
         // Remove all particles that are dead, and update all other particles
         self.particles.retain_mut(|particle| {
             // Update the particle
-            particle.position += particle.velocity * dt;
+            particle.x += particle.velocity_x * dt;
+            particle.y += particle.velocity_y * dt;
 
             // Bounce the particles on the left and right edges of the screen
-            if particle.position.x < border.width {
-                particle.position.x = border.width;
-                particle.velocity.x = -particle.velocity.x;
-            } else if particle.position.x > boundary.width {
-                particle.position.x = boundary.width;
-                particle.velocity.x = -particle.velocity.x;
+            if particle.x < BORDER {
+                particle.x = BORDER;
+                particle.velocity_x = -particle.velocity_x;
+            } else if particle.x > boundary_width {
+                particle.x = boundary_width;
+                particle.velocity_x = -particle.velocity_x;
             }
 
             // Bounce the particles when they hit the bottom of the screen
-            if particle.position.y > boundary.height {
-                particle.position.y = boundary.height;
-                particle.velocity.y = -particle.velocity.y * 0.9;
+            if particle.y > boundary_height {
+                particle.y = boundary_height;
+                particle.velocity_y = -particle.velocity_y * 0.9;
             }
 
             // Apply gravity
-            particle.velocity.y += GRAVITY * dt;
+            particle.velocity_y += GRAVITY * dt;
 
             // Reduce the particle's life
             particle.life -= dt;
@@ -125,8 +128,11 @@ impl Game for GameState {
     /// Render the game.
     fn render(&mut self, ctx: Context) {
         // Draw all particles
-        ctx.sprite("crate")
-            .draw_multiple_translated(self.particles.iter().map(|particle| particle.position));
+        ctx.sprite("crate").draw_multiple_translated(
+            self.particles
+                .iter()
+                .map(|particle| (particle.x, particle.y)),
+        );
 
         // Draw a basic FPS counter with the amount of particles
         ctx.text(
@@ -144,7 +150,7 @@ impl Game for GameState {
             "Beachball",
             "Left click to spawn 1000 particles\nRight click to spawn 10.000 particles\nMiddle mouse click to spawn 100.000 particles",
         )
-        .translate(Vector2::new(0.0, ctx.size().height - 36.0))
+        .translate_y(ctx.height() - 36.0)
         .draw();
     }
 }
@@ -152,8 +158,9 @@ impl Game for GameState {
 /// Open an empty window.
 fn main() {
     // Game configuration
-    let config = GameConfig {
-        buffer_size: Size2::new(720.0, 576.0),
+    let config = Config {
+        buffer_width: 720.0,
+        buffer_height: 576.0,
         // Don't scale the pixels
         scaling: 1.0,
         // Disable vsync so we can see the effect of the particles on the FPS
@@ -164,7 +171,5 @@ fn main() {
     };
 
     // Spawn the window and run the 'game'
-    GameState::default()
-        .run(chuot::load_assets!(), config)
-        .expect("Error running game");
+    GameState::default().run(config);
 }
