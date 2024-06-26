@@ -168,6 +168,11 @@ impl Input {
         // Tell the gamepad that we handled all events
         // This will increase the internal counter we can check on release and on press events with
         self.gilrs.inc();
+
+        // Handle the gamepad events
+        while let Some(gamepad_event) = self.gilrs.next_event() {
+            self.gilrs.update(&gamepad_event);
+        }
     }
 
     /// Check the mouse pressed state for a mouse button.
