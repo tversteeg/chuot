@@ -10,8 +10,6 @@ use std::rc::Rc;
 use hashbrown::HashMap;
 use smol_str::SmolStr;
 
-use crate::context::ContextInner;
-
 use self::loadable::Loadable;
 
 /// Identifier for any loadable asset, can be assigned multiple times for different types.

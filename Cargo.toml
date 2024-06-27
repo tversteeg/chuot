@@ -19,7 +19,7 @@ include = ["/src", "build.rs", "/shaders"]
 
 [package.metadata.docs.rs]
 # Only enable features that actually expose APIs
-features = []
+features = ["read-texture"]
 # Supported platforms
 targets = [
 	# Linux (X11 & Wayland)
@@ -32,6 +32,14 @@ targets = [
 	"x86_64-apple-darwin",
 ]
 rustdoc-args = ["--cfg", "docsrs"]
+
+[features]
+default = ["read-texture"]
+
+# Keep the texture data in memory so the pixel data can be retrieved.
+#
+# If disabled some texture functionality is not available because all textures are uploaded to the GPU and then removed from memory.
+read-texture = []
 
 [dependencies]
 chuot-packer = { path = "crates/packer", version = "0.1.1" }

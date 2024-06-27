@@ -161,6 +161,44 @@ impl Context {
     pub fn frames_per_second(&self) -> f32 {
         self.read(|ctx| ctx.frames_per_second)
     }
+
+    /// Get the blending factor between the update states used in the render state.
+    ///
+    /// This is only set for [`crate::PixelGame::render`].
+    ///
+    /// Using this number allows you to create smooth animations for slower update loops.
+    /// A common way to do this is to keep a previous state and interpolate the current state with the previous one.
+    /// For most use cases a basic lerp function suffices for this.
+    ///
+    /// # Returns
+    ///
+    /// - Number between `0.0`-`1.0` which is the ratio between the previous state and the current state for interpolating.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use chuot::{Context, KeyCode, glamour::Vector2};
+    ///
+    /// # #[derive(Default)] struct S{position: Vector2, previous_position: Vector2}
+    /// # struct Empty; impl Empty {
+    /// // In `PixelGame::render` trait implementation
+    /// // ..
+    /// fn render(&mut self, ctx: Context) {
+    /// # let sprite = S::default();
+    ///   // Lerp a sprite between it's last position and the current position
+    ///   let interpolated_position =
+    ///       sprite.position * ctx.blending_factor() +
+    ///       sprite.previous_position * (1.0 - ctx.blending_factor());
+    ///
+    ///   // Draw the sprite with smooth position
+    ///   ctx.sprite("sprite").translate(interpolated_position).draw();
+    /// }
+    /// # }
+    #[inline]
+    #[must_use]
+    pub fn blending_factor(&self) -> f32 {
+        self.read(|ctx| ctx.blending_factor)
+    }
 }
 
 /// Mouse input methods.
@@ -537,11 +575,11 @@ impl ContextInner {
             frames_per_second,
             blending_factor,
             input,
+            audio_manager,
             config,
             sprites,
             fonts,
             audio,
-            audio_manager,
             custom,
         }
     }

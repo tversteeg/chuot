@@ -5,15 +5,7 @@ use std::{
     str::FromStr,
 };
 
-use crate::{
-    graphics::{atlas::TextureRef, Graphics},
-    Context,
-};
-
-use super::{
-    loader::{png::PngReader, Loader},
-    Id,
-};
+use super::{loader::Loader, Id};
 
 /// Empty array when embedding nothing.
 static RUNTIME_EMBEDDED_ASSETS: &[EmbeddedRawAsset] = &[];

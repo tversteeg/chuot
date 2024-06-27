@@ -240,25 +240,25 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
     ///
     /// Reading pixels will copy a subregion from the image the sprite is a part of, thus it's quite slow.
     ///
-    /// When you don't use this function it's recommended to disable the `read-image` feature flag, which will reduce memory usage of the game.
+    /// When you don't use this function it's recommended to disable the `read-texture` feature flag, which will reduce memory usage of the game.
     ///
     /// # Returns
     ///
-    /// - A tuple containing the size of the sprite and a vector of pixels in RGBA u32 format, length of the array is width * height of the sprite.
+    /// - A vector of pixels in RGBA `u32` format, length of the array is width * height of the sprite.
     ///
     /// # Panics
     ///
     /// - When asset failed loading.
     #[inline]
     #[must_use]
-    #[cfg(feature = "read-image")]
-    pub fn read_pixels(self) -> (Size2, Vec<u32>) {
+    #[cfg(feature = "read-texture")]
+    pub fn read_pixels(self) -> Vec<u32> {
         self.ctx.write(|ctx| {
             // Get the sprite
-            let sprite = ctx.assets.sprite(self.path);
+            let sprite = ctx.sprite(self.path);
 
-            // Read the size and the pixels
-            (sprite.size(), sprite.pixels())
+            // Get the pixels for the texture of the sprite
+            ctx.graphics.atlas.textures[&sprite.texture].clone()
         })
     }
 
@@ -274,9 +274,11 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
     #[inline]
     #[must_use]
     pub fn size(&self) -> (f32, f32) {
-        // self.ctx.write(|ctx| ctx.assets.sprite(self.path).size())
+        self.ctx.write(|ctx| {
+            let sprite = ctx.sprite(self.path);
 
-        todo!()
+            (sprite.sub_rectangle.2, sprite.sub_rectangle.3)
+        })
     }
 
     /// Get the width of the sprite in pixels.
@@ -291,9 +293,7 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
     #[inline]
     #[must_use]
     pub fn width(&self) -> f32 {
-        // self.ctx.write(|ctx| ctx.assets.sprite(self.path).size())
-
-        todo!()
+        self.ctx.write(|ctx| ctx.sprite(self.path).sub_rectangle.2)
     }
 
     /// Get the height of the sprite in pixels.
@@ -308,9 +308,7 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
     #[inline]
     #[must_use]
     pub fn height(&self) -> f32 {
-        // self.ctx.write(|ctx| ctx.assets.sprite(self.path).size())
-
-        todo!()
+        self.ctx.write(|ctx| ctx.sprite(self.path).sub_rectangle.3)
     }
 }
 

@@ -24,6 +24,9 @@ pub struct Atlas {
     pub(crate) bind_group_layout: wgpu::BindGroupLayout,
     /// GPU uniform buffer holding all atlassed texture rectangles.
     pub(crate) rects: UniformArrayState<[f32; 4]>,
+    /// In-memory textures to receive the pixels from retroactively.
+    #[cfg(feature = "read-texture")]
+    pub(crate) textures: hashbrown::HashMap<TextureRef, Vec<u32>>,
     /// Packer algorithm used.
     packer: Packer,
 }
@@ -117,6 +120,8 @@ impl Atlas {
             bind_group_layout,
             rects,
             packer,
+            #[cfg(feature = "read-texture")]
+            textures: hashbrown::HashMap::new(),
         }
     }
 
@@ -170,6 +175,11 @@ impl Atlas {
             .rects
             .push(&[x as f32, y as f32, width as f32, height as f32], queue);
 
+        // Keep the pixels in memory
+        #[cfg(feature = "read-texture")]
+        self.textures
+            .insert(uniform_index as TextureRef, pixels.to_vec());
+
         uniform_index as TextureRef
     }
 
@@ -199,10 +209,13 @@ impl Atlas {
             pixels,
             queue,
         );
+
+        #[cfg(feature = "read-texture")]
+        unimplemented!()
     }
 
     /// Update a region of pixels of the texture in the atlas.
-    pub(crate) fn update_pixels_raw_offset(
+    fn update_pixels_raw_offset(
         &self,
         (x, y, width, height): (u32, u32, u32, u32),
         pixels: &[u32],

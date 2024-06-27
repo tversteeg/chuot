@@ -8,7 +8,7 @@ use downcast_rs::Downcast;
 
 use crate::context::ContextInner;
 
-use super::{source::AssetSource, Id};
+use super::Id;
 
 /// Any asset that's loadable from any amount of binary files.
 ///

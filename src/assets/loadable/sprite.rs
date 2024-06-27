@@ -6,7 +6,6 @@ use nanoserde::DeRon;
 use crate::{
     assets::{
         loader::{png::PngLoader, ron::RonLoader},
-        source::AssetSource,
         Id,
     },
     context::ContextInner,
