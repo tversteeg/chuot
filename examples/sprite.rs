@@ -1,8 +1,8 @@
 //! Show how to draw a sprite.
 //!
-//! The sprite image for this example is:
-//! {{ img(src="/assets/threeforms.png" alt="Font") }}
-//! With the following RON configuration for positioning the center of the sprite:
+//! The `threeforms.png` sprite image for this example is:
+//! {{ img(src="/assets/threeforms.png" alt="Sprite") }}
+//! With the following `threeforms.ron` RON configuration file for positioning the center of the sprite:
 //! ```ron
 //! (offset: Middle)
 //! ```

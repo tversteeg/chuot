@@ -1,8 +1,8 @@
 //! Show how to update the pixels of a sprite.
 //!
-//! The sprite image for this example is:
-//! {{ img(src="/assets/threeforms.png" alt="Font") }}
-//! With the following TOML:
+//! The `threeforms.png` sprite image for this example is:
+//! {{ img(src="/assets/threeforms.png" alt="Sprite") }}
+//! With the following `threeforms.ron` RON configuration file for positioning the center of the sprite:
 //! ```ron
 //! (offset: Middle)
 //! ```

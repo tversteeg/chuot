@@ -9,11 +9,10 @@
 //! ```
 
 use chuot::{
-    assets::{loader::Loader, AssetSource, Id, Loadable},
-    glamour::Size2,
+    assets::{loadable::Loadable, loader::Loader, Id},
+    context::ContextInner,
     Config, Context, Game,
 };
-use serde::Deserialize;
 
 /// A custom asset loader for loading '.txt' files.
 struct TxtLoader;
@@ -28,16 +27,15 @@ impl Loader<String> for TxtLoader {
 }
 
 /// We define a custom asset that will load a string from a '.txt' file.
-#[derive(Deserialize)]
 struct TxtString(pub String);
 
 impl Loadable for TxtString {
-    fn load_if_exists(id: &Id, assets: &AssetSource) -> Option<Self>
+    fn load_if_exists(id: &Id, ctx: &mut ContextInner) -> Option<Self>
     where
         Self: Sized,
     {
         // Use the created loader to load a txt asset
-        let text = assets.load_if_exists::<TxtLoader, _>(id)?;
+        let text = ctx.asset_source.load_if_exists::<TxtLoader, _>(id)?;
 
         Some(Self(text))
     }
@@ -63,12 +61,9 @@ impl Game for GameState {
 /// Open an empty window.
 fn main() {
     // Spawn the window with the default configuration but with a horizontally stretched buffer for displaying longer text
-    GameState {}
-        .run(
-            chuot::load_assets!(),
-            GameConfig::default()
-                .with_buffer_size(Size2::new(360.0, 50.0))
-                .with_scaling(2.0),
-        )
-        .expect("Error running game");
+    GameState {}.run(
+        Config::default()
+            .with_buffer_size((360.0, 50.0))
+            .with_scaling(2.0),
+    );
 }
