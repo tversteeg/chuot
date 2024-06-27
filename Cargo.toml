@@ -86,7 +86,7 @@ png = "0.17.13"
 profiling = "1.0.15"
 winit = { version = "0.29.15", default-features = false, features = ["rwh_06", "wayland", "wayland-dlopen"] }
 winit_input_helper = "0.16.0"
-glam = { version = "0.27", features = ["bytemuck", "fast-math"] }
+glam = { version = "0.28", features = ["bytemuck", "fast-math"] }
 glamour = { version = "0.11.1", features = ["serde"] }
 smol_str = "0.2.2"
 fastrand = "2.1.0"
