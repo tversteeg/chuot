@@ -14,7 +14,7 @@ categories = [
 	"games",
 	"game-engines",
 ]
-rust-version = "1.77.0"
+rust-version = "1.78.0"
 include = ["/src", "build.rs", "/shaders"]
 
 [package.metadata.docs.rs]
@@ -115,7 +115,7 @@ notify-debouncer-mini = { version = "0.4.1", optional = true }
 
 # Dependencies specifically for desktop
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-wgpu = "0.20.0"
+wgpu = "0.20.1"
 pollster = "0.3.0"
 env_logger = "0.11.3"
 
@@ -127,7 +127,7 @@ puffin = { version = "0.19.0", optional = true }
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 # Not used directly but the JS feature is required by the 'ahash' feature in `assets_manager`
 getrandom = { version = "0.2.15", features = ["js"] }
-wgpu = { version = "0.20.0", default-features = false, features = ["webgl", "wgsl", "fragile-send-sync-non-atomic-wasm"] }
+wgpu = { version = "0.20.1", default-features = false, features = ["webgl", "wgsl", "fragile-send-sync-non-atomic-wasm"] }
 console_log = "1.0.0"
 web-sys = { version = "0.3.69", features = ["Document", "Window", "Element"] }
 wasm-bindgen = "0.2.92"
@@ -148,7 +148,7 @@ miette = { version = "7.2.0", features = ["fancy-no-syscall"] }
 
 [build-dependencies]
 naga = { version = "0.20.0", features = ["wgsl-in", "wgsl-out"] }
-wgsl-minifier = "0.4.1"
+wgsl-minifier = "0.5.0"
 
 [workspace]
 members = ["crates/macros", "crates/packer", "run-wasm"]
