@@ -26,12 +26,9 @@ impl Game for GameState {
 /// Run the game.
 fn main() {
     // Start the game with defaults for the window
-    GameState
-        .run(
-            chuot::load_assets!(),
-            GameConfig::default()
-                .with_buffer_size((720.0, 576.0))
-                .with_scaling(1.0),
-        )
-        .expect("Error running game");
+    GameState.run(
+        Config::default()
+            .with_buffer_size((720.0, 576.0))
+            .with_scaling(1.0),
+    );
 }

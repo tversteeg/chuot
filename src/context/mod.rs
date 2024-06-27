@@ -1,11 +1,13 @@
 //! Main interface with the game.
 
+pub mod audio;
 pub mod sprite;
 pub mod text;
 
 /// Re-exported `gilrs` types for [`Context`] arguments.
 pub use gilrs::ev::{Axis, Button};
 use gilrs::GamepadId;
+use kira::manager::{AudioManager, AudioManagerSettings, DefaultBackend};
 use smallvec::SmallVec;
 /// Re-exported `winit` types for [`Context`] arguments.
 pub use winit::{event::MouseButton, keyboard::KeyCode};
@@ -488,6 +490,8 @@ pub struct ContextInner {
     pub(crate) blending_factor: f32,
     /// Input manager.
     pub(crate) input: Input,
+    /// Audio manager for playing audio.
+    pub(crate) audio_manager: AudioManager<DefaultBackend>,
     /// User supplied game configuration.
     config: Config,
     /// Sprite assets.
@@ -508,6 +512,9 @@ impl ContextInner {
 
         // Setup the initial graphics
         let graphics = Graphics::new(config.clone(), Arc::clone(&window)).await;
+
+        // Setup the audio manager to play audio
+        let audio_manager = AudioManager::new(AudioManagerSettings::default()).unwrap();
 
         // Load the assets
         let asset_source = AssetSource::new().with_runtime_dir("assets");
@@ -534,6 +541,7 @@ impl ContextInner {
             sprites,
             fonts,
             audio,
+            audio_manager,
             custom,
         }
     }
