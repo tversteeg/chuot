@@ -14,7 +14,7 @@ categories = [
 	"games",
 	"game-engines",
 ]
-rust-version = "1.77.0"
+rust-version = "1.78.0"
 include = ["/src", "build.rs", "/shaders"]
 
 [package.metadata.docs.rs]
