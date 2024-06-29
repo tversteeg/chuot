@@ -483,9 +483,13 @@ impl Context {
 impl Context {
     /// Create a new empty context.
     #[inline]
-    pub(crate) async fn new(config: Config, window: Window) -> Self {
+    pub(crate) async fn new(
+        config: Config,
+        asset_source: Box<AssetSource>,
+        window: Window,
+    ) -> Self {
         // Setup the inner context
-        let context_inner = ContextInner::new(config, window).await;
+        let context_inner = ContextInner::new(config, asset_source, window).await;
 
         // Wrap in a reference counted refcell so it can safely be passed to any of the user functions
         let inner = Rc::new(RefCell::new(context_inner));
@@ -517,7 +521,9 @@ impl Context {
 /// Internal wrapped implementation for [`Context`].
 pub struct ContextInner {
     /// Sources for loading assets from memory or disk.
-    pub asset_source: AssetSource,
+    ///
+    /// Boxed for increased performance, it doesn't need to be on the stack since it won't be accessed a lot.
+    pub asset_source: Box<AssetSource>,
     /// Window instance.
     pub(crate) window: Arc<Window>,
     /// Graphics state.
@@ -544,7 +550,11 @@ pub struct ContextInner {
 
 impl ContextInner {
     /// Initialize the inner context.
-    pub(crate) async fn new(config: Config, window: Window) -> Self {
+    pub(crate) async fn new(
+        config: Config,
+        asset_source: Box<AssetSource>,
+        window: Window,
+    ) -> Self {
         // Wrap in an arc so graphics can use it
         let window = Arc::new(window);
 
@@ -554,8 +564,7 @@ impl ContextInner {
         // Setup the audio manager to play audio
         let audio_manager = AudioManager::new(AudioManagerSettings::default()).unwrap();
 
-        // Load the assets
-        let asset_source = AssetSource::new().with_runtime_dir("assets");
+        // Setup the assets managers
         let sprites = AssetManager::default();
         let fonts = AssetManager::default();
         let audio = AssetManager::default();

@@ -1,6 +1,6 @@
 # 🐭 Chuột
 
-[![Build Status](https://github.com/tversteeg/chuot/workflows/CI/badge.svg)](https://github.com/tversteeg/chuot/actions?workflow=CI)
+[![Build Status](https://github.com/tversteeg/chuot/workflows/CI/badge.svg?branch=main)](https://github.com/tversteeg/chuot/actions?workflow=CI)
 [![Crates.io](https://img.shields.io/crates/v/chuot.svg)](https://crates.io/crates/chuot)
 [![Documentation](https://docs.rs/chuot/badge.svg)](https://docs.rs/chuot)
 [![License: AGPL-3.0](https://img.shields.io/crates/l/chuot.svg)](#license)

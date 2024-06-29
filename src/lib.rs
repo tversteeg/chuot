@@ -7,9 +7,29 @@ mod graphics;
 mod input;
 mod random;
 
+pub use assets::source::AssetSource;
 pub use config::Config;
 pub use context::Context;
 pub use random::random;
+
+/// Define the directory of the assets.
+///
+/// *MUST* be passed as first argument to [`Game::run`].
+///
+/// The assets will be embedded in the binary when using the `embed-assets` feature flag.
+///
+/// # Arguments
+///
+/// * `path` - Local directory where the game assets reside. Defaults to `"assets/"`.
+///
+/// # Example
+///
+/// ```
+/// chuot::load_assets!("assets/");
+/// // Is the same as..
+/// chuot::load_assets!();
+/// ```
+pub use chuot_macros::load_assets;
 
 use std::time::Instant;
 
@@ -101,7 +121,7 @@ where
     ///
     /// # Arguments
     ///
-    /// * `assets` - Source of the assets, needs to be `chuot::load_assets!()`.
+    /// * `asset_source` - Source of the assets, needs to be `chuot::load_assets!()`.
     /// * `config` - Configuration for the window, can be used to set the buffer size, the window title and other things.
     ///
     /// # Errors
@@ -137,9 +157,9 @@ where
     /// # Ok(()) }
     /// # try_main().unwrap();
     /// ```
-    #[inline]
-    fn run(self, config: Config) {
-        run(self, config);
+    #[inline(always)]
+    fn run(self, asset_source: AssetSource, config: Config) {
+        run(self, asset_source, config);
     }
 }
 
@@ -151,6 +171,10 @@ struct State<G: Game> {
     ///
     /// `None` if the window still needs to be initialized.
     ctx: Option<Context>,
+    /// Source of all assets.
+    ///
+    /// Will be taken from the option once.
+    asset_source: Option<Box<AssetSource>>,
     /// User supplied game.
     game: G,
     /// User supplied configuration.
@@ -184,8 +208,14 @@ impl<G: Game> ApplicationHandler<()> for State<G> {
                 .expect("Error creating window");
 
             // Setup the context
-            let context =
-                pollster::block_on(async { Context::new(self.config.clone(), window).await });
+            let context = pollster::block_on(async {
+                Context::new(
+                    self.config.clone(),
+                    self.asset_source.take().unwrap(),
+                    window,
+                )
+                .await
+            });
 
             self.ctx = Some(context);
         }
@@ -276,21 +306,26 @@ impl<G: Game> ApplicationHandler<()> for State<G> {
 }
 
 /// Run the game.
-fn run(game: impl Game, config: Config) {
+#[inline(always)]
+fn run(game: impl Game, asset_source: AssetSource, config: Config) {
     // Setup the timestep variables for calculating the update loop
     let accumulator = 0.0;
     let last_time = Instant::now();
 
     // Context must be initialized later when creating the window
-    let context = None;
+    let ctx = None;
 
     // Create a polling event loop, which redraws the window whenever possible
     let event_loop = EventLoop::new().unwrap();
     event_loop.set_control_flow(ControlFlow::Poll);
 
+    // Put the asset source on the heap
+    let asset_source = Some(Box::new(asset_source));
+
     // Run the game
     let _ = event_loop.run_app(&mut State {
-        ctx: context,
+        ctx,
+        asset_source,
         game,
         config,
         last_time,

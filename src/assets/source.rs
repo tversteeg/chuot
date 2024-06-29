@@ -11,7 +11,9 @@ use super::{loader::Loader, Id};
 static RUNTIME_EMBEDDED_ASSETS: &[EmbeddedRawAsset] = &[];
 
 /// Source of all assets.
-#[allow(clippy::exhaustive_structs)]
+///
+/// It's recommended to instantiate this with the [`crate::load_assets`] macro.
+/// That way an embedded asset pipeline can be directly used with the `embed-assets` feature flag.
 pub struct AssetSource {
     /// Path to the directory of all assets.
     ///

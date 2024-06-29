@@ -36,20 +36,20 @@ impl Input {
     }
 
     /// Read the directory and create the Rust code to load everything for it.
-    #[cfg(feature = "embed-assets")]
-    pub fn expand_dir(&self) -> TokenStream {
-        crate::embedded::asset_source::parse_dir(&self.0)
-    }
-
-    /// Create the Rust code to load from the directory.
-    #[cfg(not(feature = "embed-assets"))]
+    #[allow(unused_mut)]
     pub fn expand_dir(&self) -> TokenStream {
         let asset_path = self.0.to_string_lossy();
 
         // Just return the asset directory, all files will be loaded from there during runtime
-        quote::quote! {
-            chuot::assets::AssetSource::new().with_runtime_dir(#asset_path)
+        let mut source: TokenStream = quote::quote! {
+            chuot::AssetSource::new().with_runtime_dir(#asset_path)
         }
-        .into()
+        .into();
+
+        // Add the embedded assets if the feature flag is enabled
+        #[cfg(feature = "embed-assets")]
+        source.extend(crate::embedded::asset_source::parse_dir(&self.0));
+
+        source
     }
 }

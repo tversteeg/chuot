@@ -9,7 +9,7 @@ mod embedded;
 use asset_source::Input;
 use proc_macro::TokenStream;
 
-/// Define the asset source for `chuot::PixelGame::run`.
+/// Define the asset source for `chuot::Game::run`.
 #[proc_macro]
 pub fn load_assets(input: TokenStream) -> TokenStream {
     match Input::parse(input) {
