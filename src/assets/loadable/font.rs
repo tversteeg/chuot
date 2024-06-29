@@ -28,7 +28,7 @@ impl Loadable for Font {
         let metadata = FontMetadata::load_if_exists(id, ctx).unwrap_or_default();
 
         // Split the sprite into multiple sub-sprites for each character
-        let sprites = base.horizontal_parts(metadata.glyph_width as f32);
+        let sprites = base.horizontal_parts(metadata.glyph_width);
 
         assert_eq!(
             metadata.last_char - metadata.first_char,

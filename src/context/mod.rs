@@ -537,15 +537,15 @@ pub struct ContextInner {
     /// Audio manager for playing audio.
     pub(crate) audio_manager: AudioManager<DefaultBackend>,
     /// User supplied game configuration.
-    config: Config,
+    pub(crate) config: Config,
     /// Sprite assets.
-    sprites: AssetManager<Sprite>,
+    pub(crate) sprites: AssetManager<Sprite>,
     /// Font assets.
-    fonts: AssetManager<Font>,
+    pub(crate) fonts: AssetManager<Font>,
     /// Audio assets.
-    audio: AssetManager<Audio>,
+    pub(crate) audio: AssetManager<Audio>,
     /// Custom type erased assets.
-    custom: CustomAssetManager,
+    pub(crate) custom: CustomAssetManager,
 }
 
 impl ContextInner {
@@ -690,5 +690,14 @@ impl ContextInner {
     {
         // Create a clone of the asset
         Rc::<T>::unwrap_or_clone(self.custom(id))
+    }
+
+    /// Remove all assets with the specified ID if they exist.
+    #[inline]
+    pub(crate) fn remove(&mut self, id: &Id) {
+        self.sprites.remove(id);
+        self.fonts.remove(id);
+        self.audio.remove(id);
+        self.custom.remove(id);
     }
 }

@@ -23,6 +23,10 @@ pub struct AssetSource {
     embedded_assets: &'static [EmbeddedRawAsset],
     /// Diced raw texture atlas.
     embedded_atlas: EmbeddedRawStaticAtlas,
+    /// State for watching the folder for hot reloading functionality.
+    #[cfg(not(target_arch = "wasm32"))]
+    hot_reload_folder_watcher:
+        Option<notify_debouncer_mini::Debouncer<notify_debouncer_mini::notify::RecommendedWatcher>>,
 }
 
 impl AssetSource {
@@ -40,14 +44,23 @@ impl AssetSource {
             runtime_asset_dir,
             embedded_assets,
             embedded_atlas,
+            #[cfg(not(target_arch = "wasm32"))]
+            hot_reload_folder_watcher: None,
         }
     }
 
-    /// Set a runtime asset directory where assets can be loaded from.
+    /// Set a runtime asset directory where assets can be loaded from, and enable hot-reloading for that directory.
     #[inline(always)]
     #[must_use]
     pub fn with_runtime_dir(mut self, runtime_asset_dir: &str) -> Self {
         self.runtime_asset_dir = Some(PathBuf::from_str(runtime_asset_dir).unwrap());
+
+        // Enable hot reloading, if not on the web
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            self.hot_reload_folder_watcher =
+                Some(super::hot_reload::watch_assets_folder(runtime_asset_dir));
+        }
 
         self
     }

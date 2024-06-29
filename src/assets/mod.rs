@@ -1,5 +1,7 @@
 //! Asset loading and management.
 
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) mod hot_reload;
 pub mod loadable;
 pub mod loader;
 #[doc(hidden)]
@@ -30,14 +32,12 @@ pub(crate) struct AssetManager<T: Loadable> {
 impl<T: Loadable> AssetManager<T> {
     /// Return an asset if it exists.
     #[inline]
-    #[track_caller]
     pub(crate) fn get(&self, id: &Id) -> Option<Rc<T>> {
         self.assets.get(id).cloned()
     }
 
     /// Insert the loaded asset so it can be accessed.
     #[inline]
-    #[track_caller]
     pub(crate) fn insert(&mut self, id: Id, asset: T) -> Rc<T> {
         // Wrap the asset
         let asset = Rc::new(asset);
@@ -46,6 +46,12 @@ impl<T: Loadable> AssetManager<T> {
         self.assets.insert(id, Rc::clone(&asset));
 
         asset
+    }
+
+    /// Remove a loaded asset, mainly used for hot-reloading.
+    #[inline]
+    pub(crate) fn remove(&mut self, id: &Id) {
+        self.assets.remove(id);
     }
 }
 
@@ -68,8 +74,6 @@ pub(crate) struct CustomAssetManager {
 impl CustomAssetManager {
     /// Return an asset if it exists.
     #[inline]
-    #[track_caller]
-    #[allow(clippy::option_if_let_else)]
     pub(crate) fn get<T>(&self, id: &str) -> Option<Rc<T>>
     where
         T: Loadable,
@@ -78,18 +82,13 @@ impl CustomAssetManager {
         let dyn_asset = self.assets.get(id)?;
 
         // Try to downcast it to the requested type
-        match Rc::clone(dyn_asset).downcast_rc::<T>() {
-            Ok(asset) => Some(asset),
-            Err(_) => {
-                panic!("Could downcast asset with ID '{id}', loaded type is different from requested type")
-            }
-        }
+        Rc::clone(dyn_asset)
+            .downcast_rc::<T>()
+            .map_or_else(|_| panic!("Could downcast asset with ID '{id}', loaded type is different from requested type"), Some)
     }
 
     /// Upload a new asset.
     #[inline]
-    #[track_caller]
-    #[allow(clippy::option_if_let_else)]
     pub(crate) fn insert<T>(&mut self, id: Id, asset: T) -> Rc<T>
     where
         T: Loadable,
@@ -101,10 +100,15 @@ impl CustomAssetManager {
         self.assets.insert(id, Rc::clone(&asset));
 
         // Safe to unwrap because we created the type here
-        match asset.downcast_rc::<T>() {
-            Ok(asset) => asset,
-            Err(_) => panic!("Error downcasting type"),
-        }
+        asset
+            .downcast_rc::<T>()
+            .unwrap_or_else(|_| panic!("Error downcasting type"))
+    }
+
+    /// Remove a loaded asset, mainly used for hot-reloading.
+    #[inline]
+    pub(crate) fn remove(&mut self, id: &Id) {
+        self.assets.remove(id);
     }
 }
 

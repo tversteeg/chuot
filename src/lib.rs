@@ -256,6 +256,10 @@ impl<G: Game> ApplicationHandler<()> for State<G> {
                     ctx.write(|ctx| {
                         // Update the input so pressed and released events can be handled
                         ctx.input.update();
+
+                        // Handle hot reloaded assets
+                        #[cfg(not(target_arch = "wasm32"))]
+                        assets::hot_reload::handle_changed_asset_files(ctx);
                     });
                 }
 
