@@ -8,10 +8,20 @@ mod uniform;
 
 use std::{borrow::Cow, sync::Arc};
 
+#[cfg(feature = "embed-assets")]
+use imgref::ImgVec;
 use wgpu::util::DeviceExt;
 use winit::window::Window;
 
-use crate::config::{Config, RotationAlgorithm};
+#[cfg(feature = "embed-assets")]
+use crate::assets::{
+    loader::{png::PngLoader, Loader},
+    Id,
+};
+use crate::{
+    config::{Config, RotationAlgorithm},
+    AssetSource,
+};
 
 use self::{
     atlas::{Atlas, TextureRef},
@@ -88,6 +98,7 @@ impl Graphics {
             ..
         }: Config,
         window: Arc<Window>,
+        asset_source: &AssetSource,
     ) -> Self {
         // Get a handle to our GPU
         let instance = wgpu::Instance::default();
@@ -147,7 +158,63 @@ impl Graphics {
         surface.configure(&device, &surface_config);
 
         // Setup the texture atlas
-        let atlas = Atlas::new(&device);
+        let embedded_atlas = asset_source.embedded_atlas();
+        #[allow(unused_mut)]
+        let mut atlas = Atlas::new(embedded_atlas.textures.len(), &device, &queue);
+
+        // Upload embedded assets to atlas
+        #[cfg(feature = "embed-assets")]
+        if !embedded_atlas.textures.is_empty() {
+            // Get the PNG reader for the atlas, using the loader
+            let mut png = PngLoader::load(
+                embedded_atlas.diced_atlas_png_bytes,
+                &Id::new_inline("_embedded_atlas"),
+            );
+
+            // Read the PNG
+            let mut pixels = vec![0_u32; png.output_buffer_size()];
+            let info = png
+                .next_frame(bytemuck::cast_slice_mut(&mut pixels))
+                .unwrap();
+
+            // Treat the 4 color components as a single numeric value
+            let img = ImgVec::new(pixels, info.width as usize, info.height as usize);
+
+            // Upload all textures
+            for texture in embedded_atlas.textures.values() {
+                // Create an empty texture we can upload all parts to
+                atlas.add_preallocated_empty_texture(
+                    texture.reference,
+                    texture.width as u32,
+                    texture.height as u32,
+                    &queue,
+                );
+
+                // Upload all diced parts
+                for diced in texture.diced {
+                    // Copy the pixels from the slice into the target
+                    let diced_texture = img.sub_image(
+                        diced.diced_u as usize,
+                        diced.diced_v as usize,
+                        diced.width as usize,
+                        diced.height as usize,
+                    );
+
+                    // Upload to the GPU
+                    atlas.update_pixels(
+                        texture.reference,
+                        (
+                            diced.texture_u as f32,
+                            diced.texture_v as f32,
+                            diced.width as f32,
+                            diced.height as f32,
+                        ),
+                        &diced_texture.pixels().collect::<Vec<_>>(),
+                        &queue,
+                    );
+                }
+            }
+        }
 
         // Create the uniforms
         let screen_info = UniformState::new(

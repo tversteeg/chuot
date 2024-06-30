@@ -5,10 +5,21 @@ use std::{
     str::FromStr,
 };
 
+use phf::Map;
+
+use crate::graphics::atlas::TextureRef;
+
 use super::{loader::Loader, Id};
 
 /// Empty array when embedding nothing.
 static RUNTIME_EMBEDDED_ASSETS: &[EmbeddedRawAsset] = &[];
+/// Empty atlas when embedding nothing.
+static RUNTIME_EMBEDDED_ATLAS: &EmbeddedRawStaticAtlas = &EmbeddedRawStaticAtlas {
+    diced_atlas_png_bytes: &[],
+    width: 0,
+    height: 0,
+    textures: &phf::Map::new(),
+};
 
 /// Source of all assets.
 ///
@@ -22,7 +33,7 @@ pub struct AssetSource {
     /// Assets directly embedded into the binary.
     embedded_assets: &'static [EmbeddedRawAsset],
     /// Diced raw texture atlas.
-    embedded_atlas: EmbeddedRawStaticAtlas,
+    embedded_atlas: &'static EmbeddedRawStaticAtlas,
     /// State for watching the folder for hot reloading functionality.
     #[cfg(not(target_arch = "wasm32"))]
     hot_reload_folder_watcher:
@@ -38,7 +49,7 @@ impl AssetSource {
     pub fn new() -> Self {
         let runtime_asset_dir = None;
         let embedded_assets = RUNTIME_EMBEDDED_ASSETS;
-        let embedded_atlas = EmbeddedRawStaticAtlas::default();
+        let embedded_atlas = RUNTIME_EMBEDDED_ATLAS;
 
         Self {
             runtime_asset_dir,
@@ -80,7 +91,10 @@ impl AssetSource {
     /// Embed a raw texture atlas into the source.
     #[inline(always)]
     #[must_use]
-    pub const fn with_embedded_atlas(mut self, embedded_astlas: EmbeddedRawStaticAtlas) -> Self {
+    pub const fn with_embedded_atlas(
+        mut self,
+        embedded_astlas: &'static EmbeddedRawStaticAtlas,
+    ) -> Self {
         self.embedded_atlas = embedded_astlas;
 
         self
@@ -120,6 +134,20 @@ impl AssetSource {
             None
         }
     }
+
+    /// Get the texture for an embedded texture if it exists.
+    #[must_use]
+    #[inline]
+    pub(crate) fn embedded_texture(&self, id: &Id) -> Option<&EmbeddedTexture> {
+        self.embedded_atlas.textures.get(id)
+    }
+
+    /// Get the embedded atlas texture.
+    #[must_use]
+    #[inline]
+    pub(crate) fn embedded_atlas(&self) -> &EmbeddedRawStaticAtlas {
+        &self.embedded_atlas
+    }
 }
 
 impl Default for AssetSource {
@@ -130,6 +158,7 @@ impl Default for AssetSource {
 }
 
 /// Single embedded asset in the binary.
+#[allow(clippy::exhaustive_structs)]
 pub struct EmbeddedRawAsset {
     /// Parsed ID, excludes the file extension.
     pub id: &'static str,
@@ -139,9 +168,24 @@ pub struct EmbeddedRawAsset {
     pub bytes: &'static [u8],
 }
 
-/// Embedded diced sprite atlas in the binary.
+/// Embedded texture.
+#[allow(clippy::exhaustive_structs)]
 #[derive(Debug)]
-pub struct TextureMapping {
+pub struct EmbeddedTexture {
+    /// Width of the texture if re-constructed.
+    pub width: u16,
+    /// Height of the texture if re-constructed.
+    pub height: u16,
+    /// Reference of the texture.
+    pub reference: TextureRef,
+    /// Diced mappings to the atlas.
+    pub diced: &'static [EmbeddedTextureDiceMapping],
+}
+
+/// Embedded diced sprite atlas in the binary.
+#[allow(clippy::exhaustive_structs)]
+#[derive(Debug)]
+pub struct EmbeddedTextureDiceMapping {
     /// U coordinate for source on the diced texture.
     pub diced_u: u16,
     /// V coordinate for source on the diced texture.
@@ -157,23 +201,14 @@ pub struct TextureMapping {
 }
 
 /// Embedded diced sprite atlas in the binary.
-#[derive(Default)]
+#[allow(clippy::exhaustive_structs)]
 pub struct EmbeddedRawStaticAtlas {
     /// PNG bytes of the diced atlas.
     pub diced_atlas_png_bytes: &'static [u8],
-    /// Rectangle mapping for the textures.
-    pub texture_mappings: &'static [TextureMapping],
-    /// All IDS of the textures.
-    ///
-    /// Index determines the position.
-    pub texture_ids: &'static [&'static str],
-    /// Full items on the atlas.
-    ///
-    /// Index determines the position.
-    /// Order is `(x, y, width, height)`.
-    pub texture_rects: &'static [(f32, f32, f32, f32)],
     /// Fitted width of the atlas.
     pub width: u16,
     /// Fitted height of the atlas.
     pub height: u16,
+    /// Embedded static textures in the atlas.
+    pub textures: &'static Map<&'static str, EmbeddedTexture>,
 }

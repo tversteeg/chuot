@@ -28,6 +28,7 @@ impl Game for GameState {
 fn main() {
     // Start the game with defaults for the window
     GameState.run(
+        chuot::load_assets!(),
         Config::default()
             .with_buffer_width(120.0)
             .with_buffer_height(96.0)

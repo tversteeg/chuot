@@ -65,10 +65,10 @@ pub fn parse_dir(asset_dir: &Path) -> TokenStream {
     // Create a diced texture atlas
     let atlas = super::atlas::parse_textures(&textures);
 
+    // Append the embedded parts to the builder
     quote! {
-        chuot::assets::AssetSource::new()
-            .with_embedded_assets(&[#(#assets),*])
-            .with_embedded_atlas(#atlas)
+        .with_embedded_assets(&[#(#assets),*])
+        .with_embedded_atlas(#atlas)
     }
     .into()
 }

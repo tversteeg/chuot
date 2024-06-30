@@ -103,22 +103,34 @@ impl Sprite {
 
     /// Load the sprite without metadata.
     pub(crate) fn load_if_exists_without_metadata(id: &Id, ctx: &mut ContextInner) -> Option<Self> {
-        // Load the PNG
-        let mut png = ctx.asset_source.load_if_exists::<PngLoader, _>(id)?;
+        // Check if there's already an static embedded texture with this ID
+        let (texture, width, height) = if let Some(texture) = ctx.asset_source.embedded_texture(id)
+        {
+            (
+                texture.reference,
+                texture.width as f32,
+                texture.height as f32,
+            )
+        } else {
+            // Load the PNG
+            let mut png = ctx.asset_source.load_if_exists::<PngLoader, _>(id)?;
 
-        // Read the PNG
-        let mut pixels = vec![0_u32; png.output_buffer_size()];
-        let info = png
-            .next_frame(bytemuck::cast_slice_mut(&mut pixels))
-            .expect("Error reading image");
+            // Read the PNG
+            let mut pixels = vec![0_u32; png.output_buffer_size()];
+            let info = png
+                .next_frame(bytemuck::cast_slice_mut(&mut pixels))
+                .expect("Error reading image");
 
-        // Upload it to the GPU, returning a reference
-        let texture = ctx
-            .graphics
-            .upload_texture(info.width, info.height, &pixels);
+            // Upload it to the GPU, returning a reference
+            let texture = ctx
+                .graphics
+                .upload_texture(info.width, info.height, &pixels);
+
+            (texture, info.width as f32, info.height as f32)
+        };
 
         // Create the sub rectangle from the size
-        let sub_rectangle = (0.0, 0.0, info.width as f32, info.height as f32);
+        let sub_rectangle = (0.0, 0.0, width, height);
 
         // Use default metadata
         let metadata = SpriteMetadata::default();

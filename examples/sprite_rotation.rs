@@ -54,5 +54,5 @@ fn main() {
     };
 
     // Spawn the window and run the 'game'
-    GameState::default().run(config);
+    GameState::default().run(chuot::load_assets!(), config);
 }

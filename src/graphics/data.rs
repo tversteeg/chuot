@@ -35,6 +35,7 @@ pub struct TexturedVertex {
 
 impl TexturedVertex {
     /// Construct a new textured vertex from a 2D position, a Z index and a UV coordinate.
+    #[allow(clippy::many_single_char_names)]
     pub const fn new(x: f32, y: f32, z: f32, u: f32, v: f32) -> Self {
         Self { x, y, z, u, v }
     }

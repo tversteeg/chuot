@@ -23,6 +23,9 @@ pub struct Atlas {
     /// GPU bind group layout.
     pub(crate) bind_group_layout: wgpu::BindGroupLayout,
     /// GPU uniform buffer holding all atlassed texture rectangles.
+    ///
+    /// Index of this array is used as the texture reference.
+    /// Because of that all static embedded sprites must be preallocated.
     pub(crate) rects: UniformArrayState<[f32; 4]>,
     /// In-memory textures to receive the pixels from retroactively.
     #[cfg(feature = "read-texture")]
@@ -33,7 +36,13 @@ pub struct Atlas {
 
 impl Atlas {
     /// Create and upload the atlas to the GPU.
-    pub(crate) fn new(device: &wgpu::Device) -> Self {
+    ///
+    /// Preallocate the embedded rectangles so the references can't be duplicated.
+    pub(crate) fn new(
+        preallocate_textures: usize,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) -> Self {
         // Create the texture on the GPU
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some(&Cow::Borrowed("Static Texture Atlas")),
@@ -112,7 +121,7 @@ impl Atlas {
         ));
 
         // Create and upload the uniforms
-        let rects = UniformArrayState::new(device);
+        let rects = UniformArrayState::new(preallocate_textures, device, queue);
 
         Self {
             texture,
@@ -183,35 +192,86 @@ impl Atlas {
         uniform_index as TextureRef
     }
 
+    /// Add an empty texture to the atlas.
+    ///
+    /// # Returns
+    ///
+    /// - An unique identification number for the texture to be passed along with the vertices.
+    #[cfg(feature = "embed-assets")]
+    pub(crate) fn add_preallocated_empty_texture(
+        &mut self,
+        texture_ref: TextureRef,
+        width: u32,
+        height: u32,
+        queue: &wgpu::Queue,
+    ) {
+        // Pack the rectangle
+        let (x, y) = self
+            .packer
+            .insert((width as u16, height as u16))
+            .expect("New texture could not be packed, not enough space");
+        let x = x as u32;
+        let y = y as u32;
+
+        // Push the newly packed dimensions to the uniform buffer, returning the reference to it
+        self.rects.set(
+            texture_ref as usize,
+            &[x as f32, y as f32, width as f32, height as f32],
+            queue,
+        );
+
+        // Keep the pixels in memory
+        #[cfg(feature = "read-texture")]
+        self.textures
+            .insert(texture_ref, vec![0_u32; (width * height) as usize]);
+    }
+
     /// Update a region of pixels of the texture in the atlas.
     pub(crate) fn update_pixels(
-        &self,
+        &mut self,
         texture_ref: TextureRef,
-        (mut x, mut y, width, height): (f32, f32, f32, f32),
+        (x, y, width, height): (f32, f32, f32, f32),
         pixels: &[u32],
         queue: &wgpu::Queue,
     ) {
         // Get the region in the atlas for the already pushed sprite
-        let [sprite_region_x, sprite_region_y, ..] = self.rects[texture_ref as usize];
+        let [sprite_region_x, sprite_region_y, sprite_region_width, sprite_region_height] =
+            self.rects[texture_ref as usize];
+
+        let x = x.round() as u32;
+        let y = y.round() as u32;
+        let width = width.round() as u32;
+        let height = height.round() as u32;
+        let sprite_region_x = sprite_region_x.round() as u32;
+        let sprite_region_y = sprite_region_y.round() as u32;
+        let sprite_region_width = sprite_region_width.round() as u32;
+        let sprite_region_height = sprite_region_height.round() as u32;
+
+        assert!(x + width <= sprite_region_width);
+        assert!(y + height <= sprite_region_height);
 
         // Offset the sub rectangle to atlas space
-        x += sprite_region_x;
-        y += sprite_region_y;
+        let atlas_x = x + sprite_region_x;
+        let atlas_y = y + sprite_region_y;
 
         // Convert to u32 with proper rounding
-        self.update_pixels_raw_offset(
-            (
-                x.round() as u32,
-                y.round() as u32,
-                width.round() as u32,
-                height.round() as u32,
-            ),
-            pixels,
-            queue,
-        );
+        self.update_pixels_raw_offset((atlas_x, atlas_y, width, height), pixels, queue);
 
+        // Update the local texture
         #[cfg(feature = "read-texture")]
-        unimplemented!()
+        {
+            let image = self.textures.get_mut(&texture_ref).unwrap();
+
+            // Copy the pixel rows
+            for row in 0..height {
+                let width = width as usize;
+                let source_index = row as usize * width;
+                let target_index = ((y + row) * sprite_region_width + x) as usize;
+
+                image[target_index..(target_index + width)]
+                    .clone_from_slice(&pixels[source_index..(source_index + width)]);
+            }
+        }
     }
 
     /// Update a region of pixels of the texture in the atlas.

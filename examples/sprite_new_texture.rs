@@ -1,6 +1,6 @@
 //! Create a sprite without loading any assets from disk or memory.
 
-use chuot::{Config, Context, Game};
+use chuot::{AssetSource, Config, Context, Game};
 
 /// Define a game state for our example.
 #[derive(Default)]
@@ -63,5 +63,9 @@ fn main() {
     };
 
     // Spawn the window and run the 'game'
-    GameState::default().run(config);
+    GameState::default().run(
+        // In this example we don't use any stored assets so we also don't have to embed them into the binary
+        AssetSource::new(),
+        config,
+    );
 }

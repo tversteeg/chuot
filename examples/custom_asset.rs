@@ -62,6 +62,7 @@ impl Game for GameState {
 fn main() {
     // Spawn the window with the default configuration but with a horizontally stretched buffer for displaying longer text
     GameState {}.run(
+        chuot::load_assets!(),
         Config::default()
             .with_buffer_size((360.0, 50.0))
             .with_scaling(2.0),

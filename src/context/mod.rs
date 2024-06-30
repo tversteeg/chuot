@@ -559,7 +559,7 @@ impl ContextInner {
         let window = Arc::new(window);
 
         // Setup the initial graphics
-        let graphics = Graphics::new(config.clone(), Arc::clone(&window)).await;
+        let graphics = Graphics::new(config.clone(), Arc::clone(&window), &asset_source).await;
 
         // Setup the audio manager to play audio
         let audio_manager = AudioManager::new(AudioManagerSettings::default()).unwrap();

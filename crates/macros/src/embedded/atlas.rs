@@ -1,9 +1,9 @@
 //! Create a single big texture atlas from all image files in the assets folder.
 
-use std::{fs::File, path::PathBuf, str::FromStr, time::Duration};
+use std::{fs::File, path::PathBuf, time::Duration};
 
 use oxipng::Options;
-use packr2::{PackerConfig, RectInput, Size, SplitPacker};
+use phf_codegen::Map;
 use png::{BitDepth, ColorType, Decoder, Encoder, Transformations};
 use proc_macro2::TokenStream;
 use quote::quote;
@@ -17,8 +17,7 @@ pub fn parse_textures(textures: &[(String, PathBuf)]) -> TokenStream {
     // Read each texture from disk and convert it into a texture for the sprite dicing algorithm
     let source_sprites = textures
         .iter()
-        .enumerate()
-        .map(|(index, (_id, path))| {
+        .map(|(id, path)| {
             // Read the PNG
             let mut decoder = Decoder::new(File::open(path).expect("Error opening texture"));
 
@@ -82,8 +81,8 @@ pub fn parse_textures(textures: &[(String, PathBuf)]) -> TokenStream {
                 pixels,
             };
 
-            // Create a simple ID from the index
-            let id = index.to_string();
+            // Use the ID as to find the diced parts later
+            let id = id.to_owned();
 
             // Ensure each sprite doesn't get offset vertex coordinates
             let pivot = Some(Pivot::new(0.0, 0.0));
@@ -92,9 +91,6 @@ pub fn parse_textures(textures: &[(String, PathBuf)]) -> TokenStream {
             SourceSprite { id, texture, pivot }
         })
         .collect::<Vec<_>>();
-
-    // Pack all rectangles in the atlas
-    let (atlas_width, atlas_height, offsets) = pack(&source_sprites);
 
     // Dice the textures
     let prefs = Prefs {
@@ -116,128 +112,54 @@ pub fn parse_textures(textures: &[(String, PathBuf)]) -> TokenStream {
     // Get the result texture
     let diced_atlas = &diced.atlases[0];
 
+    // Get the size of the generated atlas
+    let atlas_width = diced_atlas.width as u16;
+    let atlas_height = diced_atlas.height as u16;
+
     // Encode the generated diced atlas as a PNG
     let png_bytes = encode_png(diced_atlas);
 
-    // Parse each texture
-    let texture_mappings = diced.sprites.into_iter().flat_map(|DicedSprite {
-        id,
-        vertices,
-        uvs,
-        indices,
-        pivot,
-        ..
-    }| {
-        // Recalculate the mesh positions back to the textures
+    // Create the result texture map
+    let mut textures_map = Map::<&str>::new();
 
-        // Convert ID back to number
-        let texture_index = usize::from_str(&id).unwrap();
+    // Create the textures for the map
+    for (index, source_sprite) in source_sprites.iter().enumerate() {
+        let texture = texture(
+            &source_sprite.id,
+            source_sprite.texture.width as u16,
+            source_sprite.texture.height as u16,
+            // Use the index as the reference, it's trivial which is chosen as long as it's unique
+            index as u16,
+            &diced.sprites,
+            diced_atlas.width as f32,
+            diced_atlas.height as f32,
+        );
 
-        // Get the offset in the output atlas
-        let (offset_u, offset_v) = offsets[texture_index];
+        textures_map.entry(&source_sprite.id, &texture.to_string());
+    }
 
-        assert_eq!(pivot, Pivot::new(0.0, 0.0), "Diced sprite pivot changed");
-
-        // Every vertex for every quad is unique and are added incrementally, so we don't need to actually index them
-        assert_eq!(indices.len() / 6 * 4, vertices.len(), "Sprite dicing algorithm changed, can't assume every vertex is only used by a single quad anymore");
-
-        // We assume the dicing algorithm keeps a specific structure
-        assert_eq!(vertices[0].x, vertices[1].x);
-        assert_eq!(vertices[2].x, vertices[3].x);
-        assert_eq!(vertices[0].y, vertices[3].y);
-        assert_eq!(vertices[1].y, vertices[2].y);
-        assert!(vertices[0].x < vertices[2].x);
-        assert!(vertices[0].y < vertices[2].y);
-
-        // Because of this assumption we only need to take 2 vertices for each rectangle
-        let quad_vertices = vertices.chunks_exact(4).map(|vertices| (vertices[0].clone(), vertices[2].clone())).collect::<Vec<_>>();
-
-        // Convert all coordinates into mapped rectangles
-        quad_vertices
-            .into_iter()
-            // We only need to take the top left UV coordinate because we can already calculate the width and height from the vertices
-            .zip(uvs.into_iter().step_by(4))
-            .map(move |((top_left, bottom_right), uv)| {
-                // Get the position on the original texture
-                let top_left_u = top_left.x as u16;
-                let top_left_v = top_left.y as u16;
-
-                // Apply offsets
-                let texture_u = top_left_u + offset_u;
-                let texture_v = top_left_v + offset_v;
-
-                // Get the size, apply to both the source and the target
-                let width = bottom_right.x as u16 - top_left_u;
-                let height = bottom_right.y as u16 - top_left_v;
-
-                // Get the position on the newly diced map
-                let diced_u = (uv.u * diced_atlas.width as f32).round() as u16;
-                let diced_v = (uv.v * diced_atlas.height as f32).round() as u16;
-
-                // Convert to array to save space
-                quote! {
-                    chuot::assets::source::TextureMapping {
-                        diced: glamour::Point2 { x: #diced_u, y: #diced_v },
-                        texture: glamour::Point2 { x: #texture_u, y: #texture_v },
-                        size: glamour::Size2 { width: #width, height: #height },
-                        #[cfg(feature = "read-image")]
-                        index: #texture_index,
-                        #[cfg(feature = "read-image")]
-                        source: glamour::Point2 { x: #top_left_u, y: #top_left_v },
-                    }
-                }
-            })
-    }).collect::<Vec<_>>();
-
-    // Texture IDs mapped to the indices
-    let texture_ids = textures.iter().map(|(id, _)| id).collect::<Vec<_>>();
-
-    // Texture rectangles
-    let texture_rects = source_sprites
-        .iter()
-        .zip(offsets.iter())
-        .map(|(source_sprite, (u, v))| {
-            let u = *u as f32;
-            let v = *v as f32;
-            let width = source_sprite.texture.width as f32;
-            let height = source_sprite.texture.height as f32;
-
-            quote! {
-                glamour::Rect {
-                    origin: glamour::Point2 { x: #u, y: #v },
-                    size: glamour::Size2 { width: #width, height: #height }
-                }
-            }
-        })
-        .collect::<Vec<_>>();
-
-    std::fs::write("/tmp/image.png", png_bytes.clone()).unwrap();
+    // Create the result code
+    let textures_map: TokenStream = textures_map.build().to_string().parse().unwrap();
 
     // Create the object from the tightly packed arrays
     quote! {
-        chuot::assets::source::EmbeddedRawStaticAtlas {
-            diced_atlas_png_bytes: {
-                static BYTES: &[u8] = &[#(#png_bytes),*];
+        {
+            static MAP: &chuot::assets::source::EmbeddedRawStaticAtlas = &chuot::assets::source::EmbeddedRawStaticAtlas {
+                diced_atlas_png_bytes: {
+                    static BYTES: &[u8] = &[#(#png_bytes),*];
 
-                BYTES
-            },
-            texture_mappings: {
-                static MAPPINGS: &[chuot::assets::source::TextureMapping] = &[#(#texture_mappings),*];
+                    BYTES
+                },
+                textures: {
+                    static TEXTURES: &phf::Map<&'static str, chuot::assets::source::EmbeddedTexture> = &#textures_map;
 
-                MAPPINGS
-            },
-            texture_ids: {
-                static IDS: &[&'static str] = &[#(#texture_ids),*];
+                    TEXTURES
+                },
+                width: #atlas_width,
+                height: #atlas_height,
+            };
 
-                IDS
-            },
-            texture_rects: {
-                static RECTS: &[glamour::Rect<f32>] = &[#(#texture_rects),*];
-
-                RECTS
-            },
-            width: #atlas_width,
-            height: #atlas_height,
+            MAP
         }
     }
 }
@@ -288,58 +210,82 @@ fn encode_png(texture: &Texture) -> Vec<u8> {
     .expect("Error optimizing PNG")
 }
 
-/// Pack all rectangles into a single atlas.
-///
-/// # Returns
-///
-/// - Size of the atlas.
-/// - Offsets for texture inside the packed resulting atlas.
-fn pack(source_sprites: &[SourceSprite]) -> (u16, u16, Vec<(u16, u16)>) {
-    // Convert textures to inputs for the packr algorithm
-    let mut inputs = source_sprites
+/// Construct an single texture.
+fn texture(
+    id: &str,
+    width: u16,
+    height: u16,
+    reference: u16,
+    diced_sprites: &[DicedSprite],
+    diced_width: f32,
+    diced_height: f32,
+) -> TokenStream {
+    // Parse each texture
+    let texture_mappings = diced_sprites
         .iter()
-        .enumerate()
-        .map(|(key, source_sprite)| {
-            RectInput {
-                size: Size::new(source_sprite.texture.width, source_sprite.texture.height),
-                // Use the index as the key
-                key,
+        .filter(|diced| diced.id == id)
+        .flat_map(|DicedSprite {
+        vertices,
+        uvs,
+        indices,
+        ..
+    }| {
+        // Recalculate the mesh positions back to the textures
+
+        // Every vertex for every quad is unique and are added incrementally, so we don't need to actually index them
+        assert_eq!(indices.len() / 6 * 4, vertices.len(), "Sprite dicing algorithm changed, can't assume every vertex is only used by a single quad anymore");
+
+        // We assume the dicing algorithm keeps a specific structure
+        // Because of this assumption we only need to take 2 vertices for each rectangle
+        assert!(vertices[0].x < vertices[2].x);
+        assert!(vertices[0].y < vertices[2].y);
+
+        // Convert all coordinates into mapped rectangles
+        vertices
+            .chunks_exact(4)
+            .map(|vertices| {
+                assert!(vertices.len() > 2);
+
+                (vertices[0].clone(), vertices[2].clone())
+            })
+            // We only need to take the top left UV coordinate because we can already calculate the width and height from the vertices
+            .zip(uvs.iter().step_by(4))
+            .map(move |((top_left, bottom_right), uv)| {
+                // Get the position on the original texture
+                let texture_u = top_left.x as u16;
+                let texture_v = top_left.y as u16;
+
+                // Get the size, apply to both the source and the target
+                let width = bottom_right.x as u16 - texture_u;
+                let height = bottom_right.y as u16 - texture_v;
+
+                // Get the position on the newly diced map
+                let diced_u = (uv.u * diced_width).round() as u16;
+                let diced_v = (uv.v * diced_height).round() as u16;
+
+                quote! {
+                    chuot::assets::source::EmbeddedTextureDiceMapping {
+                        diced_u: #diced_u,
+                        diced_v: #diced_v,
+                        texture_u: #texture_u,
+                        texture_v: #texture_v,
+                        width: #width,
+                        height: #height,
+                    }
+                }
+            })
+    }).collect::<Vec<_>>();
+
+    quote! {
+        chuot::assets::source::EmbeddedTexture {
+            width: #width,
+            height: #height,
+            reference: #reference,
+            diced: {
+                static MAPPINGS: &[chuot::assets::source::EmbeddedTextureDiceMapping] = &[#(#texture_mappings),*];
+
+                MAPPINGS
             }
-        })
-        .collect();
-
-    // Pack in a maximum atlas of 4096x4096
-    let packer = SplitPacker::new(PackerConfig {
-        max_width: 4096,
-        max_height: 4096,
-        allow_flipping: false,
-    });
-    let mut outputs = packr2::pack(&mut inputs, packer);
-
-    // Sort the outputs by the key, so the index matches again
-    outputs.sort_by_key(|output| output.key);
-
-    // Get the size of the atlas
-    let width = outputs
-        .iter()
-        .map(|output| output.rect.x + output.rect.w)
-        .max()
-        .unwrap_or_default() as u16;
-    let height = outputs
-        .iter()
-        .map(|output| output.rect.y + output.rect.h)
-        .max()
-        .unwrap_or_default() as u16;
-
-    // Only take the offsets
-    let offsets = outputs
-        .into_iter()
-        .map(|output| {
-            assert_eq!(output.atlas, 0, "Multiple atlasses not supported yet");
-
-            (output.rect.x as u16, output.rect.y as u16)
-        })
-        .collect();
-
-    (width, height, offsets)
+         }
+    }
 }

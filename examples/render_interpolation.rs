@@ -86,5 +86,5 @@ fn main() {
         .with_update_delta_time(10.0_f32.recip());
 
     // Spawn the window and run the 'game'
-    GameState::default().run(config);
+    GameState::default().run(chuot::load_assets!(), config);
 }
