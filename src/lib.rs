@@ -31,8 +31,7 @@ pub use random::random;
 /// ```
 pub use chuot_macros::load_assets;
 
-use std::time::Instant;
-
+use web_time::Instant;
 use winit::{
     application::ApplicationHandler,
     dpi::{LogicalSize, PhysicalSize},
@@ -183,41 +182,99 @@ struct State<G: Game> {
     last_time: Instant,
     /// Timestep accumulator for the update rate.
     accumulator: f32,
+    /// Proxy required to send the context on the web platform.
+    #[cfg(target_arch = "wasm32")]
+    event_loop_proxy: Option<winit::event_loop::EventLoopProxy<Context>>,
 }
 
-impl<G: Game> ApplicationHandler<()> for State<G> {
+impl<G: Game> ApplicationHandler<Context> for State<G> {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         // Setup the window
         if self.ctx.is_none() {
+            // Define the properties of the window
+            #[allow(unused_mut)]
+            let mut window_attributes = WindowAttributes::default()
+                .with_title(&self.config.title)
+                // Apply scaling for the requested size
+                .with_inner_size(LogicalSize::new(
+                    self.config.buffer_width * self.config.scaling,
+                    self.config.buffer_height * self.config.scaling,
+                ))
+                // Don't allow the window to be smaller than the pixel size
+                .with_min_inner_size(LogicalSize::new(
+                    self.config.buffer_width,
+                    self.config.buffer_height,
+                ));
+
+            #[cfg(target_arch = "wasm32")]
+            {
+                use web_sys::{wasm_bindgen::JsCast, HtmlCanvasElement};
+                use winit::platform::web::WindowAttributesExtWebSys;
+
+                // Create a canvas the winit window can be attached to
+                let window = web_sys::window().unwrap();
+                let document = window.document().unwrap();
+                let body = document.body().unwrap();
+
+                // Look for a canvas with ID 'chuot', and if not found create it
+                let canvas = match document.get_element_by_id("chuot") {
+                    // Canvas found, use it
+                    Some(canvas) => canvas.dyn_into::<HtmlCanvasElement>().unwrap(),
+                    // No canvas found, create the element
+                    None => {
+                        let canvas = document
+                            .create_element("canvas")
+                            .unwrap()
+                            .dyn_into::<HtmlCanvasElement>()
+                            .unwrap();
+                        canvas.set_id("chuot");
+
+                        body.append_child(&canvas).unwrap();
+
+                        canvas
+                    }
+                };
+
+                // Ensure the pixels are not rendered with wrong filtering and that the size is correct
+                canvas
+                    .style()
+                    .set_css_text("image-rendering: pixelated; outline: none; border: none;");
+
+                window_attributes = window_attributes.with_canvas(Some(canvas.into()))
+            }
+
             // Spawn a new window using the event loop
             let window = event_loop
-                .create_window(
-                    WindowAttributes::default()
-                        .with_title(&self.config.title)
-                        // Apply scaling for the requested size
-                        .with_inner_size(LogicalSize::new(
-                            self.config.buffer_width * self.config.scaling,
-                            self.config.buffer_height * self.config.scaling,
-                        ))
-                        // Don't allow the window to be smaller than the pixel size
-                        .with_min_inner_size(LogicalSize::new(
-                            self.config.buffer_width,
-                            self.config.buffer_height,
-                        )),
-                )
+                .create_window(window_attributes)
                 .expect("Error creating window");
 
             // Setup the context
-            let context = pollster::block_on(async {
-                Context::new(
-                    self.config.clone(),
-                    self.asset_source.take().unwrap(),
-                    window,
-                )
-                .await
-            });
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                // Because pollster returns the value we can set it immediately
+                self.ctx = Some(pollster::block_on(async {
+                    Context::new(
+                        self.config.clone(),
+                        self.asset_source.take().unwrap(),
+                        window,
+                    )
+                    .await
+                }));
+            }
+            #[cfg(target_arch = "wasm32")]
+            {
+                // We only need the proxy once to send the context
+                let event_loop_proxy = self.event_loop_proxy.take().unwrap();
+                let asset_source = self.asset_source.take().unwrap();
+                let config = self.config.clone();
 
-            self.ctx = Some(context);
+                wasm_bindgen_futures::spawn_local(async move {
+                    // Because WASM futures can't block we need to send it with a user event
+                    let ctx = Context::new(config, asset_source, window).await;
+
+                    let _ = event_loop_proxy.send_event(ctx);
+                });
+            }
         }
     }
 
@@ -286,6 +343,7 @@ impl<G: Game> ApplicationHandler<()> for State<G> {
                 });
             }
             // Resize the render surface
+            #[cfg(not(target_arch = "wasm32"))]
             WindowEvent::Resized(PhysicalSize { width, height }) => {
                 ctx.write(|ctx| {
                     // Resize the GPU surface
@@ -307,11 +365,19 @@ impl<G: Game> ApplicationHandler<()> for State<G> {
             other => ctx.write(|ctx| ctx.input.handle_event(other, &ctx.graphics)),
         }
     }
+
+    fn user_event(&mut self, _event_loop: &ActiveEventLoop, ctx: Context) {
+        self.ctx = Some(ctx);
+    }
 }
 
 /// Run the game.
 #[inline(always)]
 fn run(game: impl Game, asset_source: AssetSource, config: Config) {
+    // Show panics in the browser console log
+    #[cfg(target_arch = "wasm32")]
+    std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+
     // Setup the timestep variables for calculating the update loop
     let accumulator = 0.0;
     let last_time = Instant::now();
@@ -320,11 +386,15 @@ fn run(game: impl Game, asset_source: AssetSource, config: Config) {
     let ctx = None;
 
     // Create a polling event loop, which redraws the window whenever possible
-    let event_loop = EventLoop::new().unwrap();
+    let event_loop = EventLoop::with_user_event().build().unwrap();
     event_loop.set_control_flow(ControlFlow::Poll);
 
     // Put the asset source on the heap
     let asset_source = Some(Box::new(asset_source));
+
+    // Get the event loop proxy so we can instantiate on the web
+    #[cfg(target_arch = "wasm32")]
+    let event_loop_proxy = Some(event_loop.create_proxy());
 
     // Run the game
     let _ = event_loop.run_app(&mut State {
@@ -334,5 +404,7 @@ fn run(game: impl Game, asset_source: AssetSource, config: Config) {
         config,
         last_time,
         accumulator,
+        #[cfg(target_arch = "wasm32")]
+        event_loop_proxy,
     });
 }
