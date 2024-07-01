@@ -9,7 +9,7 @@
 //! ```
 
 use chuot::{
-    assets::{loader::Loader, source::AssetSource, Id, Loadable},
+    assets::{Id, Loadable, loader::Loader, source::AssetSource},
     Config, Context, Game,
 };
 
@@ -31,8 +31,8 @@ struct TxtString(pub String);
 
 impl Loadable for TxtString {
     fn load_if_exists(id: &Id, assets: &AssetSource) -> Option<Self>
-    where
-        Self: Sized,
+        where
+            Self: Sized,
     {
         // Use the created loader to load a txt asset
         let text = assets.load_if_exists::<TxtLoader, _>(id)?;
@@ -63,7 +63,6 @@ fn main() {
     // Spawn the window with the default configuration but with a horizontally stretched buffer for displaying longer text
     GameState {}
         .run(
-
             Config::default()
                 .with_buffer_size(Size2::new(360.0, 50.0))
                 .with_scaling(2.0),

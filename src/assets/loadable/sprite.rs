@@ -5,9 +5,9 @@ use nanoserde::DeRon;
 
 use crate::{
     assets::{
+        Id
+        ,
         loader::{png::PngLoader, ron::RonLoader},
-        source::AssetSource,
-        Id,
     },
     context::ContextInner,
     graphics::atlas::TextureRef,
@@ -134,8 +134,8 @@ impl Sprite {
 
 impl Loadable for Sprite {
     fn load_if_exists(id: &Id, ctx: &mut ContextInner) -> Option<Self>
-    where
-        Self: Sized,
+        where
+            Self: Sized,
     {
         // Load without metadata
         let mut sprite = Self::load_if_exists_without_metadata(id, ctx)?;
@@ -189,8 +189,8 @@ pub struct SpriteMetadata {
 impl Loadable for SpriteMetadata {
     #[inline]
     fn load_if_exists(id: &Id, ctx: &mut ContextInner) -> Option<Self>
-    where
-        Self: Sized,
+        where
+            Self: Sized,
     {
         ctx.asset_source.load_if_exists::<RonLoader, _>(id)
     }

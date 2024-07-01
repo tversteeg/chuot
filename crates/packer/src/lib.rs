@@ -56,10 +56,10 @@ impl Packer {
     #[must_use]
     pub fn with_existing_rectangles_iter<R>(
         mut self,
-        existing_rectangles: impl Iterator<Item = R>,
+        existing_rectangles: impl Iterator<Item=R>,
     ) -> Self
-    where
-        R: Into<(u16, u16, u16, u16)>,
+        where
+            R: Into<(u16, u16, u16, u16)>,
     {
         for rect in existing_rectangles {
             let (x, y, width, height) = rect.into();

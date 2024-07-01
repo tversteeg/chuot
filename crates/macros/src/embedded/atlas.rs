@@ -121,13 +121,13 @@ pub fn parse_textures(textures: &[(String, PathBuf)]) -> TokenStream {
 
     // Parse each texture
     let texture_mappings = diced.sprites.into_iter().flat_map(|DicedSprite {
-        id,
-        vertices,
-        uvs,
-        indices,
-        pivot,
-        ..
-    }| {
+                                                                   id,
+                                                                   vertices,
+                                                                   uvs,
+                                                                   indices,
+                                                                   pivot,
+                                                                   ..
+                                                               }| {
         // Recalculate the mesh positions back to the textures
 
         // Convert ID back to number
@@ -285,7 +285,7 @@ fn encode_png(texture: &Texture) -> Vec<u8> {
             ..Default::default()
         },
     )
-    .expect("Error optimizing PNG")
+        .expect("Error optimizing PNG")
 }
 
 /// Pack all rectangles into a single atlas.

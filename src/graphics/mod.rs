@@ -1,11 +1,5 @@
 //! Graphics state handling drawing items.
 
-pub mod atlas;
-mod data;
-mod instance;
-mod post_processing;
-mod uniform;
-
 use std::{borrow::Cow, sync::Arc};
 
 use wgpu::util::DeviceExt;
@@ -20,6 +14,12 @@ use self::{
     post_processing::PostProcessingState,
     uniform::UniformState,
 };
+
+pub mod atlas;
+mod data;
+mod instance;
+mod post_processing;
+mod uniform;
 
 /// Texture format we prefer to use for everything.
 ///
@@ -175,8 +175,8 @@ impl Graphics {
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Diffuse Texture Shader"),
             source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!(concat!(
-                env!("OUT_DIR"),
-                "/texture.wgsl"
+            env!("OUT_DIR"),
+            "/texture.wgsl"
             )))),
         });
 
@@ -372,8 +372,8 @@ impl Graphics {
                 // Width fits
                 screen_width_u32 / buffer_width_u32
             }
-            // We don't want a scale smaller than one
-            .max(1)
+                // We don't want a scale smaller than one
+                .max(1)
         };
 
         // Calculate the new size with the scale

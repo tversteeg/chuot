@@ -1,6 +1,6 @@
 //! Show how to interpolate a sprite in the render loop by keeping a previous state in the update loop.
 
-use chuot::{context::MouseButton, glamour::Vector2, Config, Context, Game};
+use chuot::{Config, Context, context::MouseButton, Game, glamour::Vector2};
 
 /// Define a game state for our example.
 #[derive(Default)]
@@ -58,8 +58,8 @@ impl Game for GameState {
                 if self.interpolate { "on" } else { "off" }
             ),
         )
-        .translate(Vector2::new(0.0, ctx.size().height - 24.0))
-        .draw();
+            .translate(Vector2::new(0.0, ctx.size().height - 24.0))
+            .draw();
     }
 }
 

@@ -1,7 +1,7 @@
 //! Zero-cost abstraction types for building more complicated sprite drawing constructions.
 
 use crate::{
-    assets::{loadable::sprite::Sprite, Id},
+    assets::{Id, loadable::sprite::Sprite},
     Context,
 };
 
@@ -145,9 +145,9 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
     ///
     /// But this runs on my PC with an average FPS of 11 when rendering 100000 sprites.
     #[inline(always)]
-    pub fn draw_multiple_translated<T>(self, translations: impl Iterator<Item = T>)
-    where
-        T: Into<(f32, f32)>,
+    pub fn draw_multiple_translated<T>(self, translations: impl Iterator<Item=T>)
+        where
+            T: Into<(f32, f32)>,
     {
         self.ctx.write(|ctx| {
             // Push the instance if the texture is already uploaded

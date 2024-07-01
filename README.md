@@ -18,8 +18,10 @@ AGPL licensed and opinionated game engine for 2D pixel-art games.
 
 - Pixel-perfect pixel art rendering with built-in rotsprite rotation shader.
 - Window creation with independent update and render game loop.
-- Hot-reloadable assets, seeing your assets update live in the game when you save them is a great boost in productivity for quickly iterating on ideas.
-- Single-binary, all non-texture assets should be embedded directly, and textures should be diced into a single atlas map embedded in the binary when deploying.
+- Hot-reloadable assets, seeing your assets update live in the game when you save them is a great boost in productivity
+  for quickly iterating on ideas.
+- Single-binary, all non-texture assets should be embedded directly, and textures should be diced into a single atlas
+  map embedded in the binary when deploying.
 - Simple bitmap font drawing.
 - Dialogue scripting system.
 - OGG audio playback.
@@ -34,15 +36,19 @@ AGPL licensed and opinionated game engine for 2D pixel-art games.
 
 #### Non-Goals
 
-- An ECS (Entity component system), although an ECS architecture is great for cache locality and performance, I feel that it's overkill for most small games. Nothing is stopping you to add your own on top of this engine if that's what you want though!
+- An ECS (Entity component system), although an ECS architecture is great for cache locality and performance, I feel
+  that it's overkill for most small games. Nothing is stopping you to add your own on top of this engine if that's what
+  you want though!
 - 3D, this engine is only for 2D pixel art.
 - Vector graphics, similar to the above, this engine is focused specifically on pixel art with lower resolutions.
-- Reinventing the wheel for everything, when there's a proper crate with good support I prefer to use that instead of creating additional maintainer burden.
+- Reinventing the wheel for everything, when there's a proper crate with good support I prefer to use that instead of
+  creating additional maintainer burden.
 - Support all possible file formats, this bloats the engine.
 
 #### Usage
 
-Using this crate is quite simple, there is a single trait [`Game`] with two required functions, [`Game::update`] and [`Game::render`], that need to be implemented for a game state object.
+Using this crate is quite simple, there is a single trait [`Game`] with two required functions, [`Game::update`]
+and [`Game::render`], that need to be implemented for a game state object.
 
 ```rust
 use chuot::{Context, Config, Game};
@@ -74,7 +80,8 @@ _Must_ be enabled when building for the web.
 If disabled all assets will be loaded from disk.
 
 This will dice all PNG assets into a single tiny optimized PNG atlas.
-On startup this diced atlas will be efficiently uploaded to the GPU as a single bigger atlas, which will be used for all static sprites.
+On startup this diced atlas will be efficiently uploaded to the GPU as a single bigger atlas, which will be used for all
+static sprites.
 
 ##### `hot-reload-assets`
 
@@ -84,7 +91,8 @@ If disabled _all_ assets will be baked into the binary.
 
 ##### `read-image` (default)
 
-Expose read operations on images, if disabled sprites will be uploaded to the GPU and their data will be removed from memory.
+Expose read operations on images, if disabled sprites will be uploaded to the GPU and their data will be removed from
+memory.
 
 ##### `dialogue` (default)
 
@@ -95,7 +103,8 @@ Allows creating hot-reloadable dialogue systems.
 
 A profiler window overlay, implemented with [puffin_egui](https://docs.rs/puffin_egui/latest/puffin_egui/).
 
-Other profiling methods in your game can also be implemented, the [profiling](https://docs.rs/profiling/latest/profiling/) crate is enabled even when this feature flag is disabled.
+Other profiling methods in your game can also be implemented,
+the [profiling](https://docs.rs/profiling/latest/profiling/) crate is enabled even when this feature flag is disabled.
 
 #### Install Requirements
 
@@ -157,14 +166,17 @@ game.run(Config::default().with_title("My Game"))?;
 ```
 
 [^left-mouse]: [`Context::mouse_pressed`]
+
 [^text]: [`Context::text`]
+
 [^escape-key]: [`Context::key_pressed`]
 
 <!-- cargo-rdme end -->
 
 #### Rotation Algorithms
 
-In the library it's possible to choose between multiple upscale implementations for the single-pass RotSprite algorithm, see the Rust documentation for more information:
+In the library it's possible to choose between multiple upscale implementations for the single-pass RotSprite algorithm,
+see the Rust documentation for more information:
 
 ##### Nearest Neighbor
 

@@ -11,8 +11,8 @@ documentation = "https://docs.rs/chuot"
 repository = "https://github.com/tversteeg/chuot.git"
 keywords = ["gamedev", "utility"]
 categories = [
-	"games",
-	"game-engines",
+    "games",
+    "game-engines",
 ]
 rust-version = "1.77.0"
 include = ["/src", "build.rs", "/shaders"]
@@ -22,14 +22,14 @@ include = ["/src", "build.rs", "/shaders"]
 features = []
 # Supported platforms
 targets = [
-	# Linux (X11 & Wayland)
-	"x86_64-unknown-linux-gnu",
-	# Web
-	"wasm32-unknown-unknown",
-	# Windows
-	"x86_64-pc-windows-msvc",
-	# MacOS
-	"x86_64-apple-darwin",
+    # Linux (X11 & Wayland)
+    "x86_64-unknown-linux-gnu",
+    # Web
+    "wasm32-unknown-unknown",
+    # Windows
+    "x86_64-pc-windows-msvc",
+    # MacOS
+    "x86_64-apple-darwin",
 ]
 rustdoc-args = ["--cfg", "docsrs"]
 

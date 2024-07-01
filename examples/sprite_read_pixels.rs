@@ -9,7 +9,7 @@
 //! offset = "Middle"
 //! ```
 
-use chuot::{glamour::Size2, Config, Context, Game};
+use chuot::{Config, Context, Game, glamour::Size2};
 
 /// Which sprite to draw.
 const SPRITE: &str = "threeforms";
@@ -39,7 +39,7 @@ impl Game for GameState {
         };
 
         // Only do something when the mouse is on a pixel
-        let Some(mouse) = ctx.mouse() else { return };
+        let Some(mouse) = ctx.mouse() else { return; };
 
         // Offset the mouse with the sprite in the middle of the screen
         let mouse = mouse - ctx.size().to_vector() / 2.0

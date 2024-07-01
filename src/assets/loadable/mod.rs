@@ -1,14 +1,14 @@
 //! Any asset that can be loaded with [`crate::assets::loader::Loader`] implementations.
 
-pub(crate) mod audio;
-pub(crate) mod font;
-pub(crate) mod sprite;
-
 use downcast_rs::Downcast;
 
 use crate::context::ContextInner;
 
-use super::{source::AssetSource, Id};
+use super::{Id, source::AssetSource};
+
+pub(crate) mod audio;
+pub(crate) mod font;
+pub(crate) mod sprite;
 
 /// Any asset that's loadable from any amount of binary files.
 ///
@@ -42,8 +42,8 @@ pub trait Loadable: Downcast {
     ///
     /// - When parsing binary bytes of asset into type fails.
     fn load_if_exists(id: &Id, ctx: &mut ContextInner) -> Option<Self>
-    where
-        Self: Sized;
+        where
+            Self: Sized;
 
     /// Convert a file object to this type.
     ///
@@ -54,8 +54,8 @@ pub trait Loadable: Downcast {
     #[inline]
     #[must_use]
     fn load(id: &Id, ctx: &mut ContextInner) -> Self
-    where
-        Self: Sized,
+        where
+            Self: Sized,
     {
         Self::load_if_exists(id, ctx).map_or_else(
             || panic!("Error loading asset: '{id}' does not exist"),
@@ -67,8 +67,8 @@ pub trait Loadable: Downcast {
     #[inline]
     #[must_use]
     fn new() -> Self
-    where
-        Self: Default,
+        where
+            Self: Default,
     {
         Self::default()
     }

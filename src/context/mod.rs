@@ -1,7 +1,6 @@
 //! Main interface with the game.
 
-pub mod sprite;
-pub mod text;
+use std::{cell::RefCell, rc::Rc, sync::Arc};
 
 /// Re-exported `gilrs` types for [`Context`] arguments.
 pub use gilrs::ev::{Axis, Button};
@@ -9,21 +8,21 @@ use gilrs::GamepadId;
 use smallvec::SmallVec;
 /// Re-exported `winit` types for [`Context`] arguments.
 pub use winit::{event::MouseButton, keyboard::KeyCode};
-
-use std::{cell::RefCell, rc::Rc, sync::Arc};
-
 use winit::window::{Fullscreen, Window};
 
 use crate::{
     assets::{
-        loadable::{audio::Audio, font::Font, sprite::Sprite, Loadable},
-        source::AssetSource,
-        AssetManager, CustomAssetManager, Id,
+        AssetManager,
+        CustomAssetManager,
+        Id, loadable::{audio::Audio, font::Font, Loadable, sprite::Sprite}, source::AssetSource,
     },
     config::Config,
     graphics::Graphics,
     input::Input,
 };
+
+pub mod sprite;
+pub mod text;
 
 /// Context containing most functionality for interfacing with the game engine.
 ///
@@ -414,8 +413,8 @@ impl Context {
     /// - When asset could not be loaded due to an invalid format.
     #[inline]
     pub fn asset<T>(&self, path: impl AsRef<str>) -> Rc<T>
-    where
-        T: Loadable,
+        where
+            T: Loadable,
     {
         self.write(|ctx| ctx.custom(path.as_ref()))
     }
@@ -432,8 +431,8 @@ impl Context {
     /// - When asset could not be loaded due to an invalid format.
     #[inline]
     pub fn asset_owned<T>(&self, path: impl AsRef<str>) -> T
-    where
-        T: Loadable + Clone,
+        where
+            T: Loadable + Clone,
     {
         self.write(|ctx| ctx.custom_owned(path.as_ref()))
     }
@@ -606,8 +605,8 @@ impl ContextInner {
     /// - When type used to load the asset mismatches the type used to get it.
     #[inline]
     pub(crate) fn custom<T>(&mut self, id: &str) -> Rc<T>
-    where
-        T: Loadable,
+        where
+            T: Loadable,
     {
         // Create the ID
         let id = Id::new(id);
@@ -630,8 +629,8 @@ impl ContextInner {
     /// - When type used to load the asset mismatches the type used to get it.
     #[inline]
     pub(crate) fn custom_owned<T>(&mut self, id: &str) -> T
-    where
-        T: Loadable + Clone,
+        where
+            T: Loadable + Clone,
     {
         // Create a clone of the asset
         Rc::<T>::unwrap_or_clone(self.custom(id))

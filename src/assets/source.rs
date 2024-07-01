@@ -1,18 +1,13 @@
 //! How and where assets are loaded.
 
 use std::{
-    path::{PathBuf, MAIN_SEPARATOR},
+    path::{MAIN_SEPARATOR, PathBuf},
     str::FromStr,
 };
 
-use crate::{
-    graphics::{atlas::TextureRef, Graphics},
-    Context,
-};
-
 use super::{
-    loader::{png::PngReader, Loader},
     Id,
+    loader::Loader,
 };
 
 /// Empty array when embedding nothing.
@@ -83,8 +78,8 @@ impl AssetSource {
     #[inline]
     #[must_use]
     pub fn load_if_exists<L, T>(&self, id: &Id) -> Option<T>
-    where
-        L: Loader<T>,
+        where
+            L: Loader<T>,
     {
         // First try to read from memory
         // TODO: use a map for this

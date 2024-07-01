@@ -1,8 +1,8 @@
 //! Handle different input events.
 
 use gilrs::{
-    ev::state::{AxisData, ButtonData},
-    Axis, Button, GamepadId, Gilrs, GilrsBuilder,
+    Axis,
+    Button, ev::state::{AxisData, ButtonData}, GamepadId, Gilrs, GilrsBuilder,
 };
 use hashbrown::HashMap;
 use smallvec::SmallVec;

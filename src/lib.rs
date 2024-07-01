@@ -1,16 +1,5 @@
 #![forbid(unsafe_code)]
 
-pub mod assets;
-pub mod config;
-pub mod context;
-mod graphics;
-mod input;
-mod random;
-
-pub use config::Config;
-pub use context::Context;
-pub use random::random;
-
 use std::time::Instant;
 
 use winit::{
@@ -21,6 +10,17 @@ use winit::{
     window::{WindowAttributes, WindowId},
 };
 
+pub use config::Config;
+pub use context::Context;
+pub use random::random;
+
+pub mod assets;
+pub mod config;
+pub mod context;
+mod graphics;
+mod input;
+mod random;
+
 /// How fast old FPS values decay in the smoothed average.
 const FPS_SMOOTHED_AVERAGE_ALPHA: f32 = 0.8;
 
@@ -30,8 +30,8 @@ const FPS_SMOOTHED_AVERAGE_ALPHA: f32 = 0.8;
 ///
 /// See [`Context`] for all functions interfacing with the game engine from both functions.
 pub trait Game: Sized
-where
-    Self: 'static,
+    where
+        Self: 'static,
 {
     /// A single update tick in the game loop.
     ///

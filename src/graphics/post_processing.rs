@@ -4,7 +4,7 @@ use std::borrow::Cow;
 
 use bytemuck::NoUninit;
 
-use super::{data::ScreenInfo, uniform::UniformState, PREFERRED_TEXTURE_FORMAT};
+use super::{data::ScreenInfo, PREFERRED_TEXTURE_FORMAT, uniform::UniformState};
 
 /// State data collection for post processing stages.
 pub(crate) struct PostProcessingState {

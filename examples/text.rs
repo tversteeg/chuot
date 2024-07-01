@@ -8,7 +8,7 @@
 //! glyph_size = { width = 10, height = 10 }
 //! ```
 
-use chuot::{glamour::Size2, Config, Context, Game};
+use chuot::{Config, Context, Game, glamour::Size2};
 
 /// Define a game state for our example.
 #[derive(Default)]

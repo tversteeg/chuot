@@ -1,8 +1,8 @@
 //! Create an embedded asset source.
 
+use proc_macro::TokenStream;
 use std::{path::Path, result::Result};
 
-use proc_macro::TokenStream;
 use quote::quote;
 use walkdir::WalkDir;
 

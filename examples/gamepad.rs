@@ -4,8 +4,8 @@
 //! The state of the gamepads is checked in the `render` function, which is something you normally would not want to do, you would want to check it in the `update` function. But for this example that doesn't matter because the update delta time is low enough that it lasts multiple render functions.
 
 use chuot::{
-    context::{Axis, Button},
-    Config, Context, Game,
+    Config,
+    context::{Axis, Button}, Context, Game,
 };
 
 /// Define empty game state.

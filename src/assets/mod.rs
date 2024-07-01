@@ -1,18 +1,16 @@
 //! Asset loading and management.
 
-pub mod loadable;
-pub mod loader;
-#[doc(hidden)]
-pub mod source;
-
 use std::rc::Rc;
 
 use hashbrown::HashMap;
 use smol_str::SmolStr;
 
-use crate::context::ContextInner;
-
 use self::loadable::Loadable;
+
+pub mod loadable;
+pub mod loader;
+#[doc(hidden)]
+pub mod source;
 
 /// Identifier for any loadable asset, can be assigned multiple times for different types.
 ///
@@ -73,8 +71,8 @@ impl CustomAssetManager {
     #[track_caller]
     #[allow(clippy::option_if_let_else)]
     pub(crate) fn get<T>(&self, id: &str) -> Option<Rc<T>>
-    where
-        T: Loadable,
+        where
+            T: Loadable,
     {
         // Try to find the asset
         let dyn_asset = self.assets.get(id)?;
@@ -93,8 +91,8 @@ impl CustomAssetManager {
     #[track_caller]
     #[allow(clippy::option_if_let_else)]
     pub(crate) fn insert<T>(&mut self, id: Id, asset: T) -> Rc<T>
-    where
-        T: Loadable,
+        where
+            T: Loadable,
     {
         // Load the asset
         let asset: Rc<dyn Loadable> = Rc::new(asset);

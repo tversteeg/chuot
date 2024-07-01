@@ -7,7 +7,7 @@
 //! (offset: Middle)
 //! ```
 
-use chuot::{config::RotationAlgorithm, context::MouseButton, Config, Context, Game};
+use chuot::{Config, config::RotationAlgorithm, Context, context::MouseButton, Game};
 
 /// Which sprite to draw.
 const SPRITE: &str = "threeforms";

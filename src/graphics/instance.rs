@@ -89,7 +89,7 @@ impl Instances {
     /// Push an iterator of instances to draw this frame.
     pub(crate) fn extend(
         &mut self,
-        items: impl Iterator<Item = (Affine2, (f32, f32, f32, f32), TextureRef)>,
+        items: impl Iterator<Item=(Affine2, (f32, f32, f32, f32), TextureRef)>,
     ) {
         self.0
             .extend(items.map(|(transformation, sub_rectangle, texture_ref)| {

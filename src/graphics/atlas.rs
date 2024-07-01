@@ -4,7 +4,7 @@ use std::borrow::Cow;
 
 use chuot_packer::Packer;
 
-use super::{uniform::UniformArrayState, PREFERRED_TEXTURE_FORMAT};
+use super::{PREFERRED_TEXTURE_FORMAT, uniform::UniformArrayState};
 
 /// Virtual packed texture size in pixels for both width and height.
 pub(crate) const ATLAS_TEXTURE_SIZE: u32 = 4096;

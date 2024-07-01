@@ -73,17 +73,17 @@ commit_preprocessors = [
 ]
 # regex for parsing and grouping commits
 commit_parsers = [
-  { message = "^feat", group = "<!-- 1 -->Features" },
-  { message = "^fix", group = "<!-- 2 -->Bug Fixes" },
-  { message = "^doc", group = "<!-- 4 -->Documentation" },
-  { message = "^perf", group = "<!-- 3 -->Performance" },
-  { message = "^refactor", group = "<!-- 0 -->Refactor" },
-  { message = "^style", group = "<!-- 5 -->Styling" },
-  { message = "^test", group = "<!-- 6 -->Testing" },
-  { message = "^chore: release", skip = true },
-  { message = "^chore|ci", group = "<!-- 7 -->Miscellaneous Tasks" },
-  { message = ".*", default_scope = "project" },
-  { message = '\(crate\)', scope = "project" },
+    { message = "^feat", group = "<!-- 1 -->Features" },
+    { message = "^fix", group = "<!-- 2 -->Bug Fixes" },
+    { message = "^doc", group = "<!-- 4 -->Documentation" },
+    { message = "^perf", group = "<!-- 3 -->Performance" },
+    { message = "^refactor", group = "<!-- 0 -->Refactor" },
+    { message = "^style", group = "<!-- 5 -->Styling" },
+    { message = "^test", group = "<!-- 6 -->Testing" },
+    { message = "^chore: release", skip = true },
+    { message = "^chore|ci", group = "<!-- 7 -->Miscellaneous Tasks" },
+    { message = ".*", default_scope = "project" },
+    { message = '\(crate\)', scope = "project" },
 ]
 # protect breaking changes from being skipped due to matching a skipping commit_parser
 protect_breaking_commits = false

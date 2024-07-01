@@ -1,8 +1,9 @@
 //! Asset source for loading assets.
 
-use litrs::Literal;
 use proc_macro::TokenStream;
 use std::path::{Path, PathBuf};
+
+use litrs::Literal;
 
 /// Asset source for [`chuot::load_assets`].
 pub struct Input(pub PathBuf);
@@ -19,8 +20,8 @@ impl Input {
                     Literal::String(asset_path_str) => asset_path_str,
                     _ => panic!("input has to be a string literal, but this is not: {lit}"),
                 }
-                .value()
-                .to_owned()
+                    .value()
+                    .to_owned()
             }
             // Use the default
             None => "assets/".to_owned(),
@@ -29,7 +30,7 @@ impl Input {
         // Get the full path on disk
         let canonicalized = match Path::new(&path_str).canonicalize() {
             Ok(path) => path,
-            Err(err) => panic!("Asset path '{path_str}' could not be canonicalized: {err}",),
+            Err(err) => panic!("Asset path '{path_str}' could not be canonicalized: {err}", ),
         };
 
         Ok(Self(canonicalized))

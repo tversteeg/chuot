@@ -9,8 +9,8 @@ pub(crate) struct Audio;
 
 impl Loadable for Audio {
     fn load_if_exists(id: &Id, ctx: &mut ContextInner) -> Option<Self>
-    where
-        Self: Sized,
+        where
+            Self: Sized,
     {
         todo!()
     }

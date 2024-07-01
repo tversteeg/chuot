@@ -1,6 +1,6 @@
 //! Show how we can efficiently draw tens of thousands of particles.
 
-use chuot::{config::RotationAlgorithm, context::MouseButton, Config, Context, Game};
+use chuot::{Config, config::RotationAlgorithm, Context, context::MouseButton, Game};
 
 /// How long a particle lives in seconds.
 const PARTICLE_LIFE_SECS: f32 = 10.0;
@@ -143,15 +143,15 @@ impl Game for GameState {
                 self.particles.len()
             ),
         )
-        .draw();
+            .draw();
 
         // Draw some instructions at the bottom of the screen
         ctx.text(
             "Beachball",
             "Left click to spawn 1000 particles\nRight click to spawn 10.000 particles\nMiddle mouse click to spawn 100.000 particles",
         )
-        .translate_y(ctx.height() - 36.0)
-        .draw();
+            .translate_y(ctx.height() - 36.0)
+            .draw();
     }
 }
 

@@ -1,10 +1,10 @@
 //! Asset loader helper.
 
+use super::Id;
+
 pub mod ogg;
 pub mod png;
 pub mod ron;
-
-use super::Id;
 
 /// How an asset should be loaded.
 pub trait Loader<T> {

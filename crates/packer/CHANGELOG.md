@@ -13,13 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add `Packer::with_existing_rectangles_iter` for re-building packed atlasses
 
-
 ### Performance
 
 #### Context
 
 - Decrease asset allocations by only taking owned ID references at the last moment, also decreases monomorphization
-
 
 ### Styling
 
