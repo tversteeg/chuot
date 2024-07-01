@@ -138,8 +138,8 @@ impl Packer {
     #[inline]
     pub fn insert(&mut self, rectangle_size: Size2<u16>) -> Option<Point2<u16>> {
         // Find the rectangle with the skyline, keep the bottom and width as small as possible
-        let mut bottom = std::u16::MAX;
-        let mut width = std::u16::MAX;
+        let mut bottom = u16::MAX;
+        let mut width = u16::MAX;
         let mut result = None;
 
         // Try to find the skyline gap with the smallest Y
