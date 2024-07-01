@@ -1,35 +1,66 @@
 //! Zero-cost abstraction types for building more complicated sprite drawing constructions.
 
-use glamour::{Angle, Rect, Size2, Vector2};
-
-use crate::Context;
+use crate::{
+    assets::{loadable::sprite::Sprite, Id},
+    Context,
+};
 
 /// Specify how a sprite should be drawn.
 ///
 /// Must call [`Self::draw`] to finish drawing.
 ///
 /// Used by [`crate::Context::sprite`].
-pub struct DrawSpriteContext<'path, 'ctx> {
+pub struct SpriteContext<'path, 'ctx> {
     /// Path of the sprite to draw.
     pub(crate) path: &'path str,
     /// Reference to the context the sprite will draw in when finished.
     pub(crate) ctx: &'ctx Context,
-    /// Position to draw the sprite at.
-    pub(crate) position: Vector2,
+    /// X position to draw the sprite at.
+    pub(crate) x: f32,
+    /// Y position to draw the sprite at.
+    pub(crate) y: f32,
     /// Rotation in radians.
-    pub(crate) rotation: Angle,
+    pub(crate) rotation: f32,
 }
 
-impl<'path, 'ctx> DrawSpriteContext<'path, 'ctx> {
+impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
+    /// Only move the horizontal position of the sprite.
+    ///
+    /// # Arguments
+    ///
+    /// * `x` - Absolute horizontal position of the target sprite on the buffer in pixels, will be offset by the sprite offset metadata.
+    #[inline(always)]
+    #[must_use]
+    pub fn translate_x(mut self, x: f32) -> Self {
+        self.x += x;
+
+        self
+    }
+
+    /// Only move the vertical position of the sprite.
+    ///
+    /// # Arguments
+    ///
+    /// * `y` - Absolute vertical position of the target sprite on the buffer in pixels, will be offset by the sprite offset metadata.
+    #[inline(always)]
+    #[must_use]
+    pub fn translate_y(mut self, y: f32) -> Self {
+        self.y += y;
+
+        self
+    }
+
     /// Move the position of the sprite.
     ///
     /// # Arguments
     ///
-    /// * `position` - Absolute position of the target sprite on the buffer in pixels, will be offset by the sprite offset metadata.
+    /// * `(x, y)` - Absolute position tuple of the target sprite on the buffer in pixels, will be offset by the sprite offset metadata.
     #[inline(always)]
     #[must_use]
-    pub fn translate(mut self, offset: impl Into<Vector2>) -> Self {
-        self.position += offset.into();
+    pub fn translate(mut self, position: impl Into<(f32, f32)>) -> Self {
+        let (x, y) = position.into();
+        self.x += x;
+        self.y += y;
 
         self
     }
@@ -40,11 +71,11 @@ impl<'path, 'ctx> DrawSpriteContext<'path, 'ctx> {
     ///
     /// # Arguments
     ///
-    /// * `rotation` - Rotation of the target sprite in radians, will be applied using the algorithm passed in [`crate::config::GameConfig::with_rotation_algorithm`].
+    /// * `rotation` - Rotation of the target sprite in radians, will be applied using the algorithm passed in [`crate::config::Config::with_rotation_algorithm`].
     #[inline(always)]
     #[must_use]
-    pub fn rotate(mut self, rotation: impl Into<Angle>) -> Self {
-        self.rotation += rotation.into();
+    pub fn rotate(mut self, rotation: f32) -> Self {
+        self.rotation += rotation;
 
         self
     }
@@ -60,9 +91,15 @@ impl<'path, 'ctx> DrawSpriteContext<'path, 'ctx> {
     pub fn draw(self) {
         self.ctx.write(|ctx| {
             // Push the instance if the texture is already uploaded
-            ctx.assets
-                .sprite(self.path)
-                .draw(self.position, self.rotation, &mut ctx.instances);
+            let sprite = ctx.sprite(self.path);
+
+            // Create the affine matrix
+            let affine_matrix = sprite.affine_matrix(self.x, self.y, self.rotation);
+
+            // Push the graphics
+            ctx.graphics
+                .instances
+                .push(affine_matrix, sprite.sub_rectangle, sprite.texture);
         });
     }
 
@@ -75,7 +112,7 @@ impl<'path, 'ctx> DrawSpriteContext<'path, 'ctx> {
     ///
     /// # Arguments
     ///
-    /// * `translations` - Iterator of translation offsets, will draw each item as a sprite at the base position with the offset applied.
+    /// * `translations` - Iterator of translation `(x, y)` tuple offsets, will draw each item as a sprite at the base position with the offset applied.
     ///
     /// # Panics
     ///
@@ -83,42 +120,80 @@ impl<'path, 'ctx> DrawSpriteContext<'path, 'ctx> {
     ///
     /// # Example
     ///
-    /// This example runs on my PC with an average FPS of 35 when rendering 100000 sprites.
+    /// This example runs on my PC with an average FPS of 35 when rendering 100000 sprites:
     ///
     /// ```no_run
-    /// # use chuot::glamour::Vector2;
     /// # fn call(ctx: chuot::Context) {
     /// ctx.sprite("some_asset")
-    ///     .draw_multiple_translated((0..10).map(|x| Vector2::new(x as f32, 0.0)));
+    ///     .draw_multiple_translated((0..10).map(|x| (x as f32, 0.0)));
     /// # }
     /// ```
     ///
     /// It's functionally the same as:
     ///
     /// ```no_run
-    /// # use chuot::glamour::Vector2;
     /// # fn call(ctx: chuot::Context) {
     /// for x in 0..10 {
-    ///     ctx.sprite("some_asset")
-    ///         .translate(Vector2::new(x as f32, 0.0))
-    ///         .draw();
+    ///     ctx.sprite("some_asset").translate_x(x as f32).draw();
     /// }
     /// # }
     /// ```
     ///
-    /// But this runs on my PC with an average FPS of 11 when rendering 100000 sprites.
+    /// But the second example runs on my PC with an average FPS of 11 when rendering 100000 sprites.
     #[inline(always)]
-    pub fn draw_multiple_translated(self, translations: impl Iterator<Item = Vector2>) {
+    pub fn draw_multiple_translated<T>(self, translations: impl Iterator<Item = T>)
+    where
+        T: Into<(f32, f32)>,
+    {
         self.ctx.write(|ctx| {
-            let sprite = ctx.assets.sprite(self.path);
+            // Push the instance if the texture is already uploaded
+            let sprite = ctx.sprite(self.path);
 
-            // Push the instances if the texture is already uploaded
-            sprite.draw_multiple(
-                self.position,
-                self.rotation,
-                translations,
-                &mut ctx.instances,
-            );
+            // Create the affine matrix
+            let affine_matrix = sprite.affine_matrix(self.x, self.y, self.rotation);
+
+            // Push the graphics
+            ctx.graphics
+                .instances
+                .extend(translations.map(|translation| {
+                    let (x_offset, y_offset) = translation.into();
+
+                    // Copy the matrix
+                    let mut affine_matrix_with_offset = affine_matrix;
+                    affine_matrix_with_offset.translation.x += x_offset;
+                    affine_matrix_with_offset.translation.y += y_offset;
+
+                    (
+                        affine_matrix_with_offset,
+                        sprite.sub_rectangle,
+                        sprite.texture,
+                    )
+                }));
+        });
+    }
+
+    /// Create a new empty sprite at runtime.
+    ///
+    /// # Arguments
+    ///
+    /// * `(width, height)` - Size tuple of the new sprite in pixels.
+    /// * `pixels` - Array of RGBA `u32` pixels to use as the texture of the sprite.
+    ///
+    /// # Panics
+    ///
+    /// - When a sprite with the same ID already exists.
+    /// - When `width * height != pixels.len()`.
+    #[inline]
+    pub fn create(self, size: impl Into<(f32, f32)>, pixels: impl AsRef<[u32]>) {
+        let (width, height) = size.into();
+        let pixels = pixels.as_ref();
+
+        self.ctx.write(|ctx| {
+            // Create the sprite
+            let asset = Sprite::new_and_upload(width, height, pixels, ctx);
+
+            // Register the sprite
+            ctx.sprites.insert(Id::new(self.path), asset);
         });
     }
 
@@ -126,7 +201,7 @@ impl<'path, 'ctx> DrawSpriteContext<'path, 'ctx> {
     ///
     /// # Arguments
     ///
-    /// * `sub_rectangle` - Sub rectangle within the sprite to update. Width * height must be equal to the amount of pixels, and fall within the sprite's rectangle.
+    /// * `(x, y, width, height)` - Sub rectangle tuple within the sprite to update. Width * height must be equal to the amount of pixels, and fall within the sprite's rectangle.
     /// * `pixels` - Array of ARGB pixels, amount must match size of the sub rectangle.
     ///
     /// # Panics
@@ -135,17 +210,25 @@ impl<'path, 'ctx> DrawSpriteContext<'path, 'ctx> {
     /// - When the sub rectangle does not fit inside the sprite's rectangle.
     /// - When the size of the sub rectangle does not match the amount of pixels.
     #[inline]
-    pub fn update_pixels(self, sub_rectangle: impl Into<Rect>, pixels: impl Into<Vec<u32>>) {
+    pub fn update_pixels(
+        self,
+        sub_rectangle: impl Into<(f32, f32, f32, f32)>,
+        pixels: impl AsRef<[u32]>,
+    ) {
+        let sub_rectangle = sub_rectangle.into();
+        let pixels = pixels.as_ref();
+
         self.ctx.write(|ctx| {
             // Get the sprite
-            let sprite = ctx.assets.sprite(self.path);
+            let sprite = ctx.sprite(self.path);
 
-            // Put the update the pixels of the sprite on a queue
-            ctx.texture_update_queue.push((
-                sprite.image.atlas_id,
-                sub_rectangle.into(),
-                pixels.into(),
-            ));
+            // Push the sprite pixels to the GPU
+            ctx.graphics.atlas.update_pixels(
+                sprite.texture,
+                sub_rectangle,
+                pixels,
+                &ctx.graphics.queue,
+            );
         });
     }
 
@@ -155,25 +238,25 @@ impl<'path, 'ctx> DrawSpriteContext<'path, 'ctx> {
     ///
     /// Reading pixels will copy a subregion from the image the sprite is a part of, thus it's quite slow.
     ///
-    /// When you don't use this function it's recommended to disable the `read-image` feature flag, which will reduce memory usage of the game.
+    /// When you don't use this function it's recommended to disable the `read-texture` feature flag, which will reduce memory usage of the game.
     ///
     /// # Returns
     ///
-    /// - A tuple containing the size of the sprite and a vector of pixels in RGBA u32 format, length of the array is width * height of the sprite.
+    /// - A vector of pixels in RGBA `u32` format, length of the array is width * height of the sprite.
     ///
     /// # Panics
     ///
     /// - When asset failed loading.
     #[inline]
     #[must_use]
-    #[cfg(feature = "read-image")]
-    pub fn read_pixels(self) -> (Size2, Vec<u32>) {
+    #[cfg(feature = "read-texture")]
+    pub fn read_pixels(self) -> Vec<u32> {
         self.ctx.write(|ctx| {
             // Get the sprite
-            let sprite = ctx.assets.sprite(self.path);
+            let sprite = ctx.sprite(self.path);
 
-            // Read the size and the pixels
-            (sprite.size(), sprite.pixels())
+            // Get the pixels for the texture of the sprite
+            ctx.graphics.atlas.textures[&sprite.texture].clone()
         })
     }
 
@@ -181,14 +264,79 @@ impl<'path, 'ctx> DrawSpriteContext<'path, 'ctx> {
     ///
     /// # Returns
     ///
-    /// - Size of the sprite in pixels.
+    /// - `(width, height)`, size of the sprite in pixels.
     ///
     /// # Panics
     ///
     /// - When asset failed loading.
     #[inline]
     #[must_use]
-    pub fn size(&self) -> Size2 {
-        self.ctx.write(|ctx| ctx.assets.sprite(self.path).size())
+    pub fn size(&self) -> (f32, f32) {
+        self.ctx.write(|ctx| {
+            let sprite = ctx.sprite(self.path);
+
+            (sprite.sub_rectangle.2, sprite.sub_rectangle.3)
+        })
+    }
+
+    /// Get the width of the sprite in pixels.
+    ///
+    /// # Returns
+    ///
+    /// - `width`, horizontal size of the sprite in pixels.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
+    #[inline]
+    #[must_use]
+    pub fn width(&self) -> f32 {
+        self.ctx.write(|ctx| ctx.sprite(self.path).sub_rectangle.2)
+    }
+
+    /// Get the height of the sprite in pixels.
+    ///
+    /// # Returns
+    ///
+    /// - `height`, vertical size of the sprite in pixels.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
+    #[inline]
+    #[must_use]
+    pub fn height(&self) -> f32 {
+        self.ctx.write(|ctx| ctx.sprite(self.path).sub_rectangle.3)
+    }
+}
+
+/// Render methods for sprites.
+impl Context {
+    /// Handle sprite assets, mostly used for drawing.
+    ///
+    /// This will load the sprite asset from disk and upload it to the GPU the first time this sprite is referenced.
+    /// Check the [`SpriteContext`] documentation for drawing options available.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Asset path of the sprite, see [`Self`] for more information about asset loading and storing.
+    ///
+    /// # Returns
+    ///
+    /// - A helper struct allowing you to specify the transformations of the sprite.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
+    #[inline(always)]
+    #[must_use]
+    pub const fn sprite<'path>(&self, path: &'path str) -> SpriteContext<'path, '_> {
+        SpriteContext {
+            path,
+            ctx: self,
+            x: 0.0,
+            y: 0.0,
+            rotation: 0.0,
+        }
     }
 }

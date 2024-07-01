@@ -4,6 +4,8 @@ use std::io::Cursor;
 
 use png::{BitDepth, ColorType, Decoder, Reader, Transformations};
 
+use crate::assets::Id;
+
 use super::Loader;
 
 /// PNG reader type, returned from the loader.
@@ -19,9 +21,7 @@ impl Loader<PngReader> for PngLoader {
     const EXTENSION: &'static str = "png";
 
     #[inline]
-    fn load(bytes: &[u8]) -> PngReader {
-        log::debug!("Decoding PNG");
-
+    fn load(bytes: &[u8], id: &Id) -> PngReader {
         // Copy the bytes into a cursor
         let cursor = Cursor::new(bytes.to_vec());
 
@@ -38,7 +38,7 @@ impl Loader<PngReader> for PngLoader {
             .set_transformations(Transformations::normalize_to_color8() | Transformations::ALPHA);
 
         // Start parsing the PNG
-        let reader = decoder.read_info().expect("Error reading PNG");
+        let reader = decoder.read_info().unwrap();
 
         // Ensure we can use the PNG colors
         let (color_type, bits) = reader.output_color_type();
@@ -46,7 +46,7 @@ impl Loader<PngReader> for PngLoader {
         // Must be 8 bit RGBA or indexed
         assert!(
             color_type == ColorType::Rgba && bits == BitDepth::Eight,
-            "PNG is not 8 bit RGB with an alpha channel"
+            "PNG of asset with ID '{id}' is not 8 bit RGB with an alpha channel"
         );
 
         reader

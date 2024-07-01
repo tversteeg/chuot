@@ -2,9 +2,8 @@
 
 use bytemuck::{Pod, Zeroable};
 use glam::Affine2;
-use glamour::{Matrix2, Rect, Vector2};
 
-use super::atlas::AtlasRef;
+use super::atlas::TextureRef;
 
 /// WGPU attributes.
 const ATTRIBUTES: &[wgpu::VertexAttribute] = &[
@@ -36,24 +35,33 @@ const ATTRIBUTES: &[wgpu::VertexAttribute] = &[
 #[derive(Debug, Default, Copy, Clone, Pod, Zeroable)]
 struct Instance {
     /// Rotation and skewing.
-    matrix: Matrix2<f32>,
-    /// Translation.
-    translation: Vector2<f32>,
+    matrix: [[f32; 2]; 2],
+    /// Translation aka position on the screen.
+    translation: [f32; 2],
     /// Rectangle within the texture to render.
-    sub_rectangle: Rect<f32>,
+    sub_rectangle: [f32; 4],
     /// Texture to render.
-    texture_ref: u16,
+    texture_ref: TextureRef,
     /// Empty padding.
     _padding: [u8; 6],
 }
 
-impl From<(Affine2, Rect, AtlasRef)> for Instance {
-    fn from((transformation, sub_rectangle, texture_ref): (Affine2, Rect, AtlasRef)) -> Self {
+impl Instance {
+    /// Create from the types used by the rest of the API.
+    pub(crate) fn new(
+        transformation: Affine2,
+        sub_rectangle: (f32, f32, f32, f32),
+        texture_ref: TextureRef,
+    ) -> Self {
+        let matrix = transformation.matrix2.to_cols_array_2d();
+        let translation = transformation.translation.into();
+        let sub_rectangle = sub_rectangle.into();
+
         Self {
+            matrix,
+            translation,
             sub_rectangle,
             texture_ref,
-            matrix: transformation.matrix2.into(),
-            translation: transformation.translation.into(),
             ..Default::default()
         }
     }
@@ -71,16 +79,22 @@ impl Instances {
     pub(crate) fn push(
         &mut self,
         transformation: Affine2,
-        sub_rectangle: Rect,
-        atlas_ref: AtlasRef,
+        sub_rectangle: (f32, f32, f32, f32),
+        texture_ref: TextureRef,
     ) {
         self.0
-            .push((transformation, sub_rectangle, atlas_ref).into());
+            .push(Instance::new(transformation, sub_rectangle, texture_ref));
     }
 
     /// Push an iterator of instances to draw this frame.
-    pub(crate) fn extend(&mut self, items: impl Iterator<Item = (Affine2, Rect, AtlasRef)>) {
-        self.0.extend(items.map(Into::<Instance>::into));
+    pub(crate) fn extend(
+        &mut self,
+        items: impl Iterator<Item = (Affine2, (f32, f32, f32, f32), TextureRef)>,
+    ) {
+        self.0
+            .extend(items.map(|(transformation, sub_rectangle, texture_ref)| {
+                Instance::new(transformation, sub_rectangle, texture_ref)
+            }));
     }
 
     /// Remove all items.

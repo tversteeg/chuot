@@ -7,12 +7,10 @@
 //! - Pixel-perfect pixel art rendering with built-in rotsprite rotation shader.
 //! - Window creation with independent update and render game loop.
 //! - Hot-reloadable assets, seeing your assets update live in the game when you save them is a great boost in productivity for quickly iterating on ideas.
-//! - Single-binary, all non-texture assets should be embedded directly, and textures should be diced into a single atlas map embedded in the binary when deploying.
+//! - Single-binary, all non-texture assets will be embedded directly, and textures will be diced into a single atlas map embedded in the binary when deploying.
 //! - Simple bitmap font drawing.
-//! - Dialogue scripting system.
 //! - OGG audio playback.
 //! - First-class gamepad support.
-//! - In game CPU & memory profiler GUI.
 //!
 //! # Goals
 //!
@@ -30,14 +28,14 @@
 //!
 //! # Usage
 //!
-//! Using this crate is quite simple, there is a single trait [`PixelGame`] with two required functions, [`PixelGame::update`] and [`PixelGame::render`], that need to be implemented for a game state object.
+//! Using this crate is quite simple, there is a single trait [`Game`] with two required functions, [`Game::update`] and [`Game::render`], that need to be implemented for a game state object.
 //!
-//! ```no_run
-//! use chuot::{Context, GameConfig, PixelGame};
+//! ```
+//! use chuot::{Context, Config, Game};
 //!
 //! struct MyGame;
 //!
-//! impl PixelGame for MyGame {
+//! impl Game for MyGame {
 //!     fn update(&mut self, ctx: Context) {
 //!         // ..
 //!     }
@@ -47,14 +45,13 @@
 //!     }
 //! }
 //!
-//! # fn try_main() -> miette::Result<()> {
+//! # fn try_main() {
 //! // In main
 //!
 //! let game = MyGame;
 //!
-//! game.run(chuot::load_assets!(), GameConfig::default())?;
-//! # Ok(()) }
-//! # try_main().unwrap();
+//! game.run(chuot::load_assets!(), Config::default());
+//! # }
 //! ```
 //!
 //! ## `embed-assets`
@@ -67,26 +64,9 @@
 //! This will dice all PNG assets into a single tiny optimized PNG atlas.
 //! On startup this diced atlas will be efficiently uploaded to the GPU as a single bigger atlas, which will be used for all static sprites.
 //!
-//! ## `hot-reload-assets`
-//!
-//! Hot-reload assets from disk when they are saved.
-//! Has no effect on the web target.
-//! If disabled _all_ assets will be baked into the binary.
-//!
-//! ## `read-image` (default)
+//! ## `read-texture` (default)
 //!
 //! Expose read operations on images, if disabled sprites will be uploaded to the GPU and their data will be removed from memory.
-//!
-//! ## `dialogue` (default)
-//!
-//! A thin wrapper around [Yarn Spinner](https://www.yarnspinner.dev/).
-//! Allows creating hot-reloadable dialogue systems.
-//!
-//! ## `in-game-profiler`
-//!
-//! A profiler window overlay, implemented with [puffin_egui](https://docs.rs/puffin_egui/latest/puffin_egui/).
-//!
-//! Other profiling methods in your game can also be implemented, the [profiling](https://docs.rs/profiling/latest/profiling/) crate is enabled even when this feature flag is disabled.
 //!
 //! # Install Requirements
 //!
@@ -102,11 +82,10 @@
 //! The counter is rendered as text[^text] loaded from a font in the top-left corner.
 //! When the 'Escape' key is pressed[^escape-key] the game will exit and the window will close.
 //!
-//! ```no_run
+//! ```
 //! use chuot::{
-//!   PixelGame, Context, GameConfig,
+//!   Game, Context, Config,
 //!   context::{MouseButton, KeyCode},
-//!   glamour::Vector2
 //! };
 //!
 //! /// Object holding all game state.
@@ -115,7 +94,7 @@
 //!   counter: u32,
 //! }
 //!
-//! impl PixelGame for MyGame {
+//! impl Game for MyGame {
 //!   fn update(&mut self, ctx: Context) {
 //!     // ^1
 //!     // Increment the counter when we press the left mouse button
@@ -138,60 +117,38 @@
 //!   }
 //! }
 //!
-//! # fn try_main() -> miette::Result<()> {
+//! # fn try_main()  {
 //! // In main
 //!
 //! // Initialize the game state
 //! let game = MyGame { counter: 0 };
 //!
 //! // Run the game until exit is requested
-//! game.run(chuot::load_assets!(), GameConfig::default().with_title("My Game"))?;
-//! # Ok(()) }
-//! # try_main().unwrap();
+//! game.run(chuot::load_assets!(), Config::default().with_title("My Game"));
+//! # }
 //! ```
 //!
 //! [^left-mouse]: [`Context::mouse_pressed`]
 //! [^text]: [`Context::text`]
 //! [^escape-key]: [`Context::key_pressed`]
 
-// Check for various illegal target and feature combinations
-#[cfg(all(feature = "embed-assets", feature = "hot-reload-assets"))]
-compile_error!("Features `embed-assets` and `hot-reload-assets` are mutually exclusive and can't be enabled at the same time!");
-#[cfg(all(not(feature = "embed-assets"), target_arch = "wasm32"))]
-compile_error!("Feature `embed-assets` must be enabled when building for the web!");
-
 pub mod assets;
 pub mod config;
 pub mod context;
-#[cfg(feature = "dialogue")]
-pub mod dialogue;
-pub(crate) mod font;
-pub(crate) mod graphics;
-pub(crate) mod random;
-pub(crate) mod sprite;
-pub(crate) mod window;
+mod graphics;
+mod input;
+mod random;
 
-/// Re-exported vector math type.
-pub use glamour;
-
-/// Re-exported gilrs type used in [`Context`].
-#[doc(hidden)]
-#[deprecated(since = "0.1.2", note = "import from chuot::context::..")]
-pub use gilrs::ev::{Axis, Button};
-/// Re-exported winit type used in [`Context`].
-#[doc(hidden)]
-#[deprecated(since = "0.1.2", note = "import from chuot::context::..")]
-pub use winit::{
-    dpi::PhysicalSize,
-    event::MouseButton,
-    keyboard::{Key, KeyCode},
-};
+pub use assets::source::AssetSource;
+pub use config::Config;
+pub use context::Context;
+pub use random::random;
 
 /// Define the directory of the assets.
 ///
-/// *MUST* be passed as first argument to [`PixelGame::run`].
+/// *MUST* be passed as first argument to [`Game::run`].
 ///
-/// The assets will be embedded in the binary when not using the `hot-reload-assets` feature flag.
+/// The assets will be embedded in the binary when using the `embed-assets` feature flag.
 ///
 /// # Arguments
 ///
@@ -206,19 +163,24 @@ pub use winit::{
 /// ```
 pub use chuot_macros::load_assets;
 
-pub use config::GameConfig;
-pub use context::Context;
-pub use random::random;
+use web_time::Instant;
+use winit::{
+    application::ApplicationHandler,
+    dpi::{LogicalSize, PhysicalSize},
+    event::WindowEvent,
+    event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
+    window::{WindowAttributes, WindowId},
+};
 
-use assets::EmbeddedAssets;
-use miette::Result;
+/// How fast old FPS values decay in the smoothed average.
+const FPS_SMOOTHED_AVERAGE_ALPHA: f32 = 0.8;
 
 /// Main entrypoint containing game state for running the game.
 ///
 /// This is the main interface with the game engine.
 ///
 /// See [`Context`] for all functions interfacing with the game engine from both functions.
-pub trait PixelGame: Sized
+pub trait Game: Sized
 where
     Self: 'static,
 {
@@ -236,11 +198,11 @@ where
     /// # Example
     ///
     /// ```
-    /// use chuot::{Context, GameConfig, KeyCode, PixelGame};
+    /// use chuot::{Context, Game, context::KeyCode};
     ///
     /// struct MyGame;
     ///
-    /// impl PixelGame for MyGame {
+    /// impl Game for MyGame {
     ///     fn update(&mut self, ctx: Context) {
     ///         // Stop the game and close the window when 'Escape' is pressed
     ///         if ctx.key_pressed(KeyCode::Escape) {
@@ -269,11 +231,11 @@ where
     /// # Example
     ///
     /// ```
-    /// use chuot::{Context, GameConfig, KeyCode, PixelGame};
+    /// use chuot::{Context, Game, context::KeyCode};
     ///
     /// struct MyGame;
     ///
-    /// impl PixelGame for MyGame {
+    /// impl Game for MyGame {
     ///     fn render(&mut self, ctx: Context) {
     ///         // Draw a sprite on the screen
     ///         ctx.sprite("sprite").draw();
@@ -290,22 +252,22 @@ where
     ///
     /// # Arguments
     ///
-    /// * `assets` - Source of the assets, needs to be `chuot::load_assets!()`.
-    /// * `game_config` - Configuration for the window, can be used to set the buffer size, the window title and other things.
+    /// * `asset_source` - Source of the assets, should probably be `chuot::load_assets!()`, unless you don't need any assets.
+    /// * `config` - Configuration for the window, can be used to set the buffer size, the window title and other things.
     ///
     /// # Errors
     ///
     /// - When a window could not be opened (desktop only).
-    /// - When `hot-reload-assets` feature is enabled and the assets folder could not be watched.
+    /// - If no GPU could be found or accessed.
     ///
     /// # Example
     ///
     /// ```no_run
-    /// use chuot::{Context, GameConfig, KeyCode, PixelGame};
+    /// use chuot::{context::KeyCode, Config, Context, Game};
     ///
     /// struct MyGame;
     ///
-    /// impl PixelGame for MyGame {
+    /// impl Game for MyGame {
     ///     fn update(&mut self, ctx: Context) {
     ///         // Stop the game and close the window when 'Escape' is pressed
     ///         if ctx.key_pressed(KeyCode::Escape) {
@@ -318,17 +280,270 @@ where
     ///     }
     /// }
     ///
-    /// # fn try_main() -> miette::Result<()> {
     /// // In main
     /// let game = MyGame;
     ///
-    /// game.run(chuot::load_assets!(), GameConfig::default())?;
-    /// # Ok(()) }
-    /// # try_main().unwrap();
+    /// game.run(chuot::load_assets!(), Config::default());
     /// ```
-    #[inline]
-    fn run(self, assets: EmbeddedAssets, game_config: GameConfig) -> Result<()> {
-        // Spawn the window with the game loop
-        window::window(self, game_config, Self::update, Self::render, assets)
+    #[inline(always)]
+    fn run(self, asset_source: AssetSource, config: Config) {
+        // Show panics in the browser console log
+        #[cfg(target_arch = "wasm32")]
+        std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+
+        // Setup the timestep variables for calculating the update loop
+        let accumulator = 0.0;
+        let last_time = Instant::now();
+
+        // Context must be initialized later when creating the window
+        let ctx = None;
+
+        // Create a polling event loop, which redraws the window whenever possible
+        let event_loop = EventLoop::with_user_event().build().unwrap();
+        event_loop.set_control_flow(ControlFlow::Poll);
+
+        // Put the asset source on the heap
+        let asset_source = Some(Box::new(asset_source));
+
+        // Get the event loop proxy so we can instantiate on the web
+        #[cfg(target_arch = "wasm32")]
+        let event_loop_proxy = Some(event_loop.create_proxy());
+
+        // Move the game struct to the state
+        let game = self;
+
+        // Run the game
+        let _ = event_loop.run_app(&mut State {
+            ctx,
+            asset_source,
+            game,
+            config,
+            last_time,
+            accumulator,
+            #[cfg(target_arch = "wasm32")]
+            event_loop_proxy,
+        });
+    }
+}
+
+/// State of setting up a window that can still be uninitialized.
+///
+/// All optional fields are tied to the window creation flow of winit.
+struct State<G: Game> {
+    /// Game context.
+    ///
+    /// `None` if the window still needs to be initialized.
+    ctx: Option<Context>,
+    /// Source of all assets.
+    ///
+    /// Will be taken from the option once.
+    asset_source: Option<Box<AssetSource>>,
+    /// User supplied game.
+    game: G,
+    /// User supplied configuration.
+    config: Config,
+    /// Time for calculating the update rate.
+    last_time: Instant,
+    /// Timestep accumulator for the update rate.
+    accumulator: f32,
+    /// Proxy required to send the context on the web platform.
+    #[cfg(target_arch = "wasm32")]
+    event_loop_proxy: Option<winit::event_loop::EventLoopProxy<Context>>,
+}
+
+impl<G: Game> ApplicationHandler<Context> for State<G> {
+    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+        // Setup the window
+        if self.ctx.is_none() {
+            // Define the properties of the window
+            #[allow(unused_mut)]
+            let mut window_attributes = WindowAttributes::default()
+                .with_title(&self.config.title)
+                // Apply scaling for the requested size
+                .with_inner_size(LogicalSize::new(
+                    self.config.buffer_width * self.config.scaling,
+                    self.config.buffer_height * self.config.scaling,
+                ))
+                // Don't allow the window to be smaller than the pixel size
+                .with_min_inner_size(LogicalSize::new(
+                    self.config.buffer_width,
+                    self.config.buffer_height,
+                ));
+
+            #[cfg(target_arch = "wasm32")]
+            {
+                use web_sys::{wasm_bindgen::JsCast, HtmlCanvasElement};
+                use winit::platform::web::WindowAttributesExtWebSys;
+
+                // Create a canvas the winit window can be attached to
+                let window = web_sys::window().unwrap();
+                let document = window.document().unwrap();
+                let body = document.body().unwrap();
+
+                // Look for a canvas with ID 'chuot', and if not found create it
+                let canvas = match document.get_element_by_id("chuot") {
+                    // Canvas found, use it
+                    Some(canvas) => canvas.dyn_into::<HtmlCanvasElement>().unwrap(),
+                    // No canvas found, create the element
+                    None => {
+                        let canvas = document
+                            .create_element("canvas")
+                            .unwrap()
+                            .dyn_into::<HtmlCanvasElement>()
+                            .unwrap();
+                        canvas.set_id("chuot");
+
+                        body.append_child(&canvas).unwrap();
+
+                        canvas
+                    }
+                };
+
+                // Ensure the pixels are not rendered with wrong filtering and that the size is correct
+                canvas
+                    .style()
+                    .set_css_text("image-rendering: pixelated; outline: none; border: none;");
+
+                window_attributes = window_attributes.with_canvas(Some(canvas.into()))
+            }
+
+            // Spawn a new window using the event loop
+            let window = event_loop
+                .create_window(window_attributes)
+                .expect("Error creating window");
+
+            // Setup the context
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                // Because pollster returns the value we can set it immediately
+                self.ctx = Some(pollster::block_on(async {
+                    Context::new(
+                        self.config.clone(),
+                        self.asset_source.take().unwrap(),
+                        window,
+                    )
+                    .await
+                }));
+            }
+            #[cfg(target_arch = "wasm32")]
+            {
+                // We only need the proxy once to send the context
+                let event_loop_proxy = self.event_loop_proxy.take().unwrap();
+                let asset_source = self.asset_source.take().unwrap();
+                let config = self.config.clone();
+
+                wasm_bindgen_futures::spawn_local(async move {
+                    // Because WASM futures can't block we need to send it with a user event
+                    let ctx = Context::new(config, asset_source, window).await;
+
+                    let _ = event_loop_proxy.send_event(ctx);
+                });
+            }
+        }
+    }
+
+    fn window_event(
+        &mut self,
+        event_loop: &ActiveEventLoop,
+        _window_id: WindowId,
+        event: WindowEvent,
+    ) {
+        // Do nothing if the window is not set up yet
+        let Some(ctx) = &mut self.ctx else {
+            return;
+        };
+
+        // Handle the window events
+        match event {
+            // Handle the update loop and render loop
+            WindowEvent::RedrawRequested => {
+                // Update the timestep
+                let current_time = Instant::now();
+                let frame_time = (current_time - self.last_time).as_secs_f32();
+                self.last_time = current_time;
+
+                self.accumulator += frame_time
+                    // Ensure the frametime will never surpass this amount
+                    .min(self.config.max_frame_time_secs);
+
+                // Call the user update function with the context
+                while self.accumulator >= self.config.update_delta_time {
+                    // Call the implemented update function on the 'Game' trait
+                    self.game.update(ctx.clone());
+
+                    // Mark this tick as executed
+                    self.accumulator -= self.config.update_delta_time;
+
+                    ctx.write(|ctx| {
+                        // Update the input so pressed and released events can be handled
+                        ctx.input.update();
+
+                        // Handle hot reloaded assets
+                        #[cfg(not(target_arch = "wasm32"))]
+                        assets::hot_reload::handle_changed_asset_files(ctx);
+                    });
+                }
+
+                ctx.write(|ctx| {
+                    // Set the blending factor
+                    ctx.blending_factor = self.accumulator / self.config.update_delta_time;
+
+                    // Set the FPS with a smoothed average function
+                    ctx.frames_per_second = FPS_SMOOTHED_AVERAGE_ALPHA.mul_add(
+                        ctx.frames_per_second,
+                        (1.0 - FPS_SMOOTHED_AVERAGE_ALPHA) * frame_time.recip(),
+                    );
+                });
+
+                // Call the user render function with the context
+                self.game.render(ctx.clone());
+
+                ctx.write(|ctx| {
+                    // Draw the window and GPU graphics
+                    ctx.graphics.render();
+
+                    if ctx.exit {
+                        // Tell winit that we want to exit
+                        event_loop.exit();
+                    } else {
+                        // Request another frame for the window
+                        ctx.window.request_redraw();
+                    }
+                });
+            }
+            // Resize the render surface
+            #[cfg(not(target_arch = "wasm32"))]
+            WindowEvent::Resized(PhysicalSize { width, height }) => {
+                ctx.write(|ctx| {
+                    // Resize the GPU surface
+                    ctx.graphics.resize(width, height);
+
+                    // On MacOS the window needs to be redrawn manually after resizing
+                    ctx.window.request_redraw();
+                });
+            }
+            // Close the window if requested
+            WindowEvent::CloseRequested => {
+                // Tell winit that we want to exit
+                event_loop.exit();
+            }
+            // Handle other window events with the input manager
+            other => ctx.write(|ctx| ctx.input.handle_event(other, &ctx.graphics)),
+        }
+    }
+
+    fn user_event(&mut self, _event_loop: &ActiveEventLoop, ctx: Context) {
+        // We received the context from initializing, set it
+        self.ctx = Some(ctx);
+    }
+
+    fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
+        // Destroy all state
+        self.ctx = None;
+        self.asset_source = None;
+        #[cfg(target_arch = "wasm32")]
+        {
+            self.event_loop_proxy = None;
+        }
     }
 }

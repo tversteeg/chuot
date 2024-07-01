@@ -5,20 +5,20 @@
 
 use chuot::{
     context::{Axis, Button},
-    Context, GameConfig, PixelGame,
+    Config, Context, Game,
 };
 
 /// Define empty game state.
 struct GameState;
 
-impl PixelGame for GameState {
+impl Game for GameState {
     /// Show some text with gamepad buttons being pressed.
     fn render(&mut self, ctx: Context) {
         // Position of the next line of text
         let mut line_y = 2.0;
 
         // Get all IDs of connected gamepads
-        let connected_gamepad_ids = ctx.gamepads_ids();
+        let connected_gamepad_ids = ctx.gamepad_ids();
 
         if connected_gamepad_ids.is_empty() {
             ctx.text("Beachball", "Activate or\nconnect a gamepad")
@@ -118,14 +118,12 @@ impl PixelGame for GameState {
 /// Run the game.
 fn main() {
     // Start the game with defaults for the window
-    GameState
-        .run(
-            chuot::load_assets!(),
-            GameConfig::default()
-                .with_buffer_size((240.0, 192.0))
-                .with_scaling(3.0)
-                // Ensure the gamepads state only updates 10 times every frame for this example
-                .with_update_delta_time(0.1),
-        )
-        .expect("Error running game");
+    GameState.run(
+        chuot::load_assets!(),
+        Config::default()
+            .with_buffer_size((240.0, 192.0))
+            .with_scaling(3.0)
+            // Ensure the gamepads state only updates 10 times every frame for this example
+            .with_update_delta_time(0.1),
+    );
 }

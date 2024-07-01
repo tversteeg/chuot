@@ -1,16 +1,14 @@
 //! Initial game configuration.
 
-use glamour::Size2;
-
-/// Initial game configuration passed to [`crate::PixelGame::run`].
+/// Initial game configuration passed to [`crate::Game::run`].
 ///
 /// There's two ways to initialize the config:
 ///
 /// # Example
 ///
 /// ```rust
-/// # use chuot::GameConfig;
-/// GameConfig {
+/// # use chuot::Config;
+/// Config {
 ///     title: "My Game".to_owned(),
 ///     ..Default::default()
 /// };
@@ -19,16 +17,20 @@ use glamour::Size2;
 /// # Example
 ///
 /// ```rust
-/// # use chuot::GameConfig;
-/// GameConfig::default().with_title("My Game");
+/// # use chuot::Config;
+/// Config::default().with_title("My Game");
 /// ```
 #[derive(Debug, Clone)]
 #[allow(clippy::exhaustive_structs)]
-pub struct GameConfig {
-    /// Amount of pixels for the canvas.
+pub struct Config {
+    /// Amount of horizontal pixels for the canvas.
     ///
-    /// Defaults to `(320.0, 280.0)`.
-    pub buffer_size: Size2,
+    /// Defaults to `320.0`.
+    pub buffer_width: f32,
+    /// Amount of vertical pixels for the canvas.
+    ///
+    /// Defaults to `280.0`.
+    pub buffer_height: f32,
     /// Factor applied to the buffer size for the requested window size.
     ///
     /// Defaults to `2.0`.
@@ -73,12 +75,32 @@ pub struct GameConfig {
     pub update_delta_time: f32,
 }
 
-impl GameConfig {
-    /// Set the amount of pixels for the canvas.
+impl Config {
+    /// Set the amount of horizontal and vertical pixels for the canvas.
     #[inline]
     #[must_use]
-    pub fn with_buffer_size(mut self, buffer_size: impl Into<Size2>) -> Self {
-        self.buffer_size = buffer_size.into();
+    pub fn with_buffer_size(mut self, buffer_size: impl Into<(f32, f32)>) -> Self {
+        let (buffer_width, buffer_height) = buffer_size.into();
+        self.buffer_width = buffer_width;
+        self.buffer_height = buffer_height;
+
+        self
+    }
+
+    /// Set the amount of horizontal pixels for the canvas.
+    #[inline]
+    #[must_use]
+    pub const fn with_buffer_width(mut self, buffer_width: f32) -> Self {
+        self.buffer_width = buffer_width;
+
+        self
+    }
+
+    /// Set the amount of horizontal pixels for the canvas.
+    #[inline]
+    #[must_use]
+    pub const fn with_buffer_height(mut self, buffer_height: f32) -> Self {
+        self.buffer_height = buffer_height;
 
         self
     }
@@ -167,11 +189,12 @@ impl GameConfig {
     }
 }
 
-impl Default for GameConfig {
+impl Default for Config {
     #[inline]
     fn default() -> Self {
         Self {
-            buffer_size: Size2::new(320.0, 280.0),
+            buffer_width: 320.0,
+            buffer_height: 280.0,
             scaling: 2.0,
             vsync: true,
             title: "Pixel Game".to_owned(),

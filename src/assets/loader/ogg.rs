@@ -4,6 +4,8 @@ use std::io::Cursor;
 
 use kira::sound::static_sound::StaticSoundData;
 
+use crate::assets::Id;
+
 use super::Loader;
 
 /// OGG audio asset loader.
@@ -14,11 +16,14 @@ impl Loader<StaticSoundData> for OggLoader {
     const EXTENSION: &'static str = "ogg";
 
     #[inline]
-    fn load(bytes: &[u8]) -> StaticSoundData {
+    fn load(bytes: &[u8], id: &Id) -> StaticSoundData {
         // Allocate the bytes into a cursor
         let bytes = Cursor::new(bytes.to_vec());
 
         // Parse the sound file
-        StaticSoundData::from_cursor(bytes).expect("Error loading audio")
+        match StaticSoundData::from_cursor(bytes) {
+            Ok(sound) => sound,
+            Err(err) => panic!("Error loading audio file from ID '{id}': {err}"),
+        }
     }
 }

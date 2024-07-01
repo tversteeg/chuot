@@ -1,45 +1,35 @@
-//! User-facing context used in [`crate::PixelGame::update`] and [`crate::PixelGame::render`].
+//! Main interface with the game.
 
 pub mod audio;
 pub mod sprite;
 pub mod text;
 
-/// Re-exported gilrs type used in [`Context`].
-#[doc(hidden)]
-#[deprecated(since = "0.1.2", note = "import from chuot::context::..")]
+/// Re-exported `gilrs` types for [`Context`] arguments.
 pub use gilrs::ev::{Axis, Button};
-/// Re-exported winit type used in [`Context`].
-#[doc(hidden)]
-#[deprecated(since = "0.1.2", note = "import from chuot::context::..")]
-pub use winit::{
-    dpi::PhysicalSize,
-    event::MouseButton,
-    keyboard::{Key, KeyCode},
-};
+use gilrs::GamepadId;
+use kira::manager::{AudioManager, AudioManagerSettings, DefaultBackend};
+use smallvec::SmallVec;
+/// Re-exported `winit` types for [`Context`] arguments.
+pub use winit::{event::MouseButton, keyboard::KeyCode};
 
 use std::{cell::RefCell, rc::Rc, sync::Arc};
 
-use gilrs::{
-    ev::state::{AxisData, ButtonData},
-    GamepadId, Gilrs,
-};
-use glamour::{Angle, Rect, Size2, Vector2};
-use kira::manager::{backend::DefaultBackend, AudioManager};
-use smallvec::SmallVec;
 use winit::window::{Fullscreen, Window};
-use winit_input_helper::WinitInputHelper;
 
 use crate::{
-    assets::{AssetSource, AssetsManager, Loadable},
-    graphics::{atlas::AtlasRef, instance::Instances},
-    GameConfig,
+    assets::{
+        loadable::{audio::Audio, font::Font, sprite::Sprite, Loadable},
+        source::AssetSource,
+        AssetManager, CustomAssetManager, Id,
+    },
+    config::Config,
+    graphics::Graphics,
+    input::Input,
 };
-
-use self::{audio::AudioContext, sprite::DrawSpriteContext, text::DrawTextContext};
 
 /// Context containing most functionality for interfacing with the game engine.
 ///
-/// Exposed in [`crate::PixelGame::update`] and [`crate::PixelGame::render`].
+/// Exposed in [`crate::Game::update`] and [`crate::Game::render`].
 ///
 /// [`Context`] is safe and cheap to clone due to being a `Rc<RefCell<..>>` under the hood.
 ///
@@ -51,221 +41,39 @@ use self::{audio::AudioContext, sprite::DrawSpriteContext, text::DrawTextContext
 /// | `ctx.sprite("gui.widgets.button")` | `assets/gui/widgets/button.png` & `assets/gui/widgets/button.toml` (optional) |
 /// | `ctx.audio("song")` | `assets/song.ogg` |
 ///
-/// It's assumed for this table that [`crate::load_assets`] in [`crate::PixelGame`] is called without any arguments or with `chuot::load_assets!("assets/")`.
+/// It's assumed for this table that [`crate::load_assets`] in [`crate::Game`] is called without any arguments or with `chuot::load_assets!("assets/")`.
 #[derive(Clone)]
 pub struct Context {
     /// Implementation of all non-primitive parts.
     inner: Rc<RefCell<ContextInner>>,
 }
 
-/// Render methods.
-///
-/// All methods use a `path` as the first argument, which is then used to retrieve the assets when they haven't been loaded before..
+/// Window methods.
 impl Context {
-    /// Handle sprite assets, mostly used for drawing.
+    /// Horizontal size of the drawable part of the window in pixels.
     ///
-    /// This will load the sprite asset from disk and upload it to the GPU the first time this sprite is referenced.
-    /// Check the [`DrawSpriteContext`] documentation for drawing options available.
-    ///
-    /// # Arguments
-    ///
-    /// * `path` - Asset path of the sprite, see [`Self`] for more information about asset loading and storing.
+    /// This ignores any scaling.
     ///
     /// # Returns
     ///
-    /// - A helper struct allowing you to specify the transformations of the sprite.
-    ///
-    /// # Panics
-    ///
-    /// - When asset failed loading.
-    #[inline(always)]
-    #[must_use]
-    pub const fn sprite<'path>(&self, path: &'path str) -> DrawSpriteContext<'path, '_> {
-        DrawSpriteContext {
-            path,
-            ctx: self,
-            position: Vector2::ZERO,
-            rotation: Angle::new(0.0),
-        }
-    }
-
-    /// Draw some text on the screen at the set position with a rotation of `0`.
-    ///
-    /// This will load the font asset from disk and upload it to the GPU the first time this font is referenced.
-    /// Check the [`DrawTextContext`] documentation for drawing options available.
-    ///
-    /// # Arguments
-    ///
-    /// * `path` - Asset path of the font, see [`Self`] for more information about asset loading and storing.
-    /// * `text` - ASCII text that will be drawn character by character.
-    ///
-    /// # Panics
-    ///
-    /// - When asset failed loading.
-    #[inline(always)]
-    #[must_use]
-    pub const fn text<'path, 'text>(
-        &self,
-        path: &'path str,
-        text: &'text str,
-    ) -> DrawTextContext<'path, 'text, '_> {
-        DrawTextContext {
-            path,
-            text,
-            ctx: self,
-            position: Vector2::ZERO,
-        }
-    }
-}
-
-/// Audio methods.
-impl Context {
-    /// Play an audio clip.
-    ///
-    /// This will load the audio asset from disk.
-    /// Check the [`AudioContext`] documentation for drawing options available.
-    ///
-    /// # Arguments
-    ///
-    /// * `path` - Asset path of the `.ogg` audio file, see [`Self`] for more information about asset loading and storing.
-    ///
-    /// # Panics
-    ///
-    /// - When asset failed loading.
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// use chuot::Context;
-    ///
-    /// # struct Empty; impl Empty {
-    /// // In `PixelGame::update` trait implementation
-    /// // ..
-    /// fn update(&mut self, ctx: Context) {
-    /// # let play_song = false;
-    ///   if play_song {
-    ///     // Load a "song.ogg" file play it again and again
-    ///     ctx.audio("song").with_loop().play();
-    ///   }
-    /// }
-    /// # }
-    #[inline(always)]
-    #[must_use]
-    pub const fn audio<'path>(&self, path: &'path str) -> AudioContext<'path, '_> {
-        AudioContext {
-            path,
-            ctx: self,
-            volume: None,
-            panning: None,
-            loop_region: None,
-            playback_region: None,
-        }
-    }
-}
-
-/// State methods.
-impl Context {
-    /// Tell the game to exit, this will close the window and return from the [`crate::PixelGame::run`] function.
-    ///
-    /// The rest of the tick function will still be executed.
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// use chuot::{Context, KeyCode};
-    ///
-    /// # struct Empty; impl Empty {
-    /// // In `PixelGame::update` trait implementation
-    /// // ..
-    /// fn update(&mut self, ctx: Context) {
-    ///   // Stop game when 'Escape' is pressed
-    ///   if ctx.key_pressed(KeyCode::Escape) {
-    ///     ctx.exit();
-    ///   }
-    /// }
-    /// # }
+    /// - Width of the drawable part of the window.
     #[inline]
-    pub fn exit(&self) {
-        self.write(|ctx| ctx.exit = true);
+    #[must_use]
+    pub fn width(&self) -> f32 {
+        self.read(|ctx| ctx.graphics.buffer_width)
     }
 
-    /// Get the delta time in seconds for the update tick.
+    /// Vertical size of the drawable part of the window in pixels.
     ///
-    /// This is a constant set by [`GameConfig::with_update_delta_time`].
+    /// This ignores any scaling.
     ///
     /// # Returns
     ///
-    /// - Seconds a single update tick took, this is a constant.
+    /// - Height of the drawable part of the window.
     #[inline]
     #[must_use]
-    pub fn delta_time(&self) -> f32 {
-        self.read(|ctx| ctx.delta_time)
-    }
-
-    /// Get the amount of frames drawn in a second.
-    ///
-    /// This counts the times [`crate::PixelGame::render`] is called.
-    ///
-    /// # Returns
-    ///
-    /// - Frames per second drawn.
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// use chuot::{Context, KeyCode, glamour::Vector2};
-    ///
-    /// # struct Empty; impl Empty {
-    /// // In `PixelGame::render` trait implementation
-    /// // ..
-    /// fn render(&mut self, ctx: Context) {
-    ///   // Draw a simple FPS counter on the top-left of the screen
-    ///   let fps = ctx.delta_time().recip();
-    ///   ctx.text("Beachball", &format!("{:.1}", ctx.frames_per_second())).draw();
-    /// }
-    /// # }
-    #[inline]
-    #[must_use]
-    pub fn frames_per_second(&self) -> f32 {
-        self.read(|ctx| ctx.frames_per_second)
-    }
-
-    /// Get the blending factor between the update states used in the render state.
-    ///
-    /// This is only set for [`crate::PixelGame::render`].
-    ///
-    /// Using this number allows you to create smooth animations for slower update loops.
-    /// A common way to do this is to keep a previous state and interpolate the current state with the previous one.
-    /// For most use cases a basic lerp function suffices for this.
-    ///
-    /// # Returns
-    ///
-    /// - Number between `0.0`-`1.0` which is the ratio between the previous state and the current state for interpolating.
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// use chuot::{Context, KeyCode, glamour::Vector2};
-    ///
-    /// # #[derive(Default)] struct S{position: Vector2, previous_position: Vector2}
-    /// # struct Empty; impl Empty {
-    /// // In `PixelGame::render` trait implementation
-    /// // ..
-    /// fn render(&mut self, ctx: Context) {
-    /// # let sprite = S::default();
-    ///   // Lerp a sprite between it's last position and the current position
-    ///   let interpolated_position =
-    ///       sprite.position * ctx.blending_factor() +
-    ///       sprite.previous_position * (1.0 - ctx.blending_factor());
-    ///
-    ///   // Draw the sprite with smooth position
-    ///   ctx.sprite("sprite").translate(interpolated_position).draw();
-    /// }
-    /// # }
-    #[inline]
-    #[must_use]
-    pub fn blending_factor(&self) -> f32 {
-        self.read(|ctx| ctx.blending_factor)
+    pub fn height(&self) -> f32 {
+        self.read(|ctx| ctx.graphics.buffer_height)
     }
 
     /// Size of the drawable part of the window in pixels.
@@ -274,11 +82,11 @@ impl Context {
     ///
     /// # Returns
     ///
-    /// - Width and height of the drawable part of the window.
+    /// - A `(width, height)` tuple of the drawable part of the window.
     #[inline]
     #[must_use]
-    pub fn size(&self) -> Size2 {
-        self.read(|ctx| ctx.size)
+    pub fn size(&self) -> (f32, f32) {
+        self.read(|ctx| (ctx.graphics.buffer_width, ctx.graphics.buffer_height))
     }
 
     /// Show the OS cursor or hide it.
@@ -309,6 +117,97 @@ impl Context {
             });
         });
     }
+
+    /// Exit the game and the window.
+    #[inline]
+    pub fn exit(&self) {
+        self.write(|ctx| ctx.exit = true);
+    }
+}
+
+/// Game state methods.
+impl Context {
+    /// Get the delta time in seconds for the update tick.
+    ///
+    /// This is a constant set by [`Config::with_update_delta_time`].
+    ///
+    /// # Returns
+    ///
+    /// - Seconds a single update tick took, this is a constant.
+    #[inline]
+    #[must_use]
+    pub fn delta_time(&self) -> f32 {
+        self.read(|ctx| ctx.config.update_delta_time)
+    }
+
+    /// Get the amount of frames drawn in a second.
+    ///
+    /// This counts the times [`crate::Game::render`] is called.
+    ///
+    /// # Returns
+    ///
+    /// - Frames per second drawn.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use chuot::{Context, context::KeyCode};
+    ///
+    /// # struct Empty; impl Empty {
+    /// // In `Game::render` trait implementation
+    /// // ..
+    /// fn render(&mut self, ctx: Context) {
+    ///   // Draw a simple FPS counter on the top-left of the screen
+    ///   let fps = ctx.delta_time().recip();
+    ///   ctx.text("Beachball", &format!("{:.1}", ctx.frames_per_second())).draw();
+    /// }
+    /// # }
+    #[inline]
+    #[must_use]
+    pub fn frames_per_second(&self) -> f32 {
+        self.read(|ctx| ctx.frames_per_second)
+    }
+
+    /// Get the blending factor between the update states used in the render state.
+    ///
+    /// This is only set for [`crate::Game::render`].
+    ///
+    /// Using this number allows you to create smooth animations for slower update loops.
+    /// A common way to do this is to keep a previous state and interpolate the current state with the previous one.
+    /// For most use cases a basic lerp function suffices for this.
+    ///
+    /// # Returns
+    ///
+    /// - Number between `0.0`-`1.0` which is the ratio between the previous state and the current state for interpolating.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use chuot::{Context, context::KeyCode };
+    ///
+    /// # #[derive(Default)] struct S{x: f32, y: f32, prev_x: f32, prev_y : f32}
+    /// # struct Empty; impl Empty {
+    /// // In `Game::render` trait implementation
+    /// // ..
+    /// fn render(&mut self, ctx: Context) {
+    /// # let sprite = S::default();
+    ///   // Lerp a sprite between it's last position and the current position
+    ///   let interpolated_x =
+    ///       sprite.x * ctx.blending_factor() +
+    ///       sprite.prev_x * (1.0 - ctx.blending_factor());
+    ///   let interpolated_y =
+    ///       sprite.y * ctx.blending_factor() +
+    ///       sprite.prev_y * (1.0 - ctx.blending_factor());
+    ///
+    ///   // Draw the sprite with smooth position
+    ///   ctx.sprite("sprite").translate((interpolated_x, interpolated_y)).draw();
+    /// }
+    /// # }
+    #[inline]
+    #[must_use]
+    pub fn blending_factor(&self) -> f32 {
+        self.read(|ctx| ctx.blending_factor)
+    }
 }
 
 /// Mouse input methods.
@@ -324,8 +223,8 @@ impl Context {
     /// - `Some(..)` with the coordinates of the pixel if the mouse is on the buffer of pixels.
     #[inline]
     #[must_use]
-    pub fn mouse(&self) -> Option<Vector2> {
-        self.read(|ctx| ctx.mouse)
+    pub fn mouse(&self) -> Option<(f32, f32)> {
+        self.read(|ctx| ctx.input.mouse())
     }
 
     /// Whether the mouse button goes from "not pressed" to "pressed".
@@ -377,11 +276,11 @@ impl Context {
     ///
     /// # Returns
     ///
-    /// - Vector where the X dimension is horizontal scrolling and the Y dimension vertical scrolling.
+    /// - A `(x, y)` tuple where `x` is horizontal scrolling and `y` vertical scrolling.
     #[inline]
     #[must_use]
-    pub fn scroll_delta(&self) -> Vector2<f32> {
-        self.read(|ctx| Vector2::from_tuple(ctx.input.scroll_diff()))
+    pub fn scroll_delta(&self) -> (f32, f32) {
+        self.read(|ctx| ctx.input.scroll_diff())
     }
 }
 
@@ -452,15 +351,15 @@ impl Context {
     /// - Stack allocated array of all currently connected gamepad IDs.
     #[inline]
     #[must_use]
-    pub fn gamepads_ids(&self) -> SmallVec<[GamepadId; 4]> {
-        self.read(|ctx| ctx.gilrs.gamepads().map(|(id, _gamepad)| id).collect())
+    pub fn gamepad_ids(&self) -> SmallVec<[GamepadId; 4]> {
+        self.read(|ctx| ctx.input.gamepads_ids())
     }
 
     /// Whether a gamepad button goes from "not pressed" to "pressed".
     ///
     /// # Arguments
     ///
-    /// * `gamepad_id` - ID of the gamepad to check the button of, must be retrieved with [`Context::gamepad_ids`].
+    /// * `gamepad_id` - ID of the gamepad to check the button of, must be retrieved with [`Self::gamepad_ids`].
     /// * `button` - Which button on the gamepad to check.
     ///
     /// # Returns
@@ -470,21 +369,14 @@ impl Context {
     #[inline]
     #[must_use]
     pub fn gamepad_button_pressed(&self, gamepad_id: GamepadId, button: Button) -> Option<bool> {
-        self.read(|ctx| {
-            ctx.gilrs.connected_gamepad(gamepad_id).and_then(|gamepad| {
-                gamepad.button_data(button).map(|button_data| {
-                    // The counter is updated once per update loop so we can keep track of that to ensure that the button only now changed state
-                    button_data.is_pressed() && button_data.counter() == ctx.gilrs.counter()
-                })
-            })
-        })
+        self.read(|ctx| ctx.input.gamepad_button_pressed(gamepad_id, button))
     }
 
     /// Whether a gamepad button goes from "pressed" to "not pressed".
     ///
     /// # Arguments
     ///
-    /// * `gamepad_id` - ID of the gamepad to check the button of, must be retrieved with [`Context::gamepad_ids`].
+    /// * `gamepad_id` - ID of the gamepad to check the button of, must be retrieved with [`Self::gamepad_ids`].
     /// * `button` - Which button on the gamepad to check.
     ///
     /// # Returns
@@ -494,21 +386,14 @@ impl Context {
     #[inline]
     #[must_use]
     pub fn gamepad_button_released(&self, gamepad_id: GamepadId, button: Button) -> Option<bool> {
-        self.read(|ctx| {
-            ctx.gilrs.connected_gamepad(gamepad_id).and_then(|gamepad| {
-                gamepad.button_data(button).map(|button_data| {
-                    // The counter is updated once per update loop so we can keep track of that to ensure that the button only now changed state
-                    !button_data.is_pressed() && button_data.counter() == ctx.gilrs.counter()
-                })
-            })
-        })
+        self.read(|ctx| ctx.input.gamepad_button_released(gamepad_id, button))
     }
 
     /// Whether a gamepad button is in a "pressed" state.
     ///
     /// # Arguments
     ///
-    /// * `gamepad_id` - ID of the gamepad to check the button of, must be retrieved with [`Context::gamepad_ids`].
+    /// * `gamepad_id` - ID of the gamepad to check the button of, must be retrieved with [`Self::gamepad_ids`].
     /// * `button` - Which button on the gamepad to check.
     ///
     /// # Returns
@@ -519,11 +404,7 @@ impl Context {
     #[inline]
     #[must_use]
     pub fn gamepad_button_held(&self, gamepad_id: GamepadId, button: Button) -> Option<bool> {
-        self.read(|ctx| {
-            ctx.gilrs
-                .connected_gamepad(gamepad_id)
-                .map(|gamepad| gamepad.is_pressed(button))
-        })
+        self.read(|ctx| ctx.input.gamepad_button_held(gamepad_id, button))
     }
 
     /// "Value" of a gamepad button between 0.0 and 1.0.
@@ -532,7 +413,7 @@ impl Context {
     ///
     /// # Arguments
     ///
-    /// * `gamepad_id` - ID of the gamepad to check the button of, must be retrieved with [`Context::gamepad_ids`].
+    /// * `gamepad_id` - ID of the gamepad to check the button of, must be retrieved with [`Self::gamepad_ids`].
     /// * `button` - Which button element on the gamepad to check.
     ///
     /// # Returns
@@ -543,11 +424,7 @@ impl Context {
     #[inline]
     #[must_use]
     pub fn gamepad_button_value(&self, gamepad_id: GamepadId, button: Button) -> Option<f32> {
-        self.read(|ctx| {
-            ctx.gilrs
-                .connected_gamepad(gamepad_id)
-                .and_then(|gamepad| gamepad.button_data(button).map(ButtonData::value))
-        })
+        self.read(|ctx| ctx.input.gamepad_button_value(gamepad_id, button))
     }
 
     /// "Value" of a gamepad element between -1.0 and 1.0.
@@ -556,7 +433,7 @@ impl Context {
     ///
     /// # Arguments
     ///
-    /// * `gamepad_id` - ID of the gamepad to check the axis of, must be retrieved with [`Context::gamepad_ids`].
+    /// * `gamepad_id` - ID of the gamepad to check the axis of, must be retrieved with [`Self::gamepad_ids`].
     /// * `axis` - Which axis element on the gamepad to check.
     ///
     /// # Returns
@@ -568,11 +445,7 @@ impl Context {
     #[inline]
     #[must_use]
     pub fn gamepad_axis(&self, gamepad_id: GamepadId, axis: Axis) -> Option<f32> {
-        self.read(|ctx| {
-            ctx.gilrs
-                .connected_gamepad(gamepad_id)
-                .and_then(|gamepad| gamepad.axis_data(axis).map(AxisData::value))
-        })
+        self.read(|ctx| ctx.input.gamepad_axis(gamepad_id, axis))
     }
 }
 
@@ -593,7 +466,7 @@ impl Context {
     where
         T: Loadable,
     {
-        self.write(|ctx| ctx.assets.custom(path.as_ref()))
+        self.write(|ctx| ctx.custom(path.as_ref()))
     }
 
     /// Load a clone of a custom defined asset.
@@ -611,7 +484,7 @@ impl Context {
     where
         T: Loadable + Clone,
     {
-        self.write(|ctx| ctx.assets.custom_owned(path.as_ref()))
+        self.write(|ctx| ctx.custom_owned(path.as_ref()))
     }
 }
 
@@ -619,22 +492,18 @@ impl Context {
 impl Context {
     /// Create a new empty context.
     #[inline]
-    pub(crate) fn new(
-        config: &GameConfig,
-        window: Arc<Window>,
-        audio_manager: AudioManager<DefaultBackend>,
-        asset_source: AssetSource,
-        gilrs: Gilrs,
+    pub(crate) async fn new(
+        config: Config,
+        asset_source: Box<AssetSource>,
+        window: Window,
     ) -> Self {
-        Self {
-            inner: Rc::new(RefCell::new(ContextInner::new(
-                config,
-                window,
-                audio_manager,
-                asset_source,
-                gilrs,
-            ))),
-        }
+        // Setup the inner context
+        let context_inner = ContextInner::new(config, asset_source, window).await;
+
+        // Wrap in a reference counted refcell so it can safely be passed to any of the user functions
+        let inner = Rc::new(RefCell::new(context_inner));
+
+        Self { inner }
     }
 
     /// Get a read-only reference to the inner struct.
@@ -659,71 +528,191 @@ impl Context {
 }
 
 /// Internal wrapped implementation for [`Context`].
-pub(crate) struct ContextInner {
-    /// Whether to exit after the update loop.
-    pub(crate) exit: bool,
-    /// Mouse position.
-    pub(crate) mouse: Option<Vector2>,
-    /// Parsed game input.
+///
+/// Accessed directly in custom asset loaders.
+pub struct ContextInner {
+    /// Sources for loading assets from memory or disk.
     ///
-    /// Exoses methods for detecting mouse and keyboard events.
-    pub(crate) input: WinitInputHelper,
-    /// Gamepad input.
-    pub(crate) gilrs: Gilrs,
-    /// Instances of all sprites drawn this tick, also includes sprites from the fonts.
-    pub(crate) instances: Instances,
-    /// Portions of textures that need to be re-written.
-    pub(crate) texture_update_queue: Vec<(AtlasRef, Rect, Vec<u32>)>,
-    /// Time in seconds between every update tick.
-    pub(crate) delta_time: f32,
+    /// Boxed for increased performance, it doesn't need to be on the stack since it won't be accessed a lot.
+    pub asset_source: Box<AssetSource>,
+    /// Window instance.
+    pub(crate) window: Arc<Window>,
+    /// Graphics state.
+    pub(crate) graphics: Graphics,
     /// Frames per second for the render tick.
     pub(crate) frames_per_second: f32,
     /// Interpolation alpha for the render tick.
     pub(crate) blending_factor: f32,
-    /// Size of the inner window in pixels.
-    pub(crate) size: Size2,
-    /// Reference to the window.
-    pub(crate) window: Arc<Window>,
+    /// Input manager.
+    pub(crate) input: Input,
     /// Audio manager for playing audio.
     pub(crate) audio_manager: AudioManager<DefaultBackend>,
-    /// Where all assets live.
-    pub(crate) assets: AssetsManager,
+    /// User supplied game configuration.
+    pub(crate) config: Config,
+    /// Sprite assets.
+    pub(crate) sprites: AssetManager<Sprite>,
+    /// Font assets.
+    pub(crate) fonts: AssetManager<Font>,
+    /// Audio assets.
+    pub(crate) audio: AssetManager<Audio>,
+    /// Custom type erased assets.
+    pub(crate) custom: CustomAssetManager,
+    /// Whether to exit.
+    pub(crate) exit: bool,
 }
 
 impl ContextInner {
     /// Initialize the inner context.
-    pub(crate) fn new(
-        config: &GameConfig,
-        window: Arc<Window>,
-        audio_manager: AudioManager<DefaultBackend>,
-        asset_source: AssetSource,
-        gilrs: Gilrs,
+    pub(crate) async fn new(
+        config: Config,
+        asset_source: Box<AssetSource>,
+        window: Window,
     ) -> Self {
-        let exit = false;
-        let mouse = None;
-        let input = WinitInputHelper::default();
-        let instances = Instances::default();
-        let texture_update_queue = Vec::new();
-        let delta_time = config.update_delta_time;
-        let size = config.buffer_size;
+        // Wrap in an arc so graphics can use it
+        let window = Arc::new(window);
+
+        // Setup the initial graphics
+        let graphics = Graphics::new(config.clone(), Arc::clone(&window), &asset_source).await;
+
+        // Setup the audio manager to play audio
+        let audio_manager = AudioManager::new(AudioManagerSettings::default()).unwrap();
+
+        // Setup the assets managers
+        let sprites = AssetManager::default();
+        let fonts = AssetManager::default();
+        let audio = AssetManager::default();
+        let custom = CustomAssetManager::default();
+
+        // Define default values for the timing functions
         let frames_per_second = 0.0;
         let blending_factor = 0.0;
-        let assets = AssetsManager::new(asset_source);
+
+        // Default input values and state
+        let input = Input::new();
+        let exit = false;
 
         Self {
-            exit,
-            mouse,
-            input,
-            gilrs,
-            instances,
-            texture_update_queue,
-            delta_time,
+            asset_source,
+            window,
+            graphics,
             frames_per_second,
             blending_factor,
-            size,
-            window,
+            input,
             audio_manager,
-            assets,
+            config,
+            sprites,
+            fonts,
+            audio,
+            custom,
+            exit,
         }
+    }
+
+    /// Get or load a sprite.
+    ///
+    /// # Panics
+    ///
+    /// - When font sprite could not be loaded.
+    #[inline]
+    pub(crate) fn sprite(&mut self, id: &str) -> Rc<Sprite> {
+        // Create the ID
+        let id = Id::new(id);
+
+        // Try to load the asset first
+        if let Some(asset) = self.sprites.get(&id) {
+            return asset;
+        }
+
+        // Asset not found, load it
+        let asset = Sprite::load(&id, self);
+        self.sprites.insert(id, asset)
+    }
+
+    /// Get or load a font.
+    ///
+    /// # Panics
+    ///
+    /// - When font asset could not be loaded.
+    #[inline]
+    pub(crate) fn font(&mut self, id: &str) -> Rc<Font> {
+        // Create the ID
+        let id = Id::new(id);
+
+        // Try to load the asset first
+        if let Some(asset) = self.fonts.get(&id) {
+            return asset;
+        }
+
+        // Asset not found, load it
+        let asset = Font::load(&id, self);
+        self.fonts.insert(id, asset)
+    }
+
+    /// Get or load an audio file.
+    ///
+    /// # Panics
+    ///
+    /// - When audio asset could not be loaded.
+    #[inline]
+    pub(crate) fn audio(&mut self, id: &str) -> Rc<Audio> {
+        // Create the ID
+        let id = Id::new(id);
+
+        // Try to load the asset first
+        if let Some(asset) = self.audio.get(&id) {
+            return asset;
+        }
+
+        // Asset not found, load it
+        let asset = Audio::load(&id, self);
+        self.audio.insert(id, asset)
+    }
+
+    /// Get or load a custom asset.
+    ///
+    /// # Panics
+    ///
+    /// - When audio asset could not be loaded.
+    /// - When type used to load the asset mismatches the type used to get it.
+    #[inline]
+    pub(crate) fn custom<T>(&mut self, id: &str) -> Rc<T>
+    where
+        T: Loadable,
+    {
+        // Create the ID
+        let id = Id::new(id);
+
+        // Try to load the asset first
+        if let Some(asset) = self.custom.get(&id) {
+            return asset;
+        }
+
+        // Asset not found, load it
+        let asset = T::load(&id, self);
+        self.custom.insert(id, asset)
+    }
+
+    /// Get a clone or load a custom asset.
+    ///
+    /// # Panics
+    ///
+    /// - When audio asset could not be loaded.
+    /// - When type used to load the asset mismatches the type used to get it.
+    #[inline]
+    pub(crate) fn custom_owned<T>(&mut self, id: &str) -> T
+    where
+        T: Loadable + Clone,
+    {
+        // Create a clone of the asset
+        Rc::<T>::unwrap_or_clone(self.custom(id))
+    }
+
+    /// Remove all assets with the specified ID if they exist.
+    #[inline]
+    pub(crate) fn remove(&mut self, id: &Id) {
+        self.sprites.remove(id);
+        self.fonts.remove(id);
+        self.audio.remove(id);
+        self.custom.remove(id);
     }
 }

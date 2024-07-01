@@ -9,11 +9,10 @@
 //! ```
 
 use chuot::{
-    assets::{loader::Loader, AssetSource, Id, Loadable},
-    glamour::Size2,
-    Context, GameConfig, PixelGame,
+    assets::{loadable::Loadable, loader::Loader, Id},
+    context::ContextInner,
+    Config, Context, Game,
 };
-use serde::Deserialize;
 
 /// A custom asset loader for loading '.txt' files.
 struct TxtLoader;
@@ -22,22 +21,21 @@ impl Loader<String> for TxtLoader {
     const EXTENSION: &'static str = "txt";
 
     /// Load the bytes into UTF-8, ignoring invalid characters.
-    fn load(bytes: &[u8]) -> String {
+    fn load(bytes: &[u8], _id: &Id) -> String {
         String::from_utf8_lossy(bytes).into_owned()
     }
 }
 
 /// We define a custom asset that will load a string from a '.txt' file.
-#[derive(Deserialize)]
 struct TxtString(pub String);
 
 impl Loadable for TxtString {
-    fn load_if_exists(id: &Id, assets: &AssetSource) -> Option<Self>
+    fn load_if_exists(id: &Id, ctx: &mut ContextInner) -> Option<Self>
     where
         Self: Sized,
     {
         // Use the created loader to load a txt asset
-        let text = assets.load_if_exists::<TxtLoader, _>(id)?;
+        let text = ctx.asset_source.load_if_exists::<TxtLoader, _>(id)?;
 
         Some(Self(text))
     }
@@ -46,7 +44,7 @@ impl Loadable for TxtString {
 /// Define an empty game state, because all asset state will be loaded using the context.
 struct GameState;
 
-impl PixelGame for GameState {
+impl Game for GameState {
     /// Game render tick, handle drawing things here.
     fn render(&mut self, ctx: Context) {
         // Load a reference to the asset
@@ -63,12 +61,10 @@ impl PixelGame for GameState {
 /// Open an empty window.
 fn main() {
     // Spawn the window with the default configuration but with a horizontally stretched buffer for displaying longer text
-    GameState {}
-        .run(
-            chuot::load_assets!(),
-            GameConfig::default()
-                .with_buffer_size(Size2::new(360.0, 50.0))
-                .with_scaling(2.0),
-        )
-        .expect("Error running game");
+    GameState {}.run(
+        chuot::load_assets!(),
+        Config::default()
+            .with_buffer_size((360.0, 50.0))
+            .with_scaling(2.0),
+    );
 }
