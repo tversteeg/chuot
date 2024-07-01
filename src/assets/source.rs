@@ -145,8 +145,8 @@ impl AssetSource {
     /// Get the embedded atlas texture.
     #[must_use]
     #[inline]
-    pub(crate) fn embedded_atlas(&self) -> &EmbeddedRawStaticAtlas {
-        &self.embedded_atlas
+    pub(crate) const fn embedded_atlas(&self) -> &EmbeddedRawStaticAtlas {
+        self.embedded_atlas
     }
 }
 
