@@ -47,11 +47,11 @@ where
     /// # Example
     ///
     /// ```
-    /// use chuot::{Context, GameConfig, KeyCode, PixelGame};
+    /// use chuot::{Context, Config, KeyCode, Game};
     ///
     /// struct MyGame;
     ///
-    /// impl PixelGame for MyGame {
+    /// impl Game for MyGame {
     ///     fn update(&mut self, ctx: Context) {
     ///         // Stop the game and close the window when 'Escape' is pressed
     ///         if ctx.key_pressed(KeyCode::Escape) {
@@ -80,11 +80,11 @@ where
     /// # Example
     ///
     /// ```
-    /// use chuot::{Context, GameConfig, KeyCode, PixelGame};
+    /// use chuot::{Context, Config, KeyCode, Game};
     ///
     /// struct MyGame;
     ///
-    /// impl PixelGame for MyGame {
+    /// impl Game for MyGame {
     ///     fn render(&mut self, ctx: Context) {
     ///         // Draw a sprite on the screen
     ///         ctx.sprite("sprite").draw();
@@ -112,11 +112,11 @@ where
     /// # Example
     ///
     /// ```no_run
-    /// use chuot::{Context, GameConfig, KeyCode, PixelGame};
+    /// use chuot::{Context, Config, KeyCode, Game};
     ///
     /// struct MyGame;
     ///
-    /// impl PixelGame for MyGame {
+    /// impl Game for MyGame {
     ///     fn update(&mut self, ctx: Context) {
     ///         // Stop the game and close the window when 'Escape' is pressed
     ///         if ctx.key_pressed(KeyCode::Escape) {
@@ -133,7 +133,7 @@ where
     /// // In main
     /// let game = MyGame;
     ///
-    /// game.run(chuot::load_assets!(), GameConfig::default())?;
+    /// game.run(Config::default())?;
     /// # Ok(()) }
     /// # try_main().unwrap();
     /// ```
@@ -217,7 +217,7 @@ impl<G: Game> ApplicationHandler<()> for State<G> {
 
                 // Call the user update function with the context
                 while self.accumulator >= self.config.update_delta_time {
-                    // Call the implemented update function on the 'PixelGame' trait
+                    // Call the implemented update function on the 'Game' trait
                     self.game.update(ctx.clone());
 
                     // Mark this tick as executed

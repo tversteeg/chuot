@@ -42,14 +42,14 @@ AGPL licensed and opinionated game engine for 2D pixel-art games.
 
 #### Usage
 
-Using this crate is quite simple, there is a single trait [`PixelGame`] with two required functions, [`PixelGame::update`] and [`PixelGame::render`], that need to be implemented for a game state object.
+Using this crate is quite simple, there is a single trait [`Game`] with two required functions, [`Game::update`] and [`Game::render`], that need to be implemented for a game state object.
 
 ```rust
-use chuot::{Context, GameConfig, PixelGame};
+use chuot::{Context, Config, Game};
 
 struct MyGame;
 
-impl PixelGame for MyGame {
+impl Game for MyGame {
     fn update(&mut self, ctx: Context) {
         // ..
     }
@@ -63,7 +63,7 @@ impl PixelGame for MyGame {
 
 let game = MyGame;
 
-game.run(chuot::load_assets!(), GameConfig::default())?;
+game.run(Config::default())?;
 ```
 
 ##### `embed-assets`
@@ -113,7 +113,7 @@ When the 'Escape' key is pressed[^escape-key] the game will exit and the window 
 
 ```rust
 use chuot::{
-  PixelGame, Context, GameConfig,
+  Game, Context, Config,
   context::{MouseButton, KeyCode},
   glamour::Vector2
 };
@@ -124,7 +124,7 @@ struct MyGame {
   counter: u32,
 }
 
-impl PixelGame for MyGame {
+impl Game for MyGame {
   fn update(&mut self, ctx: Context) {
     // ^1
     // Increment the counter when we press the left mouse button
@@ -153,7 +153,7 @@ impl PixelGame for MyGame {
 let game = MyGame { counter: 0 };
 
 // Run the game until exit is requested
-game.run(chuot::load_assets!(), GameConfig::default().with_title("My Game"))?;
+game.run(Config::default().with_title("My Game"))?;
 ```
 
 [^left-mouse]: [`Context::mouse_pressed`]

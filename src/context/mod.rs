@@ -146,7 +146,7 @@ impl Context {
     /// use chuot::{Context, KeyCode, glamour::Vector2};
     ///
     /// # struct Empty; impl Empty {
-    /// // In `PixelGame::render` trait implementation
+    /// // In `Game::render` trait implementation
     /// // ..
     /// fn render(&mut self, ctx: Context) {
     ///   // Draw a simple FPS counter on the top-left of the screen

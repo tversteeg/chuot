@@ -71,7 +71,7 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
     ///
     /// # Arguments
     ///
-    /// * `rotation` - Rotation of the target sprite in radians, will be applied using the algorithm passed in [`crate::config::GameConfig::with_rotation_algorithm`].
+    /// * `rotation` - Rotation of the target sprite in radians, will be applied using the algorithm passed in [`crate::config::Config::with_rotation_algorithm`].
     #[inline(always)]
     #[must_use]
     pub fn rotate(mut self, rotation: f32) -> Self {

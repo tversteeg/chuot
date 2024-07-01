@@ -35,7 +35,7 @@ impl Game for GameState {
 /// Open an empty window.
 fn main() {
     // Game configuration
-    let config = GameConfig {
+    let config = Config {
         buffer_size: Size2::new(120.0, 96.0),
         // Apply a minimum of 6 times scaling for the buffer
         // Will result in a minimum, and on web exact, window size of 960x720
@@ -45,6 +45,6 @@ fn main() {
 
     // Spawn the window and run the 'game'
     GameState
-        .run(chuot::load_assets!(), config)
+        .run(config)
         .expect("Error running game");
 }

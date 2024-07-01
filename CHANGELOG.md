@@ -254,8 +254,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - *(profiler)* profile heap allocations for rendering and tick call
 - *(context)* [**breaking**] use ergonomic zero cost abstraction for text drawing similar to sprite refactor
 - *(assets)* export different types that can be used for loading assets
-- *(config)* allow setting vsync in `GameConfig`
-- *(config)* add builder methods for `GameConfig` fields
+- *(config)* allow setting vsync in `Config`
+- *(config)* add builder methods for `Config` fields
 - *(context)* add `Context::sprite_raw_pixels`
 - *(context)* add `Context::sprite_size`
 - *(graphics)* add `Context::update_sprite_pixels` for updating regions of pixels on an already uploaded sprites
@@ -274,7 +274,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - *(bitmap)* add `BitMap` for 2D masking operations on buffers
 - *(physics)* add square, triangle and circle collider shapes
 - *(audio)* `audio` crate feature for playing audio, based on the Kira crate
-- *(state)* create a `PixelGame` trait which simplifies setting up a new game with a window
+- *(state)* create a `Game` trait which simplifies setting up a new game with a window
 - *(gui)* [**breaking**] embed default GUI elements behind feature flag `default-gui`
 - *(dialogue)* implement dialogue feature based on Yarn Spinner
 - *(canvas)* add `draw_circle`, `draw_scanline` and improve `draw_circle_outline` to/on `Canvas`
@@ -409,7 +409,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - *(graphics)* refactor structure of communicating with the GPU for future addition of GPU profiler
 - release
 - *(readme)* show different RotSprite upscale options in README.md
-- *(project)* [**breaking**] rename `WindowConfig` to `GameConfig`
+- *(project)* [**breaking**] rename `WindowConfig` to `Config`
 - *(web)* [**breaking**] improve performance on Web builds by using canvas scaling
 - *(graphics)* [**breaking**] skip downscale render pass when buffer fits inside window
 - *(project)* [**breaking**] make some internal public items private, improve documentation
@@ -418,7 +418,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - *(graphics)* pack all sprites into a single texture atlas
 - *(ci)* install missing requirements for release
 - release
-- *(project)* [**breaking**] replace `PixelGame::update` & `PixelGame::render` with singular `PixelGame::tick`, change vek library to glam and glamour
+- *(project)* [**breaking**] replace `Game::update` & `Game::render` with singular `Game::tick`, change vek library to glam and glamour
 - release
 - *(project)* cleanup and prepare for beta release
 - *(ci)* fix test and wasm-build step
@@ -502,8 +502,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.9.0-alpha.4](https://github.com/tversteeg/chuot/compare/chuot-v0.9.0-alpha.3...chuot-v0.9.0-alpha.4) - 2024-03-29
 
 ### Added
-- *(config)* allow setting vsync in `GameConfig`
-- *(config)* add builder methods for `GameConfig` fields
+- *(config)* allow setting vsync in `Config`
+- *(config)* add builder methods for `Config` fields
 - *(context)* add `Context::sprite_raw_pixels`
 - *(context)* add `Context::sprite_size`
 
@@ -523,7 +523,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Other
 - *(readme)* show different RotSprite upscale options in README.md
-- *(project)* [**breaking**] rename `WindowConfig` to `GameConfig`
+- *(project)* [**breaking**] rename `WindowConfig` to `Config`
 - *(web)* [**breaking**] improve performance on Web builds by using canvas scaling
 - *(graphics)* [**breaking**] skip downscale render pass when buffer fits inside window
 - *(project)* [**breaking**] make some internal public items private, improve documentation
@@ -549,7 +549,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - *(window)* handle exit event
 
 ### Other
-- *(project)* [**breaking**] replace `PixelGame::update` & `PixelGame::render` with singular `PixelGame::tick`, change vek library to glam and glamour
+- *(project)* [**breaking**] replace `Game::update` & `Game::render` with singular `Game::tick`, change vek library to glam and glamour
 
 ## [0.9.0-alpha](https://github.com/tversteeg/chuot/compare/chuot-v0.8.0...chuot-v0.9.0-alpha) - 2024-03-20
 
@@ -607,7 +607,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.7.0](https://github.com/tversteeg/chuot/compare/chuot-v0.6.1...chuot-v0.7.0) - 2024-03-03
 
 ### Added
-- *(state)* create a `PixelGame` trait which simplifies setting up a new game with a window
+- *(state)* create a `Game` trait which simplifies setting up a new game with a window
 
 ### Fixed
 - *(deps)* update rust crate winit to 0.29.13

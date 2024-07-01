@@ -66,7 +66,7 @@ impl Game for GameState {
 /// Open an empty window.
 fn main() {
     // Game configuration
-    let config = GameConfig::default()
+    let config = Config::default()
         .with_buffer_size((720.0, 576.0))
         .with_scaling(1.0)
         // Call update 10 times per second, this will show the interpolation
@@ -75,6 +75,6 @@ fn main() {
 
     // Spawn the window and run the 'game'
     GameState::default()
-        .run(chuot::load_assets!(), config)
+        .run(config)
         .expect("Error running game");
 }
