@@ -66,11 +66,11 @@ where
     /// # Example
     ///
     /// ```
-    /// use chuot::{Context, GameConfig, KeyCode, PixelGame};
+    /// use chuot::{Context, Game, context::KeyCode};
     ///
     /// struct MyGame;
     ///
-    /// impl PixelGame for MyGame {
+    /// impl Game for MyGame {
     ///     fn update(&mut self, ctx: Context) {
     ///         // Stop the game and close the window when 'Escape' is pressed
     ///         if ctx.key_pressed(KeyCode::Escape) {
@@ -99,11 +99,11 @@ where
     /// # Example
     ///
     /// ```
-    /// use chuot::{Context, GameConfig, KeyCode, PixelGame};
+    /// use chuot::{Context, Game, context::KeyCode};
     ///
     /// struct MyGame;
     ///
-    /// impl PixelGame for MyGame {
+    /// impl Game for MyGame {
     ///     fn render(&mut self, ctx: Context) {
     ///         // Draw a sprite on the screen
     ///         ctx.sprite("sprite").draw();
@@ -120,22 +120,22 @@ where
     ///
     /// # Arguments
     ///
-    /// * `asset_source` - Source of the assets, needs to be `chuot::load_assets!()`.
+    /// * `asset_source` - Source of the assets, should probably be `chuot::load_assets!()`, unless you don't need any assets.
     /// * `config` - Configuration for the window, can be used to set the buffer size, the window title and other things.
     ///
     /// # Errors
     ///
     /// - When a window could not be opened (desktop only).
-    /// - When `hot-reload-assets` feature is enabled and the assets folder could not be watched.
+    /// - If no GPU could be found or accessed.
     ///
     /// # Example
     ///
     /// ```no_run
-    /// use chuot::{Context, GameConfig, KeyCode, PixelGame};
+    /// use chuot::{context::KeyCode, Config, Context, Game};
     ///
     /// struct MyGame;
     ///
-    /// impl PixelGame for MyGame {
+    /// impl Game for MyGame {
     ///     fn update(&mut self, ctx: Context) {
     ///         // Stop the game and close the window when 'Escape' is pressed
     ///         if ctx.key_pressed(KeyCode::Escape) {
@@ -148,17 +148,49 @@ where
     ///     }
     /// }
     ///
-    /// # fn try_main() -> miette::Result<()> {
     /// // In main
     /// let game = MyGame;
     ///
-    /// game.run(chuot::load_assets!(), GameConfig::default())?;
-    /// # Ok(()) }
-    /// # try_main().unwrap();
+    /// game.run(chuot::load_assets!(), Config::default());
     /// ```
     #[inline(always)]
     fn run(self, asset_source: AssetSource, config: Config) {
-        run(self, asset_source, config);
+        // Show panics in the browser console log
+        #[cfg(target_arch = "wasm32")]
+        std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+
+        // Setup the timestep variables for calculating the update loop
+        let accumulator = 0.0;
+        let last_time = Instant::now();
+
+        // Context must be initialized later when creating the window
+        let ctx = None;
+
+        // Create a polling event loop, which redraws the window whenever possible
+        let event_loop = EventLoop::with_user_event().build().unwrap();
+        event_loop.set_control_flow(ControlFlow::Poll);
+
+        // Put the asset source on the heap
+        let asset_source = Some(Box::new(asset_source));
+
+        // Get the event loop proxy so we can instantiate on the web
+        #[cfg(target_arch = "wasm32")]
+        let event_loop_proxy = Some(event_loop.create_proxy());
+
+        // Move the game struct to the state
+        let game = self;
+
+        // Run the game
+        let _ = event_loop.run_app(&mut State {
+            ctx,
+            asset_source,
+            game,
+            config,
+            last_time,
+            accumulator,
+            #[cfg(target_arch = "wasm32")]
+            event_loop_proxy,
+        });
     }
 }
 
@@ -304,7 +336,7 @@ impl<G: Game> ApplicationHandler<Context> for State<G> {
 
                 // Call the user update function with the context
                 while self.accumulator >= self.config.update_delta_time {
-                    // Call the implemented update function on the 'PixelGame' trait
+                    // Call the implemented update function on the 'Game' trait
                     self.game.update(ctx.clone());
 
                     // Mark this tick as executed
@@ -338,8 +370,13 @@ impl<G: Game> ApplicationHandler<Context> for State<G> {
                     // Draw the window and GPU graphics
                     ctx.graphics.render();
 
-                    // Request another frame for the window
-                    ctx.window.request_redraw();
+                    if ctx.exit {
+                        // Tell winit that we want to exit
+                        event_loop.exit();
+                    } else {
+                        // Request another frame for the window
+                        ctx.window.request_redraw();
+                    }
                 });
             }
             // Resize the render surface
@@ -377,42 +414,4 @@ impl<G: Game> ApplicationHandler<Context> for State<G> {
             self.event_loop_proxy = None;
         }
     }
-}
-
-/// Run the game.
-#[inline(always)]
-fn run(game: impl Game, asset_source: AssetSource, config: Config) {
-    // Show panics in the browser console log
-    #[cfg(target_arch = "wasm32")]
-    std::panic::set_hook(Box::new(console_error_panic_hook::hook));
-
-    // Setup the timestep variables for calculating the update loop
-    let accumulator = 0.0;
-    let last_time = Instant::now();
-
-    // Context must be initialized later when creating the window
-    let ctx = None;
-
-    // Create a polling event loop, which redraws the window whenever possible
-    let event_loop = EventLoop::with_user_event().build().unwrap();
-    event_loop.set_control_flow(ControlFlow::Poll);
-
-    // Put the asset source on the heap
-    let asset_source = Some(Box::new(asset_source));
-
-    // Get the event loop proxy so we can instantiate on the web
-    #[cfg(target_arch = "wasm32")]
-    let event_loop_proxy = Some(event_loop.create_proxy());
-
-    // Run the game
-    let _ = event_loop.run_app(&mut State {
-        ctx,
-        asset_source,
-        game,
-        config,
-        last_time,
-        accumulator,
-        #[cfg(target_arch = "wasm32")]
-        event_loop_proxy,
-    });
 }

@@ -18,7 +18,7 @@ impl Game for GameState {
         let mut line_y = 2.0;
 
         // Get all IDs of connected gamepads
-        let connected_gamepad_ids = ctx.gamepads_ids();
+        let connected_gamepad_ids = ctx.gamepad_ids();
 
         if connected_gamepad_ids.is_empty() {
             ctx.text("Beachball", "Activate or\nconnect a gamepad")

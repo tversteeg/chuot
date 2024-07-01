@@ -152,7 +152,7 @@ impl Context {
     /// use chuot::Context;
     ///
     /// # struct Empty; impl Empty {
-    /// // In `PixelGame::update` trait implementation
+    /// // In `Game::update` trait implementation
     /// // ..
     /// fn update(&mut self, ctx: Context) {
     /// # let play_song = false;

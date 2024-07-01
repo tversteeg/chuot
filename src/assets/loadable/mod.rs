@@ -15,7 +15,10 @@ use super::Id;
 /// # Example
 ///
 /// ```
-/// use chuot::assets::{loader::ron::RonLoader, AssetSource, Id, Loadable};
+/// use chuot::{
+///     assets::{loadable::Loadable, loader::ron::RonLoader, Id},
+///     context::ContextInner,
+/// };
 /// use nanoserde::DeRon;
 ///
 /// /// We define a custom settings object that will be loaded from a '.ron' file.
@@ -26,12 +29,9 @@ use super::Id;
 /// }
 ///
 /// impl Loadable for Settings {
-///     fn load_if_exists(id: &Id, assets: &AssetSource) -> Option<Self>
-///     where
-///         Self: Sized,
-///     {
+///     fn load_if_exists(id: &Id, ctx: &mut ContextInner) -> Option<Self> {
 ///         // Use the RON loader to load our asset
-///         assets.load_if_exists::<RonLoader, _>(id)
+///         ctx.asset_source.load_if_exists::<RonLoader, Self>(id)
 ///     }
 /// }
 /// ```

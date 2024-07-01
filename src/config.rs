@@ -1,14 +1,14 @@
 //! Initial game configuration.
 
-/// Initial game configuration passed to [`chuot::PixelGame::run`].
+/// Initial game configuration passed to [`crate::Game::run`].
 ///
 /// There's two ways to initialize the config:
 ///
 /// # Example
 ///
 /// ```rust
-/// # use chuot::GameConfig;
-/// GameConfig {
+/// # use chuot::Config;
+/// Config {
 ///     title: "My Game".to_owned(),
 ///     ..Default::default()
 /// };
@@ -17,8 +17,8 @@
 /// # Example
 ///
 /// ```rust
-/// # use chuot::GameConfig;
-/// GameConfig::default().with_title("My Game");
+/// # use chuot::Config;
+/// Config::default().with_title("My Game");
 /// ```
 #[derive(Debug, Clone)]
 #[allow(clippy::exhaustive_structs)]

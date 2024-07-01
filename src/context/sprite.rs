@@ -71,7 +71,7 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
     ///
     /// # Arguments
     ///
-    /// * `rotation` - Rotation of the target sprite in radians, will be applied using the algorithm passed in [`crate::config::GameConfig::with_rotation_algorithm`].
+    /// * `rotation` - Rotation of the target sprite in radians, will be applied using the algorithm passed in [`crate::config::Config::with_rotation_algorithm`].
     #[inline(always)]
     #[must_use]
     pub fn rotate(mut self, rotation: f32) -> Self {
@@ -112,7 +112,7 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
     ///
     /// # Arguments
     ///
-    /// * `translations` - Iterator of translation offsets, will draw each item as a sprite at the base position with the offset applied.
+    /// * `translations` - Iterator of translation `(x, y)` tuple offsets, will draw each item as a sprite at the base position with the offset applied.
     ///
     /// # Panics
     ///
@@ -120,30 +120,26 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
     ///
     /// # Example
     ///
-    /// This example runs on my PC with an average FPS of 35 when rendering 100000 sprites.
+    /// This example runs on my PC with an average FPS of 35 when rendering 100000 sprites:
     ///
     /// ```no_run
-    /// # use chuot::glamour::Vector2;
     /// # fn call(ctx: chuot::Context) {
     /// ctx.sprite("some_asset")
-    ///     .draw_multiple_translated((0..10).map(|x| Vector2::new(x as f32, 0.0)));
+    ///     .draw_multiple_translated((0..10).map(|x| (x as f32, 0.0)));
     /// # }
     /// ```
     ///
     /// It's functionally the same as:
     ///
     /// ```no_run
-    /// # use chuot::glamour::Vector2;
     /// # fn call(ctx: chuot::Context) {
     /// for x in 0..10 {
-    ///     ctx.sprite("some_asset")
-    ///         .translate(Vector2::new(x as f32, 0.0))
-    ///         .draw();
+    ///     ctx.sprite("some_asset").translate_x(x as f32).draw();
     /// }
     /// # }
     /// ```
     ///
-    /// But this runs on my PC with an average FPS of 11 when rendering 100000 sprites.
+    /// But the second example runs on my PC with an average FPS of 11 when rendering 100000 sprites.
     #[inline(always)]
     pub fn draw_multiple_translated<T>(self, translations: impl Iterator<Item = T>)
     where
@@ -181,10 +177,12 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
     /// # Arguments
     ///
     /// * `(width, height)` - Size tuple of the new sprite in pixels.
+    /// * `pixels` - Array of RGBA `u32` pixels to use as the texture of the sprite.
     ///
     /// # Panics
     ///
     /// - When a sprite with the same ID already exists.
+    /// - When `width * height != pixels.len()`.
     #[inline]
     pub fn create(self, size: impl Into<(f32, f32)>, pixels: impl AsRef<[u32]>) {
         let (width, height) = size.into();

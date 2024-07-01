@@ -6,7 +6,7 @@ use crate::assets::Id;
 
 use super::Loader;
 
-/// RON audio asset loader.
+/// RON file asset loader.
 #[non_exhaustive]
 pub struct RonLoader;
 

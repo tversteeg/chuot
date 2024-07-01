@@ -56,7 +56,7 @@ impl Context {
     ///
     /// # Returns
     ///
-    /// - width: width of the drawable part of the window.
+    /// - Width of the drawable part of the window.
     #[inline]
     #[must_use]
     pub fn width(&self) -> f32 {
@@ -69,7 +69,7 @@ impl Context {
     ///
     /// # Returns
     ///
-    /// - height: height of the drawable part of the window.
+    /// - Height of the drawable part of the window.
     #[inline]
     #[must_use]
     pub fn height(&self) -> f32 {
@@ -82,7 +82,7 @@ impl Context {
     ///
     /// # Returns
     ///
-    /// - (`width, `height): width and height of the drawable part of the window.
+    /// - A `(width, height)` tuple of the drawable part of the window.
     #[inline]
     #[must_use]
     pub fn size(&self) -> (f32, f32) {
@@ -117,6 +117,12 @@ impl Context {
             });
         });
     }
+
+    /// Exit the game and the window.
+    #[inline]
+    pub fn exit(&self) {
+        self.write(|ctx| ctx.exit = true);
+    }
 }
 
 /// Game state methods.
@@ -145,10 +151,10 @@ impl Context {
     /// # Example
     ///
     /// ```no_run
-    /// use chuot::{Context, KeyCode, glamour::Vector2};
+    /// use chuot::{Context, context::KeyCode};
     ///
     /// # struct Empty; impl Empty {
-    /// // In `PixelGame::render` trait implementation
+    /// // In `Game::render` trait implementation
     /// // ..
     /// fn render(&mut self, ctx: Context) {
     ///   // Draw a simple FPS counter on the top-left of the screen
@@ -164,7 +170,7 @@ impl Context {
 
     /// Get the blending factor between the update states used in the render state.
     ///
-    /// This is only set for [`crate::PixelGame::render`].
+    /// This is only set for [`crate::Game::render`].
     ///
     /// Using this number allows you to create smooth animations for slower update loops.
     /// A common way to do this is to keep a previous state and interpolate the current state with the previous one.
@@ -177,21 +183,24 @@ impl Context {
     /// # Example
     ///
     /// ```no_run
-    /// use chuot::{Context, KeyCode, glamour::Vector2};
+    /// use chuot::{Context, context::KeyCode };
     ///
-    /// # #[derive(Default)] struct S{position: Vector2, previous_position: Vector2}
+    /// # #[derive(Default)] struct S{x: f32, y: f32, prev_x: f32, prev_y : f32}
     /// # struct Empty; impl Empty {
-    /// // In `PixelGame::render` trait implementation
+    /// // In `Game::render` trait implementation
     /// // ..
     /// fn render(&mut self, ctx: Context) {
     /// # let sprite = S::default();
     ///   // Lerp a sprite between it's last position and the current position
-    ///   let interpolated_position =
-    ///       sprite.position * ctx.blending_factor() +
-    ///       sprite.previous_position * (1.0 - ctx.blending_factor());
+    ///   let interpolated_x =
+    ///       sprite.x * ctx.blending_factor() +
+    ///       sprite.prev_x * (1.0 - ctx.blending_factor());
+    ///   let interpolated_y =
+    ///       sprite.y * ctx.blending_factor() +
+    ///       sprite.prev_y * (1.0 - ctx.blending_factor());
     ///
     ///   // Draw the sprite with smooth position
-    ///   ctx.sprite("sprite").translate(interpolated_position).draw();
+    ///   ctx.sprite("sprite").translate((interpolated_x, interpolated_y)).draw();
     /// }
     /// # }
     #[inline]
@@ -267,7 +276,7 @@ impl Context {
     ///
     /// # Returns
     ///
-    /// - Vector where the X dimension is horizontal scrolling and the Y dimension vertical scrolling.
+    /// - A `(x, y)` tuple where `x` is horizontal scrolling and `y` vertical scrolling.
     #[inline]
     #[must_use]
     pub fn scroll_delta(&self) -> (f32, f32) {
@@ -342,7 +351,7 @@ impl Context {
     /// - Stack allocated array of all currently connected gamepad IDs.
     #[inline]
     #[must_use]
-    pub fn gamepads_ids(&self) -> SmallVec<[GamepadId; 4]> {
+    pub fn gamepad_ids(&self) -> SmallVec<[GamepadId; 4]> {
         self.read(|ctx| ctx.input.gamepads_ids())
     }
 
@@ -350,7 +359,7 @@ impl Context {
     ///
     /// # Arguments
     ///
-    /// * `gamepad_id` - ID of the gamepad to check the button of, must be retrieved with [`Context::gamepad_ids`].
+    /// * `gamepad_id` - ID of the gamepad to check the button of, must be retrieved with [`Self::gamepad_ids`].
     /// * `button` - Which button on the gamepad to check.
     ///
     /// # Returns
@@ -367,7 +376,7 @@ impl Context {
     ///
     /// # Arguments
     ///
-    /// * `gamepad_id` - ID of the gamepad to check the button of, must be retrieved with [`Context::gamepad_ids`].
+    /// * `gamepad_id` - ID of the gamepad to check the button of, must be retrieved with [`Self::gamepad_ids`].
     /// * `button` - Which button on the gamepad to check.
     ///
     /// # Returns
@@ -384,7 +393,7 @@ impl Context {
     ///
     /// # Arguments
     ///
-    /// * `gamepad_id` - ID of the gamepad to check the button of, must be retrieved with [`Context::gamepad_ids`].
+    /// * `gamepad_id` - ID of the gamepad to check the button of, must be retrieved with [`Self::gamepad_ids`].
     /// * `button` - Which button on the gamepad to check.
     ///
     /// # Returns
@@ -404,7 +413,7 @@ impl Context {
     ///
     /// # Arguments
     ///
-    /// * `gamepad_id` - ID of the gamepad to check the button of, must be retrieved with [`Context::gamepad_ids`].
+    /// * `gamepad_id` - ID of the gamepad to check the button of, must be retrieved with [`Self::gamepad_ids`].
     /// * `button` - Which button element on the gamepad to check.
     ///
     /// # Returns
@@ -424,7 +433,7 @@ impl Context {
     ///
     /// # Arguments
     ///
-    /// * `gamepad_id` - ID of the gamepad to check the axis of, must be retrieved with [`Context::gamepad_ids`].
+    /// * `gamepad_id` - ID of the gamepad to check the axis of, must be retrieved with [`Self::gamepad_ids`].
     /// * `axis` - Which axis element on the gamepad to check.
     ///
     /// # Returns
@@ -519,6 +528,8 @@ impl Context {
 }
 
 /// Internal wrapped implementation for [`Context`].
+///
+/// Accessed directly in custom asset loaders.
 pub struct ContextInner {
     /// Sources for loading assets from memory or disk.
     ///
@@ -546,6 +557,8 @@ pub struct ContextInner {
     pub(crate) audio: AssetManager<Audio>,
     /// Custom type erased assets.
     pub(crate) custom: CustomAssetManager,
+    /// Whether to exit.
+    pub(crate) exit: bool,
 }
 
 impl ContextInner {
@@ -576,6 +589,7 @@ impl ContextInner {
 
         // Default input values and state
         let input = Input::new();
+        let exit = false;
 
         Self {
             asset_source,
@@ -590,6 +604,7 @@ impl ContextInner {
             fonts,
             audio,
             custom,
+            exit,
         }
     }
 
