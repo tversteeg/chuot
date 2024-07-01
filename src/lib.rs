@@ -64,7 +64,7 @@
 //! This will dice all PNG assets into a single tiny optimized PNG atlas.
 //! On startup this diced atlas will be efficiently uploaded to the GPU as a single bigger atlas, which will be used for all static sprites.
 //!
-//! ## `read-image` (default)
+//! ## `read-texture` (default)
 //!
 //! Expose read operations on images, if disabled sprites will be uploaded to the GPU and their data will be removed from memory.
 //!

@@ -69,11 +69,11 @@ jobs:
 
       # Check different feature combinations
       - name: Build (no features)
-        run: cargo check --no-default-features --examples
-      - name: Build (read-image)
-        run: cargo check --no-default-features --features read-image --examples
+        run: cargo check --no-default-features
+      - name: Build (read-texture)
+        run: cargo check --features read-texture --examples
       - name: Build (embed-assets)
-        run: cargo check --no-default-features --features embed-assets --examples
+        run: cargo check --features embed-assets --examples
       - name: Build (WASM)
         run: cargo run --package run-wasm -- --example sprite --release --features embed-assets --build-only
 

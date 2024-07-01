@@ -1,6 +1,6 @@
 //! Show how to read the pixels of a sprite.
 //!
-//! Calling `ctx.sprite(..).read_pixels()` requires the `read-image` feature flag.
+//! Calling `ctx.sprite(..).read_pixels()` requires the `read-texture` feature flag.
 //!
 //! The `threeforms.png` sprite image for this example is:
 //! {{ img(src="/assets/threeforms.png" alt="Sprite") }}
