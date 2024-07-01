@@ -69,19 +69,13 @@ jobs:
 
       # Check different feature combinations
       - name: Build (no features)
-        run: cargo check --no-default-features
-      - name: Build (dialogue)
-        run: cargo check --no-default-features --features dialogue
+        run: cargo check --no-default-features --examples
       - name: Build (read-image)
-        run: cargo check --no-default-features --features read-image
-      # - name: Build (in-game-profiler)
-      #   run: cargo check --no-default-features --features in-game-profiler
+        run: cargo check --no-default-features --features read-image --examples
       - name: Build (embed-assets)
-        run: cargo check --no-default-features --features embed-assets
-      - name: Build (hot-reload-assets)
-        run: cargo check --no-default-features --features hot-reload-assets
+        run: cargo check --no-default-features --features embed-assets --examples
       - name: Build (WASM)
-        run: cargo run --package run-wasm -- --example sprite --release --no-default-features --features embed-assets --build-only
+        run: cargo run --package run-wasm -- --example sprite --release --features embed-assets --build-only
 
   # Run tests on Linux
   test:
@@ -102,4 +96,4 @@ jobs:
 
       # Test all features on the target platform
       - name: Test
-        run: cargo test --features dialogue
+        run: cargo test --all-features 

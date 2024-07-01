@@ -355,9 +355,6 @@ impl<G: Game> ApplicationHandler<Context> for State<G> {
             }
             // Close the window if requested
             WindowEvent::CloseRequested => {
-                // Destroy the context
-                self.ctx = None;
-
                 // Tell winit that we want to exit
                 event_loop.exit();
             }
@@ -367,7 +364,18 @@ impl<G: Game> ApplicationHandler<Context> for State<G> {
     }
 
     fn user_event(&mut self, _event_loop: &ActiveEventLoop, ctx: Context) {
+        // We received the context from initializing, set it
         self.ctx = Some(ctx);
+    }
+
+    fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
+        // Destroy all state
+        self.ctx = None;
+        self.asset_source = None;
+        #[cfg(target_arch = "wasm32")]
+        {
+            self.event_loop_proxy = None;
+        }
     }
 }
 
