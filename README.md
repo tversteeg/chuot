@@ -64,6 +64,8 @@ let game = MyGame;
 game.run(chuot::load_assets!(), Config::default());
 ```
 
+#### Features
+
 ##### `embed-assets`
 
 Embed all assets into the binary when building.
