@@ -165,20 +165,14 @@ impl Graphics {
         // Upload embedded assets to atlas
         #[cfg(feature = "embed-assets")]
         if !embedded_atlas.textures.is_empty() {
-            // Get the PNG reader for the atlas, using the loader
-            let mut png = PngLoader::load(
+            // Read the PNG, using the loader
+            let (width, height, pixels) = PngLoader::load(
                 embedded_atlas.diced_atlas_png_bytes,
                 &Id::new_inline("_embedded_atlas"),
             );
 
-            // Read the PNG
-            let mut pixels = vec![0_u32; png.output_buffer_size()];
-            let info = png
-                .next_frame(bytemuck::cast_slice_mut(&mut pixels))
-                .unwrap();
-
             // Treat the 4 color components as a single numeric value
-            let img = ImgVec::new(pixels, info.width as usize, info.height as usize);
+            let img = ImgVec::new(pixels, width as usize, height as usize);
 
             // Upload all textures
             for texture in embedded_atlas.textures.values() {

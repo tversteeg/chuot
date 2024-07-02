@@ -2,26 +2,23 @@
 
 use std::io::Cursor;
 
-use png::{BitDepth, ColorType, Decoder, Reader, Transformations};
+use png::{BitDepth, ColorType, Decoder, Transformations};
 
 use crate::assets::Id;
 
 use super::Loader;
 
-/// PNG reader type, returned from the loader.
-pub type PngReader = Reader<Cursor<Vec<u8>>>;
-
 /// PNG asset loader.
 ///
-/// Doesn't fully parse the PNG but loads a reader.
+/// Loader type returned is `(width, height, pixels)`, where `pixels` is an array of RGBA pixels.
 #[non_exhaustive]
 pub struct PngLoader;
 
-impl Loader<PngReader> for PngLoader {
+impl Loader<(u32, u32, Vec<u32>)> for PngLoader {
     const EXTENSION: &'static str = "png";
 
     #[inline]
-    fn load(bytes: &[u8], id: &Id) -> PngReader {
+    fn load(bytes: &[u8], id: &Id) -> (u32, u32, Vec<u32>) {
         // Copy the bytes into a cursor
         let cursor = Cursor::new(bytes.to_vec());
 
@@ -38,7 +35,7 @@ impl Loader<PngReader> for PngLoader {
             .set_transformations(Transformations::normalize_to_color8() | Transformations::ALPHA);
 
         // Start parsing the PNG
-        let reader = decoder.read_info().unwrap();
+        let mut reader = decoder.read_info().unwrap();
 
         // Ensure we can use the PNG colors
         let (color_type, bits) = reader.output_color_type();
@@ -49,6 +46,12 @@ impl Loader<PngReader> for PngLoader {
             "PNG of asset with ID '{id}' is not 8 bit RGB with an alpha channel"
         );
 
-        reader
+        // Read the PNG
+        let mut pixels = vec![0_u32; reader.output_buffer_size()];
+        let info = reader
+            .next_frame(bytemuck::cast_slice_mut(&mut pixels))
+            .expect("Error reading image");
+
+        (info.width, info.height, pixels)
     }
 }
