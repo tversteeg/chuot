@@ -3,26 +3,21 @@
 use std::{marker::PhantomData, ops::Index};
 
 use bytemuck::NoUninit;
-use wgpu::{
-    util::{BufferInitDescriptor, DeviceExt},
-    BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
-    BindGroupLayoutEntry, BindingResource, BindingType, BufferBindingType, BufferUsages, Device,
-    Queue, ShaderStages,
-};
+use wgpu::util::DeviceExt;
 
 /// State data collection for uniforms for a shader.
 ///
 /// Type must be aligned to 16 bytes.
 pub(crate) struct UniformState<T: NoUninit> {
-    pub(crate) bind_group_layout: BindGroupLayout,
-    pub(crate) bind_group: BindGroup,
+    pub(crate) bind_group_layout: wgpu::BindGroupLayout,
+    pub(crate) bind_group: wgpu::BindGroup,
     /// Store the type information.
     _phantom: PhantomData<T>,
 }
 
 impl<T: NoUninit> UniformState<T> {
     /// Upload a new uniform.
-    pub(crate) fn new(device: &Device, initial_value: &T) -> Self {
+    pub(crate) fn new(device: &wgpu::Device, initial_value: &T) -> Self {
         // Convert initial value to bytes
         let contents = bytemuck::bytes_of(initial_value);
 
@@ -33,21 +28,21 @@ impl<T: NoUninit> UniformState<T> {
             std::any::type_name::<T>(),
         );
 
-        let buffer = device.create_buffer_init(&BufferInitDescriptor {
+        let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Uniform Buffer"),
             contents,
             // Allow us to update this buffer
-            usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
         // Create the bind group layout for passing the screen size
-        let bind_group_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Uniform Bind Group Layout"),
-            entries: &[BindGroupLayoutEntry {
+            entries: &[wgpu::BindGroupLayoutEntry {
                 binding: 0,
-                visibility: ShaderStages::VERTEX,
-                ty: BindingType::Buffer {
-                    ty: BufferBindingType::Uniform,
+                visibility: wgpu::ShaderStages::VERTEX,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: false,
                     min_binding_size: None,
                 },
@@ -56,12 +51,12 @@ impl<T: NoUninit> UniformState<T> {
         });
 
         // Also already create the bind group, since it will be used without changing the size
-        let bind_group = device.create_bind_group(&BindGroupDescriptor {
+        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Uniform Bind Group"),
             layout: &bind_group_layout,
-            entries: &[BindGroupEntry {
+            entries: &[wgpu::BindGroupEntry {
                 binding: 0,
-                resource: BindingResource::Buffer(buffer.as_entire_buffer_binding()),
+                resource: wgpu::BindingResource::Buffer(buffer.as_entire_buffer_binding()),
             }],
         });
 
@@ -76,46 +71,58 @@ impl<T: NoUninit> UniformState<T> {
 /// State data collection for uniform arrays for a shader.
 ///
 /// Types must be aligned to 16 bytes.
-pub(crate) struct UniformArrayState<T: NoUninit> {
+pub(crate) struct UniformArrayState<T: NoUninit + Default> {
     pub(crate) bind_group_layout: wgpu::BindGroupLayout,
     pub(crate) bind_group: wgpu::BindGroup,
     /// Buffer on GPU.
     buffer: wgpu::Buffer,
-    /// Buffer on CPU.
+    /// Buffer on the CPU.
     local_buffer: Vec<T>,
-    /// Amount of items that haven't been uploaded to the GPU yet.
-    new_to_upload: usize,
 }
 
-impl<T: NoUninit> UniformArrayState<T> {
+impl<T: NoUninit + Default> UniformArrayState<T> {
     /// Maximum bytes allowed by WebGL2.
-    const MAX_BYTES: usize = 0x4000;
+    const MAX_BYTES: u64 = 0x4000;
 
     /// Maximum items in array based on the maximum amount of bytes.
-    const MAX_ITEMS: usize = Self::MAX_BYTES / std::mem::size_of::<T>();
+    const MAX_ITEMS: u64 = Self::MAX_BYTES / std::mem::size_of::<T>() as u64;
 
     /// Upload a new empty uniform array.
-    pub(crate) fn new(device: &wgpu::Device) -> Self {
+    pub(crate) fn new(
+        preallocated_items: usize,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) -> Self {
         // Ensure that the data has an alignment of 16 bytes, which is needed by WASM
         assert!(
             std::mem::size_of::<T>() % 16 == 0,
             "Uniform of type '{}' is not aligned to 16 bytes",
             std::any::type_name::<T>(),
         );
+        assert!(preallocated_items < Self::MAX_ITEMS as usize);
 
-        // Create the empty buffer
+        // Create the local CPU buffer
+        let local_buffer = vec![T::default(); preallocated_items];
+
+        // Create the GPU buffer
         let buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Uniform Array Buffer"),
             // Allow us to update this buffer
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
-            size: Self::MAX_BYTES as u64,
+            size: Self::MAX_BYTES,
         });
 
+        // Convert preallocated array to bytes
+        let data = bytemuck::cast_slice(&local_buffer);
+
+        // Push the preallocated items to the GPU
+        queue.write_buffer(&buffer, data.len() as u64, data);
+
         // Create the bind group layout for passing the screen size
-        let bind_group_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Uniform Bind Group Layout"),
-            entries: &[BindGroupLayoutEntry {
+            entries: &[wgpu::BindGroupLayoutEntry {
                 binding: 0,
                 visibility: wgpu::ShaderStages::VERTEX,
                 ty: wgpu::BindingType::Buffer {
@@ -128,93 +135,61 @@ impl<T: NoUninit> UniformArrayState<T> {
         });
 
         // Also already create the bind group, since it will be used without changing the size
-        let bind_group = device.create_bind_group(&BindGroupDescriptor {
+        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Uniform Bind Group"),
             layout: &bind_group_layout,
-            entries: &[BindGroupEntry {
+            entries: &[wgpu::BindGroupEntry {
                 binding: 0,
                 resource: wgpu::BindingResource::Buffer(buffer.as_entire_buffer_binding()),
             }],
         });
-
-        // Create the local buffer
-        let local_buffer = Vec::new();
-
-        let new_to_upload = 0;
 
         Self {
             bind_group_layout,
             bind_group,
             buffer,
             local_buffer,
-            new_to_upload,
         }
-    }
-
-    /// Create from a vector.
-    ///
-    /// Still needs to be uploaded.
-    pub(crate) fn from_vec(items: Vec<T>, device: &wgpu::Device) -> Self {
-        // Construct a new empty array
-        let mut this = Self::new(device);
-
-        // Set the whole array and mark everything as to upload
-        this.new_to_upload = items.len();
-        this.local_buffer = items;
-
-        this
-    }
-
-    /// Push the new items.
-    #[inline]
-    pub(crate) fn upload(&mut self, queue: &wgpu::Queue) {
-        if self.new_to_upload == 0 {
-            // Nothing to upload
-            return;
-        }
-
-        let start_index = self.local_buffer.len() - self.new_to_upload;
-
-        // Push the new
-        queue.write_buffer(
-            &self.buffer,
-            (start_index * std::mem::size_of::<T>()) as u64,
-            bytemuck::cast_slice(&self.local_buffer[start_index..]),
-        );
     }
 
     /// Push and upload a value to the array of the uniform.
-    ///
-    /// # Returns
-    ///
-    /// - The index of the pushed item.
-    pub(crate) fn push_immediately(&mut self, value: &T, queue: &Queue) -> u64 {
-        assert!(
-            self.local_buffer.len() < Self::MAX_ITEMS,
-            "Uniform value out ouf range"
-        );
+    pub(crate) fn push(&mut self, value: &T, queue: &wgpu::Queue) -> u64 {
+        // Get the old index where the item will be pushed
+        let index = self.local_buffer.len() as u64;
+
+        assert!(index <= Self::MAX_ITEMS, "Uniform value out ouf range");
+
+        // Push the new value
+        self.local_buffer.push(*value);
 
         // Convert value to bytes
         let data = bytemuck::bytes_of(value);
 
-        // Calculate the index of the item that got pushed
-        let index = self.local_buffer.len();
+        // Push the new value to the GPU
+        queue.write_buffer(&self.buffer, index * std::mem::size_of::<T>() as u64, data);
 
-        // Update the buffer and push to queue
+        index
+    }
+
+    /// Set and upload a value to the array of the uniform.
+    #[cfg(feature = "embed-assets")]
+    pub(crate) fn set(&mut self, index: usize, value: &T, queue: &wgpu::Queue) {
+        // Set the new value
+        self.local_buffer[index] = *value;
+
+        // Convert value to bytes
+        let data = bytemuck::bytes_of(value);
+
+        // Push the new value to the GPU
         queue.write_buffer(
             &self.buffer,
             (index * std::mem::size_of::<T>()) as u64,
             data,
         );
-
-        // Update the local buffer
-        self.local_buffer.push(*value);
-
-        index as u64
     }
 }
 
-impl<T: NoUninit> Index<usize> for UniformArrayState<T> {
+impl<T: NoUninit + Default> Index<usize> for UniformArrayState<T> {
     type Output = T;
 
     fn index(&self, index: usize) -> &Self::Output {

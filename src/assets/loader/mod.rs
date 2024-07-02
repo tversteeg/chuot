@@ -2,9 +2,9 @@
 
 pub mod ogg;
 pub mod png;
-pub mod toml;
-#[cfg(feature = "dialogue")]
-pub mod yarn;
+pub mod ron;
+
+use super::Id;
 
 /// How an asset should be loaded.
 pub trait Loader<T> {
@@ -13,8 +13,13 @@ pub trait Loader<T> {
 
     /// Load an asset from raw bytes.
     ///
+    /// # Arguments
+    ///
+    /// * `bytes` - Raw bytes from the file, could be loaded either from disk or from memory.
+    /// * `id` - ID of the asset to load, mainly used for printing somewhat useful panic messages.
+    ///
     /// # Panics
     ///
     /// - When anything went wrong with loading the asset.
-    fn load(bytes: &[u8]) -> T;
+    fn load(bytes: &[u8], id: &Id) -> T;
 }

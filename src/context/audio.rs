@@ -98,7 +98,7 @@ impl<'path, 'ctx> AudioContext<'path, 'ctx> {
     pub fn play(self) {
         self.ctx.write(|ctx| {
             // Get the sound data and its settings
-            let sound_data = &ctx.assets.audio(self.path).0;
+            let sound_data = &ctx.audio(self.path).0;
             let mut settings = sound_data.settings;
 
             // Set the volume
@@ -128,5 +128,50 @@ impl<'path, 'ctx> AudioContext<'path, 'ctx> {
                 .play(sound_data)
                 .expect("Error playing audio");
         });
+    }
+}
+
+/// Audio methods.
+impl Context {
+    /// Play an audio clip.
+    ///
+    /// This will load the audio asset from disk.
+    /// Check the [`AudioContext`] documentation for drawing options available.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Asset path of the `.ogg` audio file, see [`Self`] for more information about asset loading and storing.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use chuot::Context;
+    ///
+    /// # struct Empty; impl Empty {
+    /// // In `Game::update` trait implementation
+    /// // ..
+    /// fn update(&mut self, ctx: Context) {
+    /// # let play_song = false;
+    ///   if play_song {
+    ///     // Load a "song.ogg" file play it again and again
+    ///     ctx.audio("song").with_loop().play();
+    ///   }
+    /// }
+    /// # }
+    #[inline(always)]
+    #[must_use]
+    pub const fn audio<'path>(&self, path: &'path str) -> AudioContext<'path, '_> {
+        AudioContext {
+            path,
+            ctx: self,
+            volume: None,
+            panning: None,
+            loop_region: None,
+            playback_region: None,
+        }
     }
 }

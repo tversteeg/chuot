@@ -1,6 +1,6 @@
 # 🐭 Chuột
 
-[![Build Status](https://github.com/tversteeg/chuot/workflows/CI/badge.svg)](https://github.com/tversteeg/chuot/actions?workflow=CI)
+[![Build Status](https://github.com/tversteeg/chuot/workflows/CI/badge.svg?branch=main)](https://github.com/tversteeg/chuot/actions?workflow=CI)
 [![Crates.io](https://img.shields.io/crates/v/chuot.svg)](https://crates.io/crates/chuot)
 [![Documentation](https://docs.rs/chuot/badge.svg)](https://docs.rs/chuot)
 [![License: AGPL-3.0](https://img.shields.io/crates/l/chuot.svg)](#license)
@@ -19,12 +19,10 @@ AGPL licensed and opinionated game engine for 2D pixel-art games.
 - Pixel-perfect pixel art rendering with built-in rotsprite rotation shader.
 - Window creation with independent update and render game loop.
 - Hot-reloadable assets, seeing your assets update live in the game when you save them is a great boost in productivity for quickly iterating on ideas.
-- Single-binary, all non-texture assets should be embedded directly, and textures should be diced into a single atlas map embedded in the binary when deploying.
+- Single-binary, all non-texture assets will be embedded directly, and textures will be diced into a single atlas map embedded in the binary when deploying.
 - Simple bitmap font drawing.
-- Dialogue scripting system.
 - OGG audio playback.
 - First-class gamepad support.
-- In game CPU & memory profiler GUI.
 
 #### Goals
 
@@ -42,14 +40,14 @@ AGPL licensed and opinionated game engine for 2D pixel-art games.
 
 #### Usage
 
-Using this crate is quite simple, there is a single trait [`PixelGame`] with two required functions, [`PixelGame::update`] and [`PixelGame::render`], that need to be implemented for a game state object.
+Using this crate is quite simple, there is a single trait [`Game`] with two required functions, [`Game::update`] and [`Game::render`], that need to be implemented for a game state object.
 
 ```rust
-use chuot::{Context, GameConfig, PixelGame};
+use chuot::{Context, Config, Game};
 
 struct MyGame;
 
-impl PixelGame for MyGame {
+impl Game for MyGame {
     fn update(&mut self, ctx: Context) {
         // ..
     }
@@ -63,7 +61,7 @@ impl PixelGame for MyGame {
 
 let game = MyGame;
 
-game.run(chuot::load_assets!(), GameConfig::default())?;
+game.run(chuot::load_assets!(), Config::default());
 ```
 
 ##### `embed-assets`
@@ -76,26 +74,9 @@ If disabled all assets will be loaded from disk.
 This will dice all PNG assets into a single tiny optimized PNG atlas.
 On startup this diced atlas will be efficiently uploaded to the GPU as a single bigger atlas, which will be used for all static sprites.
 
-##### `hot-reload-assets`
-
-Hot-reload assets from disk when they are saved.
-Has no effect on the web target.
-If disabled _all_ assets will be baked into the binary.
-
-##### `read-image` (default)
+##### `read-texture` (default)
 
 Expose read operations on images, if disabled sprites will be uploaded to the GPU and their data will be removed from memory.
-
-##### `dialogue` (default)
-
-A thin wrapper around [Yarn Spinner](https://www.yarnspinner.dev/).
-Allows creating hot-reloadable dialogue systems.
-
-##### `in-game-profiler`
-
-A profiler window overlay, implemented with [puffin_egui](https://docs.rs/puffin_egui/latest/puffin_egui/).
-
-Other profiling methods in your game can also be implemented, the [profiling](https://docs.rs/profiling/latest/profiling/) crate is enabled even when this feature flag is disabled.
 
 #### Install Requirements
 
@@ -113,9 +94,8 @@ When the 'Escape' key is pressed[^escape-key] the game will exit and the window 
 
 ```rust
 use chuot::{
-  PixelGame, Context, GameConfig,
+  Game, Context, Config,
   context::{MouseButton, KeyCode},
-  glamour::Vector2
 };
 
 /// Object holding all game state.
@@ -124,7 +104,7 @@ struct MyGame {
   counter: u32,
 }
 
-impl PixelGame for MyGame {
+impl Game for MyGame {
   fn update(&mut self, ctx: Context) {
     // ^1
     // Increment the counter when we press the left mouse button
@@ -153,7 +133,7 @@ impl PixelGame for MyGame {
 let game = MyGame { counter: 0 };
 
 // Run the game until exit is requested
-game.run(chuot::load_assets!(), GameConfig::default().with_title("My Game"))?;
+game.run(chuot::load_assets!(), Config::default().with_title("My Game"));
 ```
 
 [^left-mouse]: [`Context::mouse_pressed`]

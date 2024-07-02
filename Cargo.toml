@@ -14,12 +14,12 @@ categories = [
 	"games",
 	"game-engines",
 ]
-rust-version = "1.78.0"
+rust-version = "1.79.0"
 include = ["/src", "build.rs", "/shaders"]
 
 [package.metadata.docs.rs]
 # Only enable features that actually expose APIs
-features = ["dialogue"]
+features = ["read-texture"]
 # Supported platforms
 targets = [
 	# Linux (X11 & Wayland)
@@ -34,121 +34,54 @@ targets = [
 rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
-default = ["dialogue", "read-image"]
+default = ["read-texture"]
 
-# Embed all assets into the binary.
+# Process and embed all assets into the binary for producing an optimized single binary.
 #
-# If disabled loads all assets from disk.
-# Mutually exclusive from `hot-reload-assets`.
-embed-assets = ["chuot-macros/embed-assets"]
+# This is the only way to load "external" assets when building for the web.
+embed-assets = ["chuot-macros/embed-assets", "dep:imgref"]
 
-# Keep the image data in memory so the pixel data can be retrieved.
+# Keep the texture data in memory so the pixel data can be retrieved.
 #
-# If disabled some image functionality is not available because all textures are uploaded to the GPU and then removed from memory.
-read-image = ["chuot-macros/read-image"]
-
-# Enable assets and hot-reload assets from disk when they are saved.
-#
-# Has no effect when building for the web.
-# Mutually exclusive from `embed-assets`.
-hot-reload-assets = ["dep:notify-debouncer-mini", "chuot-macros/hot-reload-assets"]
-
-# Integrate [Yarn Spinner](https://www.yarnspinner.dev/), a friendly DSL for writing dialogue.
-dialogue = ["dep:yarnspinner"]
-
-# Build for X11, only applicable on desktop.
-#
-# Wayland is always enabled.
-x11 = ["winit/x11"]
-
-# Show an in-game profiler
-in-game-profiler = [
-	"profiling/profile-with-puffin",
-	"dep:egui",
-	"dep:egui-wgpu",
-	"dep:egui-winit",
-	"dep:puffin_egui",
-	"dep:puffin",
-	"dep:stats_alloc",
-]
+# If disabled some texture functionality is not available because all textures are uploaded to the GPU and then removed from memory.
+read-texture = []
 
 [dependencies]
 chuot-macros = { path = "crates/macros", version = "0.1.2" }
 chuot-packer = { path = "crates/packer", version = "0.1.1" }
 
-miette = "7.2.0"
-serde = { version = "1.0.202", features = ["derive"] }
-serde-untagged = "0.1.6"
-bytemuck = { version = "1.16.0", features = ["derive"] }
-log = "0.4.21"
-hashbrown = "0.14.5"
-png = "0.17.13"
-profiling = "1.0.15"
-winit = { version = "0.29.15", default-features = false, features = ["rwh_06", "wayland", "wayland-dlopen"] }
-winit_input_helper = "0.16.0"
-glam = { version = "0.27", features = ["bytemuck", "fast-math"] }
-glamour = { version = "0.11.1", features = ["serde"] }
-smol_str = "0.2.2"
-fastrand = "2.1.0"
-web-time = "1.1.0"
-kira = { version = "0.9.0", default-features = false, features = ["cpal", "ogg", "serde"] }
-imgref = { version = "1.10.1", default-features = false }
-toml = "0.8.13"
+bytemuck = { version = "1.16.1", features = ["derive"] }
 downcast-rs = "1.2.1"
+glam = { version = "0.28.0", features = ["bytemuck", "fast-math"] }
+hashbrown = "0.14.5"
+kira = { version = "0.9.3", default-features = false, features = ["cpal", "ogg"] }
+nanoserde = "0.1.37"
+png = "0.17.13"
+smol_str = "0.2.2"
+winit = "0.30.3"
 gilrs = "0.10.7"
 smallvec = { version = "1.13.2", features = ["const_new", "union"] }
+fastrand = "2.1.0"
+phf = "0.11.2"
+imgref = { version = "1.10.1", default-features = false, optional = true }
+web-time = "1.1.0"
 
-# `dialogue` feature
-
-yarnspinner = { version = "0.2.0", optional = true }
-
-# `in-game-profiler` feature
-
-egui = { version = "0.27.2", features = ["default_fonts"], optional = true }
-egui-wgpu = { version = "0.27.2", optional = true }
-egui-winit = { version = "0.27.2", default-features = false, features = ["wayland"], optional = true }
-puffin_egui = { version = "0.27.0", optional = true }
-stats_alloc = { version = "0.1.10", optional = true }
-
-# `hot-reload-assets` feature
-notify-debouncer-mini = { version = "0.4.1", optional = true }
-
-# Dependencies specifically for desktop
+# Dependencies specifically for non-web platforms
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-wgpu = "0.20.1"
+wgpu = { version = "0.20.1", default-features = false, features = ["wgsl"] }
+notify-debouncer-mini = "0.4.1"
 pollster = "0.3.0"
-env_logger = "0.11.3"
 
-# `in-game-profiler` feature
-
-puffin = { version = "0.19.0", optional = true }
-
-# Dependencies specifically for WASM
+# Dependencies specifically for the web platform
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-# Not used directly but the JS feature is required by the 'ahash' feature in `assets_manager`
-getrandom = { version = "0.2.15", features = ["js"] }
-wgpu = { version = "0.20.1", default-features = false, features = ["webgl", "wgsl", "fragile-send-sync-non-atomic-wasm"] }
-console_log = "1.0.0"
+wgpu = { version = "0.20.1", default-features = false, features = ["webgl", "wgsl"] }
 web-sys = { version = "0.3.69", features = ["Document", "Window", "Element"] }
-wasm-bindgen = "0.2.92"
 wasm-bindgen-futures = "0.4.42"
 console_error_panic_hook = "0.1.7"
 
-# `in-game-profiler` feature
-
-puffin = { version = "0.19.0", features = ["web"], optional = true }
-
-[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
-# Show nice output for the examples
-miette = { version = "7.2.0", features = ["fancy"] }
-
-[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
-# Show nice output for the examples
-miette = { version = "7.2.0", features = ["fancy-no-syscall"] }
-
 [build-dependencies]
-naga = { version = "0.20.0", features = ["wgsl-in", "wgsl-out"] }
 wgsl-minifier = "0.5.0"
+naga = { version = "0.20.0", default-features = false, features = ["wgsl-in", "wgsl-out"] }
 
 [workspace]
 members = ["crates/macros", "crates/packer", "run-wasm"]
@@ -243,7 +176,6 @@ missing_inline_in_public_items = "warn"
 mixed_read_write_in_expression = "warn"
 mutex_atomic = "warn"
 needless_raw_strings = "warn"
-print_stderr = "warn"
 print_stdout = "warn"
 pub_without_shorthand = "warn"
 rc_buffer = "warn"

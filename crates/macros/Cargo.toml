@@ -16,21 +16,19 @@ include = ["/src"]
 proc-macro = true
 
 [features]
-embed-assets = ["dep:png", "dep:sprite_dicing", "dep:bytemuck", "dep:packr2", "dep:oxipng"]
-hot-reload-assets = []
-read-image = []
+embed-assets = ["dep:png", "dep:sprite_dicing", "dep:bytemuck", "dep:oxipng", "dep:phf_codegen"]
 
 [dependencies]
 litrs = "0.4.1"
 quote = "1.0.36"
-proc-macro2 = "1.0.83"
+proc-macro2 = "1.0.86"
 walkdir = "2.5.0"
 
 png = { version = "0.17.13", optional = true }
 sprite_dicing = { version = "0.1.2", optional = true }
-bytemuck = { version = "1.16.0", optional = true }
-packr2 = { version = "0.3.3", optional = true }
+bytemuck = { version = "1.16.1", optional = true }
 oxipng = { version = "9.1.1", optional = true }
+phf_codegen = { version = "0.11.2", optional = true }
 
 [lints]
 workspace = true

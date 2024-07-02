@@ -3,9 +3,8 @@
 use std::borrow::Cow;
 
 use bytemuck::NoUninit;
-use glamour::{Rect, Size2};
 
-use super::{data::ScreenInfo, gpu::Frame, state::PREFERRED_TEXTURE_FORMAT, uniform::UniformState};
+use super::{data::ScreenInfo, uniform::UniformState, PREFERRED_TEXTURE_FORMAT};
 
 /// State data collection for post processing stages.
 pub(crate) struct PostProcessingState {
@@ -18,7 +17,8 @@ pub(crate) struct PostProcessingState {
 impl PostProcessingState {
     /// Upload a new post processing state effect.
     pub(crate) fn new<T: NoUninit>(
-        buffer_size: Size2,
+        width: u32,
+        height: u32,
         device: &wgpu::Device,
         uniform: &UniformState<T>,
         shader: &'static str,
@@ -27,8 +27,8 @@ impl PostProcessingState {
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("Post Processing Texture"),
             size: wgpu::Extent3d {
-                width: buffer_size.width as u32,
-                height: buffer_size.height as u32,
+                width,
+                height,
                 depth_or_array_layers: 1,
             },
             mip_level_count: 1,
@@ -145,43 +145,33 @@ impl PostProcessingState {
     /// Takes the surface texture from the frame as the texture view if `view` is `None`.
     pub(crate) fn render(
         &self,
-        frame: &mut Frame,
-        view: Option<&wgpu::TextureView>,
+        encoder: &mut wgpu::CommandEncoder,
+        view: &wgpu::TextureView,
         screen_info: &UniformState<ScreenInfo>,
-        letterbox: Option<Rect>,
+        letterbox: Option<(f32, f32, f32, f32)>,
         background_color: wgpu::Color,
     ) {
         // Start the render pass
-        let mut upscaled_render_pass =
-            frame
-                .encoder
-                .begin_render_pass(&wgpu::RenderPassDescriptor {
-                    label: Some("Post Processing Render Pass"),
-                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                        view: view.unwrap_or(&frame.surface_view),
-                        resolve_target: None,
-                        ops: wgpu::Operations {
-                            load: wgpu::LoadOp::Clear(background_color),
-                            store: wgpu::StoreOp::Store,
-                        },
-                    })],
-                    depth_stencil_attachment: None,
-                    timestamp_writes: None,
-                    occlusion_query_set: None,
-                });
+        let mut upscaled_render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("Post Processing Render Pass"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(background_color),
+                    store: wgpu::StoreOp::Store,
+                },
+            })],
+            depth_stencil_attachment: None,
+            timestamp_writes: None,
+            occlusion_query_set: None,
+        });
 
         upscaled_render_pass.set_pipeline(&self.render_pipeline);
 
         // Only draw in the calculated letterbox to get nice integer scaling
-        if let Some(Rect { origin, size }) = letterbox {
-            upscaled_render_pass.set_viewport(
-                origin.x,
-                origin.y,
-                size.width,
-                size.height,
-                0.0,
-                1.0,
-            );
+        if let Some((x, y, width, height)) = letterbox {
+            upscaled_render_pass.set_viewport(x, y, width, height, 0.0, 1.0);
         }
 
         // Bind the source texture

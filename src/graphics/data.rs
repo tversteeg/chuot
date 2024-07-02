@@ -1,7 +1,6 @@
 //! Data types that can be send to the GPU.
 
 use bytemuck::{Pod, Zeroable};
-use glamour::{Size2, Vector2, Vector3};
 use wgpu::{VertexAttribute, VertexBufferLayout, VertexFormat, VertexStepMode};
 
 /// WGPU attributes.
@@ -13,7 +12,7 @@ const ATTRIBUTES: &[VertexAttribute] = &[
     },
     VertexAttribute {
         format: VertexFormat::Float32x2,
-        offset: std::mem::offset_of!(TexturedVertex, uv) as u64,
+        offset: std::mem::offset_of!(TexturedVertex, u) as u64,
         shader_location: 1,
     },
 ];
@@ -22,18 +21,23 @@ const ATTRIBUTES: &[VertexAttribute] = &[
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Pod, Zeroable)]
 pub struct TexturedVertex {
-    /// XYZ position.
-    position: Vector3,
-    /// UV coordinate.
-    uv: Vector2,
+    /// X position.
+    x: f32,
+    /// Y position.
+    y: f32,
+    /// Z position.
+    z: f32,
+    /// U texture coordinate.
+    u: f32,
+    /// V texture coordinate.
+    v: f32,
 }
 
 impl TexturedVertex {
     /// Construct a new textured vertex from a 2D position, a Z index and a UV coordinate.
-    pub const fn new(position: Vector2, z: f32, uv: Vector2) -> Self {
-        let position = Vector3::new(position.x, position.y, z);
-
-        Self { position, uv }
+    #[allow(clippy::many_single_char_names)]
+    pub const fn new(x: f32, y: f32, z: f32, u: f32, v: f32) -> Self {
+        Self { x, y, z, u, v }
     }
 
     /// WGPU descriptor.
@@ -50,8 +54,10 @@ impl TexturedVertex {
 #[repr(C)]
 #[derive(Debug, Default, Clone, Copy, Pod, Zeroable)]
 pub(crate) struct ScreenInfo {
-    /// Output buffer size.
-    pub buffer_size: Size2,
+    /// Output buffer width.
+    pub buffer_width: f32,
+    /// Output buffer height.
+    pub buffer_height: f32,
     /// Unused data for padding.
     pub _padding: u64,
 }
