@@ -90,16 +90,16 @@ impl Context {
     }
 
     /// Calculates an aspect ratio of the drawable part of the window
+    ///
+    /// # Returns
+    ///
+    /// - A `(numerator, denominator)` tuple
+    #[inline]
     #[must_use]
-    pub fn aspect_ratio(&self) -> (u32, u32) {
-        // Greatest common divisor algorithm
-        fn gcd(a: u32, b: u32) -> u32 {
-            if b == 0 { a } else { gcd(b, a % b) }
-        }
+    pub fn aspect_ratio(&self) -> (f32, f32) {
         let (wight, height) = self.size();
-        let ratio = gcd(wight as u32, height as u32);
-
-        (wight as u32 / ratio, height as u32 / ratio)
+        let ratio = num_integer::gcd(wight as u32, height as u32) as f32;
+        (wight / ratio, height / ratio)
     }
 
     /// Show the OS cursor or hide it.
