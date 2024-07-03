@@ -93,13 +93,25 @@ impl Context {
     ///
     /// # Returns
     ///
-    /// - A `(numerator, denominator)` tuple
+    /// - A width / height ratio tuple
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use chuot::Context;
+    ///
+    /// // 1920 x 1080 window size
+    ///
+    /// fn update(&mut self, ctx: Context) {
+    ///     println!("{:?}", ctx.aspect_ratio())
+    ///     // >>> (16, 9)
+    /// }
     #[inline]
     #[must_use]
     pub fn aspect_ratio(&self) -> (f32, f32) {
-        let (wight, height) = self.size();
-        let ratio = num_integer::gcd(wight as u32, height as u32) as f32;
-        (wight / ratio, height / ratio)
+        let (width, height) = self.size();
+        let ratio = num_integer::gcd(width as u32, height as u32) as f32;
+        (width / ratio, height / ratio)
     }
 
     /// Show the OS cursor or hide it.
