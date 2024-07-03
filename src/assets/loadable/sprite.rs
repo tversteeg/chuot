@@ -113,20 +113,12 @@ impl Sprite {
             )
         } else {
             // Load the PNG
-            let mut png = ctx.asset_source.load_if_exists::<PngLoader, _>(id)?;
-
-            // Read the PNG
-            let mut pixels = vec![0_u32; png.output_buffer_size()];
-            let info = png
-                .next_frame(bytemuck::cast_slice_mut(&mut pixels))
-                .expect("Error reading image");
+            let (width, height, pixels) = ctx.asset_source.load_if_exists::<PngLoader, _>(id)?;
 
             // Upload it to the GPU, returning a reference
-            let texture = ctx
-                .graphics
-                .upload_texture(info.width, info.height, &pixels);
+            let texture = ctx.graphics.upload_texture(width, height, &pixels);
 
-            (texture, info.width as f32, info.height as f32)
+            (texture, width as f32, height as f32)
         };
 
         // Create the sub rectangle from the size

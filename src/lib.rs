@@ -54,6 +54,8 @@
 //! # }
 //! ```
 //!
+//! # Features
+//!
 //! ## `embed-assets`
 //!
 //! Embed all assets into the binary when building.
