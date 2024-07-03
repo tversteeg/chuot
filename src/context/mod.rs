@@ -89,6 +89,19 @@ impl Context {
         self.read(|ctx| (ctx.graphics.buffer_width, ctx.graphics.buffer_height))
     }
 
+    /// Calculates an aspect ratio of the drawable part of the window
+    #[must_use]
+    pub fn aspect_ratio(&self) -> (u32, u32) {
+        // Greatest common divisor algorithm
+        fn gcd(a: u32, b: u32) -> u32 {
+            if b == 0 { a } else { gcd(b, a % b) }
+        }
+        let (wight, height) = self.size();
+        let ratio = gcd(wight as u32, height as u32);
+
+        (wight as u32 / ratio, height as u32 / ratio)
+    }
+
     /// Show the OS cursor or hide it.
     ///
     /// # Arguments
