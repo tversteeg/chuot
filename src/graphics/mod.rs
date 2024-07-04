@@ -368,7 +368,7 @@ impl Graphics {
     /// Render to the GPU and window.
     pub(crate) fn render(&mut self) {
         // If app is minimized
-        if self.buffer_height == 1.0 || self.buffer_width == 1.0 { return; }
+        if self.buffer_height <= 1.0 || self.buffer_width <= 1.0 { return; }
 
         // Create the encoder
         let mut encoder = self
