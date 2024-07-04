@@ -527,6 +527,7 @@ impl<G: Game> ApplicationHandler<Context> for State<G> {
                     ctx.graphics.resize(width, height);
 
                     // On MacOS the window needs to be redrawn manually after resizing
+                    #[cfg(target_os = "macos")]
                     ctx.window.request_redraw();
                 });
             }
@@ -554,4 +555,5 @@ impl<G: Game> ApplicationHandler<Context> for State<G> {
             self.event_loop_proxy = None;
         }
     }
+
 }

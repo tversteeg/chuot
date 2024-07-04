@@ -89,6 +89,30 @@ impl Context {
         self.read(|ctx| (ctx.graphics.buffer_width, ctx.graphics.buffer_height))
     }
 
+    /// Calculates an aspect ratio of the drawable part of the window.
+    ///
+    /// # Returns
+    ///
+    /// - A `(width, height)` ratio tuple where both fields are whole numbers, for example `(16.0, 9.0)`.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use chuot::Context;
+    ///
+    /// // 1920 x 1080 window size
+    ///
+    /// fn update(&mut self, ctx: Context) {
+    ///     assert_eq!(ctx.aspect_ratio(), (16.0, 9.0));
+    /// }
+    #[inline]
+    #[must_use]
+    pub fn aspect_ratio(&self) -> (f32, f32) {
+        let (width, height) = self.size();
+        let ratio = num_integer::gcd(width as u32, height as u32) as f32;
+        (width / ratio, height / ratio)
+    }
+
     /// Show the OS cursor or hide it.
     ///
     /// # Arguments

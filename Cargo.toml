@@ -50,6 +50,7 @@ read-texture = []
 chuot-macros = { path = "crates/macros", version = "0.1.2" }
 chuot-packer = { path = "crates/packer", version = "0.1.1" }
 
+num-integer = "0.1.46"
 bytemuck = { version = "1.16.1", features = ["derive"] }
 downcast-rs = "1.2.1"
 glam = { version = "0.28.0", features = ["bytemuck", "fast-math"] }
