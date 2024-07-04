@@ -1,5 +1,12 @@
 name: CI
 on:
+  pull_request:
+    paths-ignore:
+      - ".github/git-cliff.toml"
+      - "release-plz.toml"
+      - "LICENSE"
+      - "README.md"
+      - "CHANGELOG.md"
   push:
     paths-ignore:
       - ".github/git-cliff.toml"
