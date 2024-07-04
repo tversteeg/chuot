@@ -177,6 +177,9 @@ use winit::{
 /// How fast old FPS values decay in the smoothed average.
 const FPS_SMOOTHED_AVERAGE_ALPHA: f32 = 0.8;
 
+/// Maximum of the amount of `update` calls for a single `render` call.
+const MAX_UPDATE_CALLS_PER_RENDER: f32 = 20.0;
+
 /// Main entrypoint containing game state for running the game.
 ///
 /// This is the main interface with the game engine.
@@ -461,7 +464,10 @@ impl<G: Game> ApplicationHandler<Context> for State<G> {
             WindowEvent::RedrawRequested => {
                 // Update the timestep
                 let current_time = Instant::now();
-                let frame_time = (current_time - self.last_time).as_secs_f32();
+                let frame_time = (current_time - self.last_time)
+                    .as_secs_f32()
+                    // Ensure that the update loop cannot be called too often
+                    .min(MAX_UPDATE_CALLS_PER_RENDER * self.config.update_delta_time);
                 self.last_time = current_time;
 
                 self.accumulator += frame_time
