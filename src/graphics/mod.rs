@@ -498,6 +498,7 @@ impl Graphics {
             // Construct the bytes of the instances to upload
             (self.instances.bytes(), self.instances.len())
         };
+
         // Resize the buffer if needed
         let instance_buffer_already_pushed =
             if instances_bytes.len() as u64 > self.instance_buffer.size() {
