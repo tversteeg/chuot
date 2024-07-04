@@ -366,9 +366,10 @@ impl Graphics {
     }
 
     /// Render to the GPU and window.
-    pub(crate) fn render(&mut self) {
-        // If app is minimized
-        if self.buffer_height <= 1.0 || self.buffer_width <= 1.0 { return; }
+    pub(crate) fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
+
+        // Get the main render texture
+        let surface_texture = self.surface.get_current_texture()?;
 
         // Create the encoder
         let mut encoder = self
@@ -376,9 +377,6 @@ impl Graphics {
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
                 label: Some("Command Encoder"),
             });
-
-        // Get the main render texture
-        let surface_texture = self.surface.get_current_texture().unwrap();
 
         // Create a texture view from the main render texture
         let surface_view = surface_texture
@@ -409,6 +407,8 @@ impl Graphics {
 
         // Show the surface texture in the window
         surface_texture.present();
+
+        Ok(())
     }
 
     /// Resize the render surface.

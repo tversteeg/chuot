@@ -503,12 +503,18 @@ impl<G: Game> ApplicationHandler<Context> for State<G> {
                     );
                 });
 
+                let not_minimized = !ctx.is_minimized();
+
                 // Call the user render function with the context
-                self.game.render(ctx.clone());
+                if not_minimized {
+                    self.game.render(ctx.clone());
+                }
 
                 ctx.write(|ctx| {
                     // Draw the window and GPU graphics
-                    ctx.graphics.render();
+                    if not_minimized {
+                        ctx.graphics.render().unwrap();
+                    }
 
                     if ctx.exit {
                         // Tell winit that we want to exit

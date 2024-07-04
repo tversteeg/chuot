@@ -113,6 +113,30 @@ impl Context {
         (width / ratio, height / ratio)
     }
 
+    /// Gets the window's current minimized state
+    ///
+    /// # Returns
+    ///
+    /// - A `bool` window's current minimized state.
+    #[inline]
+    #[must_use]
+    pub fn is_minimized(&self) -> bool {
+        self.read(|ctx| ctx.window.is_minimized().unwrap_or(
+            ctx.graphics.surface_config.height <= 1 || ctx.graphics.surface_config.width <= 1
+        ))
+    }
+
+    /// Gets the window's current maximized state
+    ///
+    /// # Returns
+    ///
+    /// - A `bool` window's current maximized state.
+    #[inline]
+    #[must_use]
+    pub fn is_maximized(&self) -> bool {
+        self.read(|ctx| ctx.window.is_maximized())
+    }
+
     /// Show the OS cursor or hide it.
     ///
     /// # Arguments
