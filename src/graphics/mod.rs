@@ -444,8 +444,8 @@ impl Graphics {
         let scaled_buffer_height = buffer_height_u32 * scale;
 
         // Calculate the offset to center the scaled rectangle inside the other rectangle
-        let offset_x = screen_width_u32.checked_sub(scaled_buffer_width).unwrap_or(0) / 2;
-        let offset_y = screen_height_u32.checked_sub(scaled_buffer_height).unwrap_or(0) / 2;
+        let offset_x = screen_width_u32.saturating_sub(scaled_buffer_width) / 2;
+        let offset_y = screen_height_u32.saturating_sub(scaled_buffer_height) / 2;
 
         self.letterbox = (
             offset_x as f32,
