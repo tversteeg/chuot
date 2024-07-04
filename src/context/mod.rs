@@ -89,11 +89,11 @@ impl Context {
         self.read(|ctx| (ctx.graphics.buffer_width, ctx.graphics.buffer_height))
     }
 
-    /// Calculates an aspect ratio of the drawable part of the window
+    /// Calculates an aspect ratio of the drawable part of the window.
     ///
     /// # Returns
     ///
-    /// - A width / height ratio tuple
+    /// - A `(width, height)` ratio tuple where both fields are whole numbers, for example `(16.0, 9.0)`.
     ///
     /// # Example
     ///
@@ -103,8 +103,7 @@ impl Context {
     /// // 1920 x 1080 window size
     ///
     /// fn update(&mut self, ctx: Context) {
-    ///     println!("{:?}", ctx.aspect_ratio())
-    ///     // >>> (16, 9)
+    ///     assert_eq!(ctx.aspect_ratio(), (16.0, 9.0));
     /// }
     #[inline]
     #[must_use]
