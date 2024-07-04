@@ -113,11 +113,11 @@ impl Context {
         (width / ratio, height / ratio)
     }
 
-    /// Gets the window's current minimized state
+    /// Whether the window is currently in a minimized state.
     ///
     /// # Returns
     ///
-    /// - A `bool` window's current minimized state.
+    /// - `true` if the window is in a minimized state.
     #[inline]
     #[must_use]
     pub fn is_minimized(&self) -> bool {
@@ -126,11 +126,11 @@ impl Context {
         ))
     }
 
-    /// Gets the window's current maximized state
+	/// Whether the window is currently in a maximized state.
     ///
     /// # Returns
     ///
-    /// - A `bool` window's current maximized state.
+    /// - `true` if the window is in a maximized state.
     #[inline]
     #[must_use]
     pub fn is_maximized(&self) -> bool {

@@ -366,10 +366,10 @@ impl Graphics {
     }
 
     /// Render to the GPU and window.
-    pub(crate) fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
+    pub(crate) fn render(&mut self) {
 
         // Get the main render texture
-        let surface_texture = self.surface.get_current_texture()?;
+        let surface_texture = self.surface.get_current_texture().unwrap();
 
         // Create the encoder
         let mut encoder = self
@@ -408,7 +408,6 @@ impl Graphics {
         // Show the surface texture in the window
         surface_texture.present();
 
-        Ok(())
     }
 
     /// Resize the render surface.

@@ -503,6 +503,7 @@ impl<G: Game> ApplicationHandler<Context> for State<G> {
                     );
                 });
 
+                // Only call render loop when the window is not minimized
                 let not_minimized = !ctx.is_minimized();
 
                 // Call the user render function with the context
