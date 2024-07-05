@@ -235,12 +235,19 @@ impl Graphics {
             });
 
         // Load the shaders from disk
+        let shader_source = match rotation_algorithm {
+            // Load the optimized nearest neighbor shader
+            RotationAlgorithm::NearestNeighbor => {
+                include_str!(concat!(env!("OUT_DIR"), "/nearest_neighbor.wgsl"))
+            }
+            // All other shaders are in the rotation file
+            _ => include_str!(concat!(env!("OUT_DIR"), "/rotation.wgsl")),
+        };
+
+        // Upload the shader to the GPU
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Diffuse Texture Shader"),
-            source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!(concat!(
-                env!("OUT_DIR"),
-                "/texture.wgsl"
-            )))),
+            source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(shader_source)),
         });
 
         // Create the pipeline for rendering textures
