@@ -97,14 +97,28 @@ impl Context {
     ///
     /// # Example
     ///
-    /// ```no_run
-    /// use chuot::Context;
+    /// ```
+    /// use chuot::{Config, Context, Game};
     ///
-    /// // 1920 x 1080 window size
+    /// struct MyGame;
     ///
-    /// fn update(&mut self, ctx: Context) {
-    ///     assert_eq!(ctx.aspect_ratio(), (16.0, 9.0));
+    /// impl Game for MyGame {
+    ///     fn update(&mut self, ctx: Context) {
+    ///         // Because the buffer size is set to 1920x1080, the aspect ratio is 16/9
+    ///         assert_eq!(ctx.aspect_ratio(), (16.0, 9.0));
+    ///     }
+    /// # fn render(&mut self, ctx: Context) {}
     /// }
+    ///
+    /// # fn try_main() {
+    /// // In main
+    ///
+    /// MyGame.run(
+    ///     chuot::load_assets!(),
+    ///     Config::default().with_buffer_size((1920.0, 1080.0)),
+    /// );
+    /// # }
+    /// ```
     #[inline]
     #[must_use]
     pub fn aspect_ratio(&self) -> (f32, f32) {
@@ -121,12 +135,14 @@ impl Context {
     #[inline]
     #[must_use]
     pub fn is_minimized(&self) -> bool {
-        self.read(|ctx| ctx.window.is_minimized().unwrap_or(
-            ctx.graphics.surface_config.height <= 1 || ctx.graphics.surface_config.width <= 1
-        ))
+        self.read(|ctx| {
+            ctx.window.is_minimized().unwrap_or(
+                ctx.graphics.surface_config.height <= 1 || ctx.graphics.surface_config.width <= 1,
+            )
+        })
     }
 
-	/// Whether the window is currently in a maximized state.
+    /// Whether the window is currently in a maximized state.
     ///
     /// # Returns
     ///

@@ -31,7 +31,7 @@
 //! Using this crate is quite simple, there is a single trait [`Game`] with two required functions, [`Game::update`] and [`Game::render`], that need to be implemented for a game state object.
 //!
 //! ```
-//! use chuot::{Context, Config, Game};
+//! use chuot::{Config, Context, Game};
 //!
 //! struct MyGame;
 //!
@@ -203,7 +203,7 @@ where
     /// # Example
     ///
     /// ```
-    /// use chuot::{Context, Game, context::KeyCode};
+    /// use chuot::{context::KeyCode, Context, Game};
     ///
     /// struct MyGame;
     ///
@@ -236,7 +236,7 @@ where
     /// # Example
     ///
     /// ```
-    /// use chuot::{Context, Game, context::KeyCode};
+    /// use chuot::{context::KeyCode, Context, Game};
     ///
     /// struct MyGame;
     ///
@@ -514,7 +514,7 @@ impl<G: Game> ApplicationHandler<Context> for State<G> {
                 ctx.write(|ctx| {
                     // Draw the window and GPU graphics
                     if not_minimized {
-                        ctx.graphics.render().unwrap();
+                        ctx.graphics.render();
                     }
 
                     if ctx.exit {
@@ -562,5 +562,4 @@ impl<G: Game> ApplicationHandler<Context> for State<G> {
             self.event_loop_proxy = None;
         }
     }
-
 }

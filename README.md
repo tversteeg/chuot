@@ -43,7 +43,7 @@ AGPL licensed and opinionated game engine for 2D pixel-art games.
 Using this crate is quite simple, there is a single trait [`Game`] with two required functions, [`Game::update`] and [`Game::render`], that need to be implemented for a game state object.
 
 ```rust
-use chuot::{Context, Config, Game};
+use chuot::{Config, Context, Game};
 
 struct MyGame;
 
