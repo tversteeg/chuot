@@ -8,6 +8,8 @@ on:
       - "README.md"
       - "CHANGELOG.md"
   push:
+    branches:
+        - main
     paths-ignore:
       - ".github/git-cliff.toml"
       - "release-plz.toml"
