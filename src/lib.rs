@@ -168,7 +168,7 @@ pub use chuot_macros::load_assets;
 use web_time::Instant;
 use winit::{
     application::ApplicationHandler,
-    dpi::LogicalSize,
+    dpi::{LogicalSize, PhysicalSize},
     event::WindowEvent,
     event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
     window::{WindowAttributes, WindowId},
@@ -311,8 +311,8 @@ where
         {
             use winit::platform::web::{EventLoopExtWebSys, PollStrategy, WaitUntilStrategy};
 
-            // Ensure the game on the webruns as smooth as possible
-            event_loop.set_poll_strategy(PollStrategy::Scheduler);
+            // Ensure the game on the web runs as smooth as possible
+            event_loop.set_poll_strategy(PollStrategy::IdleCallback);
             event_loop.set_wait_until_strategy(WaitUntilStrategy::Worker);
         }
 
@@ -420,7 +420,13 @@ impl<G: Game> ApplicationHandler<Context> for State<G> {
                     .canvas()
                     .unwrap()
                     .style()
-                    .set_css_text("image-rendering: pixelated; outline: none; border: none");
+                    .set_css_text(
+                        &format!(
+                            "image-rendering: pixelated; outline: none; border: none; width: {}px; height: {}px",
+                            self.config.buffer_width * self.config.scaling,
+                            self.config.buffer_height * self.config.scaling,
+                        )
+                    );
             }
 
             // Setup the context
@@ -526,15 +532,11 @@ impl<G: Game> ApplicationHandler<Context> for State<G> {
                     if ctx.exit {
                         // Tell winit that we want to exit
                         event_loop.exit();
-                    } else {
-                        // Request another frame for the window
-                        ctx.window.request_redraw();
                     }
                 });
             }
             // Resize the render surface
-            #[cfg(not(target_arch = "wasm32"))]
-            WindowEvent::Resized(winit::dpi::PhysicalSize { width, height }) => {
+            WindowEvent::Resized(PhysicalSize { width, height }) => {
                 ctx.write(|ctx| {
                     // Resize the GPU surface
                     ctx.graphics.resize(width, height);
@@ -550,7 +552,14 @@ impl<G: Game> ApplicationHandler<Context> for State<G> {
                 event_loop.exit();
             }
             // Handle other window events with the input manager
-            other => ctx.write(|ctx| ctx.input.handle_event(other, &ctx.graphics)),
+            WindowEvent::KeyboardInput { .. }
+            | WindowEvent::CursorMoved { .. }
+            | WindowEvent::MouseWheel { .. }
+            | WindowEvent::MouseInput { .. } => {
+                ctx.write(|ctx| ctx.input.handle_event(event, &ctx.graphics));
+            }
+            // Ignore the rest of the events
+            _ => (),
         }
     }
 

@@ -105,6 +105,7 @@ impl Input {
     /// Handle a winit window event.
     #[inline]
     pub(crate) fn handle_event(&mut self, event: WindowEvent, graphics: &Graphics) {
+        // NOTE: Any new events added here must be added to `src/lib.rs` as well
         match event {
             // Handle keyboard buttons
             WindowEvent::KeyboardInput { event, .. } => {
