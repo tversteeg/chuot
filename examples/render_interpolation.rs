@@ -56,7 +56,7 @@ impl Game for GameState {
         };
 
         // Draw the sprite based on the position calculated above
-        ctx.sprite("crate").translate(position).draw();
+        ctx.sprite("threeforms").translate(position).draw();
 
         // Draw a basic FPS counter
         ctx.text("Beachball", &format!("{:.1}", ctx.frames_per_second()))
