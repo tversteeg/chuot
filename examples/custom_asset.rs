@@ -1,6 +1,6 @@
 //! Show how to load a custom asset.
 //!
-//! On desktop when the `hot-reload-assets` flag is enabled you can update the text live by editing the file.
+//! When developing on the desktop you can update the text live by editing the file, it will be hot-reloaded automatically.
 //!
 //! `example.txt`:
 //! ```txt
@@ -61,7 +61,7 @@ impl Game for GameState {
 /// Open an empty window.
 fn main() {
     // Spawn the window with the default configuration but with a horizontally stretched buffer for displaying longer text
-    GameState {}.run(
+    GameState.run(
         chuot::load_assets!(),
         Config::default()
             .with_buffer_size((360.0, 50.0))
