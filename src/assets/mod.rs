@@ -49,6 +49,7 @@ impl<T: Loadable> AssetManager<T> {
     }
 
     /// Remove a loaded asset, mainly used for hot-reloading.
+    #[cfg(not(target_arch = "wasm32"))]
     #[inline]
     pub(crate) fn remove(&mut self, id: &Id) {
         self.assets.remove(id);
@@ -106,6 +107,7 @@ impl CustomAssetManager {
     }
 
     /// Remove a loaded asset, mainly used for hot-reloading.
+    #[cfg(not(target_arch = "wasm32"))]
     #[inline]
     pub(crate) fn remove(&mut self, id: &Id) {
         self.assets.remove(id);

@@ -772,6 +772,7 @@ impl ContextInner {
     }
 
     /// Remove all assets with the specified ID if they exist.
+    #[cfg(not(target_arch = "wasm32"))]
     #[inline]
     pub(crate) fn remove(&mut self, id: &Id) {
         self.sprites.remove(id);

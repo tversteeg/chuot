@@ -39,6 +39,8 @@ pub(crate) const PREFERRED_TEXTURE_FORMAT: wgpu::TextureFormat =
 
 /// Interface with the GPU.
 pub(crate) struct Graphics {
+    /// Reference to the winit window.
+    pub(crate) window: Arc<Window>,
     /// GPU device.
     pub(crate) device: wgpu::Device,
     /// GPU surface.
@@ -104,7 +106,7 @@ impl Graphics {
         let instance = wgpu::Instance::default();
 
         // Create a GPU surface on the window
-        let surface = instance.create_surface(window).unwrap();
+        let surface = instance.create_surface(Arc::clone(&window)).unwrap();
 
         // Request an adapter
         let adapter = instance
@@ -345,6 +347,7 @@ impl Graphics {
         let viewport_color = u32_to_wgpu_color(viewport_color);
 
         Self {
+            window,
             device,
             surface,
             queue,
@@ -384,7 +387,7 @@ impl Graphics {
 
         // Determine whether we need a downscale pass, we know this if the letterbox is at position zero it fits exactly
         // If we need a downscale pass use that as the texture target, otherwise use the framebuffer directly
-        if !cfg!(target_arch = "wasm32") && (self.letterbox.0 != 0.0 || self.letterbox.1 != 0.0) {
+        if self.letterbox.0 != 0.0 || self.letterbox.1 != 0.0 {
             // First pass, render all instances
             self.render_instances(&mut encoder, None);
 
@@ -404,12 +407,14 @@ impl Graphics {
         // Send all the queued items to draw to the surface texture
         self.queue.submit(Some(encoder.finish()));
 
+        // Tell winit we are going to draw something
+        self.window.pre_present_notify();
+
         // Show the surface texture in the window
         surface_texture.present();
     }
 
     /// Resize the render surface.
-    #[cfg(not(target_arch = "wasm32"))]
     pub(crate) fn resize(&mut self, width: u32, height: u32) {
         // Ensure that the render surface is at least 1 pixel big, otherwise an error would occur
         self.surface_config.width = width.max(1);
