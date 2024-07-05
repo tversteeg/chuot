@@ -1,6 +1,6 @@
 [package]
 name = "chuot"
-version = "0.1.2"
+version = "0.2.0"
 edition = "2021"
 authors = ["Thomas Versteeg <t@versteeg.email>"]
 license = "AGPL-3.0"
@@ -47,8 +47,8 @@ embed-assets = ["chuot-macros/embed-assets", "dep:imgref"]
 read-texture = []
 
 [dependencies]
-chuot-macros = { path = "crates/macros", version = "0.1.2" }
-chuot-packer = { path = "crates/packer", version = "0.1.1" }
+chuot-macros = { path = "crates/macros", version = "0.2.0" }
+chuot-packer = { path = "crates/packer", version = "0.2.0" }
 
 bytemuck = { version = "1.16.1", features = ["derive"] }
 downcast-rs = "1.2.1"
