@@ -1,11 +1,9 @@
 [workspace]
 changelog_config = ".github/git-cliff.toml"
-
-[[package]]
-name = "chuot"
-
-[[package]]
-name = "chuot-macros"
+# Update everything in Cargo.lock
+dependencies_update = true
+pr_labels = ["release"]
+repo_url = "https://github.com/tversteeg/chuot"
 
 # Ignore run-wasm
 [[package]]
