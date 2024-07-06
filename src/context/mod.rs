@@ -291,6 +291,36 @@ impl Context {
         self.read(|ctx| ctx.input.mouse())
     }
 
+    /// Get the horizontal position if the mouse is inside the viewport frame.
+    ///
+    /// This is `Some(..`) if the mouse is inside the viewport frame, not the entire window.
+    /// The value of the coordinates corresponds to the pixel, when the frame is scaled this also encodes the subpixel in the fractional part.
+    ///
+    /// # Returns
+    ///
+    /// - `None` when the mouse is not on the buffer of pixels.
+    /// - `Some(..)` with the X coordinate of the pixel if the mouse is on the buffer of pixels.
+    #[inline]
+    #[must_use]
+    pub fn mouse_x(&self) -> Option<f32> {
+        self.read(|ctx| ctx.input.mouse().map(|(x, _y)| x))
+    }
+
+    /// Get the vertical position if the mouse is inside the viewport frame.
+    ///
+    /// This is `Some(..`) if the mouse is inside the viewport frame, not the entire window.
+    /// The value of the coordinates corresponds to the pixel, when the frame is scaled this also encodes the subpixel in the fractional part.
+    ///
+    /// # Returns
+    ///
+    /// - `None` when the mouse is not on the buffer of pixels.
+    /// - `Some(..)` with the Y coordinate of the pixel if the mouse is on the buffer of pixels.
+    #[inline]
+    #[must_use]
+    pub fn mouse_y(&self) -> Option<f32> {
+        self.read(|ctx| ctx.input.mouse().map(|(_x, y)| y))
+    }
+
     /// Whether the mouse button goes from "not pressed" to "pressed".
     ///
     /// # Arguments
