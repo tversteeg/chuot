@@ -32,7 +32,7 @@ AGPL licensed and opinionated game engine for 2D pixel-art games.
 
 #### Non-Goals
 
-- An ECS (Entity component system), although an ECS architecture is great for cache locality and performance, I feel that it's overkill for most small games. Nothing is stopping you to add your own on top of this engine if that's what you want though!
+- An ECS (Entity component system), although an ECS architecture is great for cache locality and thus performance, I feel that it's overkill for most small games. Nothing is stopping you to add your own on top of this engine if that's what you want though!
 - 3D, this engine is only for 2D pixel art.
 - Vector graphics, similar to the above, this engine is focused specifically on pixel art with lower resolutions.
 - Reinventing the wheel for everything, when there's a proper crate with good support I prefer to use that instead of creating additional maintainer burden.
@@ -43,7 +43,7 @@ AGPL licensed and opinionated game engine for 2D pixel-art games.
 Using this crate is quite simple, there is a single trait [`Game`] with two required functions, [`Game::update`] and [`Game::render`], that need to be implemented for a game state object.
 
 ```rust
-use chuot::{Context, Config, Game};
+use chuot::{Config, Context, Game};
 
 struct MyGame;
 

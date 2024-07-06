@@ -97,14 +97,28 @@ impl Context {
     ///
     /// # Example
     ///
-    /// ```no_run
-    /// use chuot::Context;
+    /// ```
+    /// use chuot::{Config, Context, Game};
     ///
-    /// // 1920 x 1080 window size
+    /// struct MyGame;
     ///
-    /// fn update(&mut self, ctx: Context) {
-    ///     assert_eq!(ctx.aspect_ratio(), (16.0, 9.0));
+    /// impl Game for MyGame {
+    ///     fn update(&mut self, ctx: Context) {
+    ///         // Because the buffer size is set to 1920x1080, the aspect ratio is 16/9
+    ///         assert_eq!(ctx.aspect_ratio(), (16.0, 9.0));
+    ///     }
+    /// # fn render(&mut self, ctx: Context) {}
     /// }
+    ///
+    /// # fn try_main() {
+    /// // In main
+    ///
+    /// MyGame.run(
+    ///     chuot::load_assets!(),
+    ///     Config::default().with_buffer_size((1920.0, 1080.0)),
+    /// );
+    /// # }
+    /// ```
     #[inline]
     #[must_use]
     pub fn aspect_ratio(&self) -> (f32, f32) {
@@ -113,24 +127,26 @@ impl Context {
         (width / ratio, height / ratio)
     }
 
-    /// Gets the window's current minimized state
+    /// Whether the window is currently in a minimized state.
     ///
     /// # Returns
     ///
-    /// - A `bool` window's current minimized state.
+    /// - `true` if the window is in a minimized state.
     #[inline]
     #[must_use]
     pub fn is_minimized(&self) -> bool {
-        self.read(|ctx| ctx.window.is_minimized().unwrap_or(
-            ctx.graphics.surface_config.height <= 1 || ctx.graphics.surface_config.width <= 1
-        ))
+        self.read(|ctx| {
+            ctx.window.is_minimized().unwrap_or(
+                ctx.graphics.surface_config.height <= 1 || ctx.graphics.surface_config.width <= 1,
+            )
+        })
     }
 
-    /// Gets the window's current maximized state
+    /// Whether the window is currently in a maximized state.
     ///
     /// # Returns
     ///
-    /// - A `bool` window's current maximized state.
+    /// - `true` if the window is in a maximized state.
     #[inline]
     #[must_use]
     pub fn is_maximized(&self) -> bool {
@@ -273,6 +289,36 @@ impl Context {
     #[must_use]
     pub fn mouse(&self) -> Option<(f32, f32)> {
         self.read(|ctx| ctx.input.mouse())
+    }
+
+    /// Get the horizontal position if the mouse is inside the viewport frame.
+    ///
+    /// This is `Some(..`) if the mouse is inside the viewport frame, not the entire window.
+    /// The value of the coordinates corresponds to the pixel, when the frame is scaled this also encodes the subpixel in the fractional part.
+    ///
+    /// # Returns
+    ///
+    /// - `None` when the mouse is not on the buffer of pixels.
+    /// - `Some(..)` with the X coordinate of the pixel if the mouse is on the buffer of pixels.
+    #[inline]
+    #[must_use]
+    pub fn mouse_x(&self) -> Option<f32> {
+        self.read(|ctx| ctx.input.mouse().map(|(x, _y)| x))
+    }
+
+    /// Get the vertical position if the mouse is inside the viewport frame.
+    ///
+    /// This is `Some(..`) if the mouse is inside the viewport frame, not the entire window.
+    /// The value of the coordinates corresponds to the pixel, when the frame is scaled this also encodes the subpixel in the fractional part.
+    ///
+    /// # Returns
+    ///
+    /// - `None` when the mouse is not on the buffer of pixels.
+    /// - `Some(..)` with the Y coordinate of the pixel if the mouse is on the buffer of pixels.
+    #[inline]
+    #[must_use]
+    pub fn mouse_y(&self) -> Option<f32> {
+        self.read(|ctx| ctx.input.mouse().map(|(_x, y)| y))
     }
 
     /// Whether the mouse button goes from "not pressed" to "pressed".
@@ -756,6 +802,7 @@ impl ContextInner {
     }
 
     /// Remove all assets with the specified ID if they exist.
+    #[cfg(not(target_arch = "wasm32"))]
     #[inline]
     pub(crate) fn remove(&mut self, id: &Id) {
         self.sprites.remove(id);

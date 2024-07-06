@@ -37,12 +37,17 @@ fn minify_wgsl(source: impl AsRef<Path>, target: impl AsRef<Path>) {
 fn main() {
     // Rerun build script if shaders changed
     println!("cargo::rerun-if-changed=shaders/downscale.wgsl");
-    println!("cargo::rerun-if-changed=shaders/texture.wgsl");
+    println!("cargo::rerun-if-changed=shaders/rotation.wgsl");
+    println!("cargo::rerun-if-changed=shaders/nearest_neighbor.wgsl");
 
     let out_dir_str = std::env::var_os("OUT_DIR").unwrap();
     let out_dir = Path::new(&out_dir_str);
 
     // Compile the shaders into binaries placed in the OUT_DIR
     minify_wgsl("shaders/downscale.wgsl", out_dir.join("downscale.wgsl"));
-    minify_wgsl("shaders/texture.wgsl", out_dir.join("texture.wgsl"));
+    minify_wgsl("shaders/rotation.wgsl", out_dir.join("rotation.wgsl"));
+    minify_wgsl(
+        "shaders/nearest_neighbor.wgsl",
+        out_dir.join("nearest_neighbor.wgsl"),
+    );
 }

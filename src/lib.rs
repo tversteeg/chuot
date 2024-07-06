@@ -20,7 +20,7 @@
 //!
 //! # Non-Goals
 //!
-//! - An ECS (Entity component system), although an ECS architecture is great for cache locality and performance, I feel that it's overkill for most small games. Nothing is stopping you to add your own on top of this engine if that's what you want though!
+//! - An ECS (Entity component system), although an ECS architecture is great for cache locality and thus performance, I feel that it's overkill for most small games. Nothing is stopping you to add your own on top of this engine if that's what you want though!
 //! - 3D, this engine is only for 2D pixel art.
 //! - Vector graphics, similar to the above, this engine is focused specifically on pixel art with lower resolutions.
 //! - Reinventing the wheel for everything, when there's a proper crate with good support I prefer to use that instead of creating additional maintainer burden.
@@ -31,7 +31,7 @@
 //! Using this crate is quite simple, there is a single trait [`Game`] with two required functions, [`Game::update`] and [`Game::render`], that need to be implemented for a game state object.
 //!
 //! ```
-//! use chuot::{Context, Config, Game};
+//! use chuot::{Config, Context, Game};
 //!
 //! struct MyGame;
 //!
@@ -203,7 +203,7 @@ where
     /// # Example
     ///
     /// ```
-    /// use chuot::{Context, Game, context::KeyCode};
+    /// use chuot::{context::KeyCode, Context, Game};
     ///
     /// struct MyGame;
     ///
@@ -236,7 +236,7 @@ where
     /// # Example
     ///
     /// ```
-    /// use chuot::{Context, Game, context::KeyCode};
+    /// use chuot::{context::KeyCode, Context, Game};
     ///
     /// struct MyGame;
     ///
@@ -294,7 +294,7 @@ where
     fn run(self, asset_source: AssetSource, config: Config) {
         // Show panics in the browser console log
         #[cfg(target_arch = "wasm32")]
-        std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+        console_error_panic_hook::set_once();
 
         // Setup the timestep variables for calculating the update loop
         let accumulator = 0.0;
@@ -306,6 +306,15 @@ where
         // Create a polling event loop, which redraws the window whenever possible
         let event_loop = EventLoop::with_user_event().build().unwrap();
         event_loop.set_control_flow(ControlFlow::Poll);
+
+        #[cfg(target_arch = "wasm32")]
+        {
+            use winit::platform::web::{EventLoopExtWebSys, PollStrategy, WaitUntilStrategy};
+
+            // Ensure the game on the web runs as smooth as possible
+            event_loop.set_poll_strategy(PollStrategy::IdleCallback);
+            event_loop.set_wait_until_strategy(WaitUntilStrategy::Worker);
+        }
 
         // Put the asset source on the heap
         let asset_source = Some(Box::new(asset_source));
@@ -380,42 +389,45 @@ impl<G: Game> ApplicationHandler<Context> for State<G> {
                 use web_sys::{wasm_bindgen::JsCast, HtmlCanvasElement};
                 use winit::platform::web::WindowAttributesExtWebSys;
 
-                // Create a canvas the winit window can be attached to
+                // Create or find a canvas the winit window can be attached to
                 let window = web_sys::window().unwrap();
                 let document = window.document().unwrap();
-                let body = document.body().unwrap();
+                let canvas = document
+                    .get_element_by_id("chuot")
+                    .map(|canvas| canvas.dyn_into::<HtmlCanvasElement>().unwrap());
 
-                // Look for a canvas with ID 'chuot', and if not found create it
-                let canvas = match document.get_element_by_id("chuot") {
-                    // Canvas found, use it
-                    Some(canvas) => canvas.dyn_into::<HtmlCanvasElement>().unwrap(),
-                    // No canvas found, create the element
-                    None => {
-                        let canvas = document
-                            .create_element("canvas")
-                            .unwrap()
-                            .dyn_into::<HtmlCanvasElement>()
-                            .unwrap();
-                        canvas.set_id("chuot");
-
-                        body.append_child(&canvas).unwrap();
-
-                        canvas
-                    }
-                };
-
-                // Ensure the pixels are not rendered with wrong filtering and that the size is correct
-                canvas
-                    .style()
-                    .set_css_text("image-rendering: pixelated; outline: none; border: none;");
-
-                window_attributes = window_attributes.with_canvas(Some(canvas.into()))
+                // If the canvas is not found a new one will be created
+                window_attributes = window_attributes
+                    .with_canvas(canvas)
+                    // Add the canvas to the web page
+                    .with_append(true)
+                    // Handle all input events
+                    .with_prevent_default(true);
             }
 
             // Spawn a new window using the event loop
             let window = event_loop
                 .create_window(window_attributes)
                 .expect("Error creating window");
+
+            // Adjust the canvas for proper integer scale rendering
+            #[cfg(target_arch = "wasm32")]
+            {
+                use winit::platform::web::WindowExtWebSys;
+
+                // Ensure the pixels are not rendered with wrong filtering and that the size is correct
+                window
+                    .canvas()
+                    .unwrap()
+                    .style()
+                    .set_css_text(
+                        &format!(
+                            "image-rendering: pixelated; outline: none; border: none; width: {}px; height: {}px",
+                            self.config.buffer_width * self.config.scaling,
+                            self.config.buffer_height * self.config.scaling,
+                        )
+                    );
+            }
 
             // Setup the context
             #[cfg(not(target_arch = "wasm32"))]
@@ -503,6 +515,7 @@ impl<G: Game> ApplicationHandler<Context> for State<G> {
                     );
                 });
 
+                // Only call render loop when the window is not minimized
                 let not_minimized = !ctx.is_minimized();
 
                 // Call the user render function with the context
@@ -513,20 +526,16 @@ impl<G: Game> ApplicationHandler<Context> for State<G> {
                 ctx.write(|ctx| {
                     // Draw the window and GPU graphics
                     if not_minimized {
-                        ctx.graphics.render().unwrap();
+                        ctx.graphics.render();
                     }
 
                     if ctx.exit {
                         // Tell winit that we want to exit
                         event_loop.exit();
-                    } else {
-                        // Request another frame for the window
-                        ctx.window.request_redraw();
                     }
                 });
             }
             // Resize the render surface
-            #[cfg(not(target_arch = "wasm32"))]
             WindowEvent::Resized(PhysicalSize { width, height }) => {
                 ctx.write(|ctx| {
                     // Resize the GPU surface
@@ -543,7 +552,14 @@ impl<G: Game> ApplicationHandler<Context> for State<G> {
                 event_loop.exit();
             }
             // Handle other window events with the input manager
-            other => ctx.write(|ctx| ctx.input.handle_event(other, &ctx.graphics)),
+            WindowEvent::KeyboardInput { .. }
+            | WindowEvent::CursorMoved { .. }
+            | WindowEvent::MouseWheel { .. }
+            | WindowEvent::MouseInput { .. } => {
+                ctx.write(|ctx| ctx.input.handle_event(event, &ctx.graphics));
+            }
+            // Ignore the rest of the events
+            _ => (),
         }
     }
 
@@ -552,8 +568,20 @@ impl<G: Game> ApplicationHandler<Context> for State<G> {
         self.ctx = Some(ctx);
     }
 
+    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+        let Some(ctx) = &mut self.ctx else {
+            return;
+        };
+
+        // Ensure the control flow doesn't change
+        event_loop.set_control_flow(ControlFlow::Poll);
+
+        // Application is about to wait, request a redraw
+        ctx.write(|ctx| ctx.window.request_redraw());
+    }
+
     fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
-        // Destroy all state
+        // Destroy all state(s), anarchy for all
         self.ctx = None;
         self.asset_source = None;
         #[cfg(target_arch = "wasm32")]
@@ -561,5 +589,4 @@ impl<G: Game> ApplicationHandler<Context> for State<G> {
             self.event_loop_proxy = None;
         }
     }
-
 }
