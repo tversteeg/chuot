@@ -79,22 +79,33 @@ impl Sprite {
 
     /// Calculate the transformation matrix.
     #[inline]
-    pub(crate) fn affine_matrix(&self, x: f32, y: f32, rotation: f32) -> Affine2 {
+    pub(crate) fn affine_matrix(
+        &self,
+        x: f32,
+        y: f32,
+        rotation: f32,
+        scale_x: f32,
+        scale_y: f32,
+    ) -> Affine2 {
         // Adjust by the sprite offset
         let (sprite_offset_x, sprite_offset_y) = self
             .metadata
             .offset
             .offset(self.sub_rectangle.2, self.sub_rectangle.3);
 
-        // Draw with a more optimized version if no rotation needs to be applied
-        if rotation == 0.0 {
+        // Draw with a more optimized version if no rotation and scaling needs to be applied
+        #[allow(clippy::float_cmp)]
+        if scale_x == 1.0 && scale_y == 1.0 && rotation == 0.0 {
             Affine2::from_translation((x + sprite_offset_x, y + sprite_offset_y).into())
         } else {
             // We rotate so first apply the rotation based on the sprite offset
             let mut affine = Affine2::from_angle(rotation)
-                * Affine2::from_translation((sprite_offset_x, sprite_offset_y).into());
+                    // Apply scaling
+                    * Affine2::from_scale((scale_x, scale_y).into())
+                    // Apply the sprite offset so it rotates and scales in place
+                    * Affine2::from_translation((sprite_offset_x, sprite_offset_y).into());
 
-            // Then apply the world coordinates so it stays rotated in place
+            // Then apply the world coordinates so it stays rotated and rotated in place
             affine.translation += Vec2::new(x, y);
 
             affine

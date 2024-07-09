@@ -21,6 +21,10 @@ pub struct SpriteContext<'path, 'ctx> {
     pub(crate) y: f32,
     /// Rotation in radians.
     pub(crate) rotation: f32,
+    /// Horizontal scaling.
+    pub(crate) scale_x: f32,
+    /// Vertical scaling.
+    pub(crate) scale_y: f32,
 }
 
 impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
@@ -28,7 +32,7 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
     ///
     /// # Arguments
     ///
-    /// * `x` - Absolute horizontal position of the target sprite on the buffer in pixels, will be offset by the sprite offset metadata.
+    /// * `x` - Horizontal position of the target sprite on the buffer in pixels, will be offset by the sprite offset metadata.
     #[inline(always)]
     #[must_use]
     pub fn translate_x(mut self, x: f32) -> Self {
@@ -41,7 +45,7 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
     ///
     /// # Arguments
     ///
-    /// * `y` - Absolute vertical position of the target sprite on the buffer in pixels, will be offset by the sprite offset metadata.
+    /// * `y` - Vertical position of the target sprite on the buffer in pixels, will be offset by the sprite offset metadata.
     #[inline(always)]
     #[must_use]
     pub fn translate_y(mut self, y: f32) -> Self {
@@ -54,7 +58,7 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
     ///
     /// # Arguments
     ///
-    /// * `(x, y)` - Absolute position tuple of the target sprite on the buffer in pixels, will be offset by the sprite offset metadata.
+    /// * `(x, y)` - Position tuple of the target sprite on the buffer in pixels, will be offset by the sprite offset metadata.
     #[inline(always)]
     #[must_use]
     pub fn translate(mut self, position: impl Into<(f32, f32)>) -> Self {
@@ -80,6 +84,47 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
         self
     }
 
+    /// Only scale the horizontal size of the sprite.
+    ///
+    /// # Arguments
+    ///
+    /// * `scale_x` - Horizontal scale of the target sprite on the buffer. `-1.0` to flip.
+    #[inline(always)]
+    #[must_use]
+    pub fn scale_x(mut self, scale_x: f32) -> Self {
+        self.scale_x *= scale_x;
+
+        self
+    }
+
+    /// Only move the vertical position of the sprite.
+    ///
+    /// # Arguments
+    ///
+    /// * `scale_y` - Vertical scale of the target sprite on the buffer. `-1.0` to flip.
+    #[inline(always)]
+    #[must_use]
+    pub fn scale_y(mut self, y: f32) -> Self {
+        self.scale_y *= y;
+
+        self
+    }
+
+    /// Move the position of the sprite.
+    ///
+    /// # Arguments
+    ///
+    /// * `(scale_x, scale_y)` - Scale tuple of the target sprite on the buffer.
+    #[inline(always)]
+    #[must_use]
+    pub fn scale(mut self, scale: impl Into<(f32, f32)>) -> Self {
+        let (scale_x, scale_y) = scale.into();
+        self.scale_x *= scale_x;
+        self.scale_y *= scale_y;
+
+        self
+    }
+
     /// Draw the sprite.
     ///
     /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
@@ -94,7 +139,8 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
             let sprite = ctx.sprite(self.path);
 
             // Create the affine matrix
-            let affine_matrix = sprite.affine_matrix(self.x, self.y, self.rotation);
+            let affine_matrix =
+                sprite.affine_matrix(self.x, self.y, self.rotation, self.scale_x, self.scale_y);
 
             // Push the graphics
             ctx.graphics
@@ -150,7 +196,8 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
             let sprite = ctx.sprite(self.path);
 
             // Create the affine matrix
-            let affine_matrix = sprite.affine_matrix(self.x, self.y, self.rotation);
+            let affine_matrix =
+                sprite.affine_matrix(self.x, self.y, self.rotation, self.scale_x, self.scale_y);
 
             // Push the graphics
             ctx.graphics
@@ -337,6 +384,8 @@ impl Context {
             x: 0.0,
             y: 0.0,
             rotation: 0.0,
+            scale_x: 1.0,
+            scale_y: 1.0,
         }
     }
 }
