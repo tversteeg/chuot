@@ -16,8 +16,7 @@ struct TextureInfo {
 
 struct ScreenInfo {
     @location(0) size: vec2f,
-    // WASM needs the types to be aligned to 16 bytes
-    @location(1) _padding: vec2f,
+    @location(1) half_size: vec2f,
 }
 
 @group(1) @binding(0)
@@ -70,15 +69,14 @@ fn vs_main(
     let projected_position = instance_matrix * vec3f(model_position, 1.0);
 
     // Move from 0..width to -1..1
-    let screen_size_half = screen_info.size / 2.0;
-    let screen_offset = 1.0 - projected_position.xy / screen_size_half;
+    let screen_offset = projected_position.xy / screen_info.half_size - 1.0;
     // Move the 0..1 texture coordinates to relative coordinates within the 4096x4096 atlas texture for the specified texture
     // Also apply the sub rectangle offset from the instance
     let tex_coords = (offset + instance.sub_rectangle.xy + instance.sub_rectangle.zw * model.tex_coords) / ATLAS_TEXTURE_SIZE;
 
     var out: VertexOutput;
     out.tex_coords = tex_coords;
-    out.clip_position = vec4f(-screen_offset.x, screen_offset.y, model.position.z, 1.0);
+    out.clip_position = vec4f(screen_offset.x, screen_offset.y, model.position.z, 1.0);
 
     return out;
 }

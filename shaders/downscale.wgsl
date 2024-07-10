@@ -30,7 +30,7 @@ fn vs_main(@builtin(vertex_index) in_vertex_index: u32) -> VertexOutput {
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    let uv = fma(in.uv, vec2<f32>(0.5, -0.5), vec2<f32>(0.5));
+    let uv = fma(in.uv, vec2<f32>(0.5), vec2<f32>(0.5));
     let color = textureSample(t_diffuse, s_diffuse, uv).rgb;
 
     return vec4<f32>(color, 1.0);
