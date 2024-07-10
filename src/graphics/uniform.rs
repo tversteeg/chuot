@@ -83,7 +83,6 @@ pub(crate) struct UniformArrayState<T: NoUninit + Default> {
 impl<T: NoUninit + Default> UniformArrayState<T> {
     /// Maximum bytes allowed by WebGL2.
     const MAX_BYTES: u64 = 0x4000;
-
     /// Maximum items in array based on the maximum amount of bytes.
     const MAX_ITEMS: u64 = Self::MAX_BYTES / std::mem::size_of::<T>() as u64;
 

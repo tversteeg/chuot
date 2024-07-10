@@ -13,6 +13,13 @@ use imgref::ImgVec;
 use wgpu::util::DeviceExt;
 use winit::window::Window;
 
+use self::{
+    atlas::{Atlas, TextureRef},
+    data::{ScreenInfo, TexturedVertex},
+    instance::Instances,
+    post_processing::PostProcessingState,
+    uniform::UniformState,
+};
 #[cfg(feature = "embed-assets")]
 use crate::assets::{
     loader::{png::PngLoader, Loader},
@@ -21,14 +28,6 @@ use crate::assets::{
 use crate::{
     config::{Config, RotationAlgorithm},
     AssetSource,
-};
-
-use self::{
-    atlas::{Atlas, TextureRef},
-    data::{ScreenInfo, TexturedVertex},
-    instance::Instances,
-    post_processing::PostProcessingState,
-    uniform::UniformState,
 };
 
 /// Texture format we prefer to use for everything.

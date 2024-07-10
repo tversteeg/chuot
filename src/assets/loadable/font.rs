@@ -2,12 +2,11 @@
 
 use nanoserde::DeRon;
 
+use super::{sprite::Sprite, Loadable};
 use crate::{
     assets::{loader::ron::RonLoader, Id},
     context::ContextInner,
 };
-
-use super::{sprite::Sprite, Loadable};
 
 /// Font asset that can be loaded with metadata.
 ///

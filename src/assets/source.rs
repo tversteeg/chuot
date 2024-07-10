@@ -7,9 +7,8 @@ use std::{
 
 use phf::Map;
 
-use crate::graphics::atlas::TextureRef;
-
 use super::{loader::Loader, Id};
+use crate::graphics::atlas::TextureRef;
 
 /// Empty array when embedding nothing.
 static RUNTIME_EMBEDDED_ASSETS: &[EmbeddedRawAsset] = &[];

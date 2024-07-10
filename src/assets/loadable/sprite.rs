@@ -3,6 +3,7 @@
 use glam::{Affine2, Vec2};
 use nanoserde::DeRon;
 
+use super::Loadable;
 use crate::{
     assets::{
         loader::{png::PngLoader, ron::RonLoader},
@@ -11,8 +12,6 @@ use crate::{
     context::ContextInner,
     graphics::atlas::TextureRef,
 };
-
-use super::Loadable;
 
 /// Sprite asset that can be loaded with metadata.
 #[derive(Clone, Copy)]

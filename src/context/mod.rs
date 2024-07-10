@@ -4,17 +4,16 @@ pub mod audio;
 pub mod sprite;
 pub mod text;
 
+use std::{cell::RefCell, rc::Rc, sync::Arc};
+
 /// Re-exported `gilrs` types for [`Context`] arguments.
 pub use gilrs::ev::{Axis, Button};
 use gilrs::GamepadId;
 use kira::manager::{AudioManager, AudioManagerSettings, DefaultBackend};
 use smallvec::SmallVec;
+use winit::window::{Fullscreen, Window};
 /// Re-exported `winit` types for [`Context`] arguments.
 pub use winit::{event::MouseButton, keyboard::KeyCode};
-
-use std::{cell::RefCell, rc::Rc, sync::Arc};
-
-use winit::window::{Fullscreen, Window};
 
 use crate::{
     assets::{
