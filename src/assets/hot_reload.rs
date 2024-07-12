@@ -1,20 +1,19 @@
 //! Hot-reloading watcher thread and mechanism.
 
-use hashbrown::HashSet;
-use notify_debouncer_mini::{
-    notify::{RecommendedWatcher, RecursiveMode},
-    DebounceEventResult, DebouncedEventKind, Debouncer,
-};
-
 use std::{
     path::{Path, PathBuf},
     sync::{Mutex, OnceLock},
     time::Duration,
 };
 
-use crate::context::ContextInner;
+use hashbrown::HashSet;
+use notify_debouncer_mini::{
+    notify::{RecommendedWatcher, RecursiveMode},
+    DebounceEventResult, DebouncedEventKind, Debouncer,
+};
 
 use super::Id;
+use crate::context::ContextInner;
 
 /// How long another change between multiple changes is triggered.
 const DEBOUNCE_DELAY: Duration = Duration::from_millis(100);

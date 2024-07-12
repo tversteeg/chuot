@@ -55,9 +55,11 @@ impl TexturedVertex {
 #[derive(Debug, Default, Clone, Copy, Pod, Zeroable)]
 pub(crate) struct ScreenInfo {
     /// Output buffer width.
-    pub buffer_width: f32,
+    pub width: f32,
     /// Output buffer height.
-    pub buffer_height: f32,
-    /// Unused data for padding.
-    pub _padding: u64,
+    pub height: f32,
+    /// Output buffer width / 2.
+    pub half_width: f32,
+    /// Output buffer height / 2.
+    pub half_height: f32,
 }

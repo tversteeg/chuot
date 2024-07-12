@@ -13,6 +13,13 @@ use imgref::ImgVec;
 use wgpu::util::DeviceExt;
 use winit::window::Window;
 
+use self::{
+    atlas::{Atlas, TextureRef},
+    data::{ScreenInfo, TexturedVertex},
+    instance::Instances,
+    post_processing::PostProcessingState,
+    uniform::UniformState,
+};
 #[cfg(feature = "embed-assets")]
 use crate::assets::{
     loader::{png::PngLoader, Loader},
@@ -21,14 +28,6 @@ use crate::assets::{
 use crate::{
     config::{Config, RotationAlgorithm},
     AssetSource,
-};
-
-use self::{
-    atlas::{Atlas, TextureRef},
-    data::{ScreenInfo, TexturedVertex},
-    instance::Instances,
-    post_processing::PostProcessingState,
-    uniform::UniformState,
 };
 
 /// Texture format we prefer to use for everything.
@@ -216,9 +215,10 @@ impl Graphics {
         let screen_info = UniformState::new(
             &device,
             &ScreenInfo {
-                buffer_width,
-                buffer_height,
-                ..Default::default()
+                width: buffer_width,
+                height: buffer_height,
+                half_width: buffer_width / 2.0,
+                half_height: buffer_height / 2.0,
             },
         );
 

@@ -1,8 +1,9 @@
 //! Asset source for loading assets.
 
+use std::path::{Path, PathBuf};
+
 use litrs::Literal;
 use proc_macro::TokenStream;
-use std::path::{Path, PathBuf};
 
 /// Asset source for [`chuot::load_assets`].
 pub struct Input(pub PathBuf);

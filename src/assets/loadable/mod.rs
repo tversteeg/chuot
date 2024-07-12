@@ -6,9 +6,8 @@ pub(crate) mod sprite;
 
 use downcast_rs::Downcast;
 
-use crate::context::ContextInner;
-
 use super::Id;
+use crate::context::ContextInner;
 
 /// Any asset that's loadable from any amount of binary files.
 ///

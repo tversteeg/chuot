@@ -6,7 +6,7 @@
 [![License: AGPL-3.0](https://img.shields.io/crates/l/chuot.svg)](#license)
 [![Dependency Status](https://deps.rs/repo/github/tversteeg/chuot/status.svg)](https://deps.rs/repo/github/tversteeg/chuot)
 [![Downloads](https://img.shields.io/crates/d/chuot.svg)](#downloads)
-[![Matrix](https://img.shields.io/badge/chat-matrix-green.svg)](https://matrix.to/#/#chuot-general:one.ems.host)
+[![Matrix](https://img.shields.io/badge/chat-matrix-green.svg)](https://matrix.to/#/#chuot:matrix.org)
 
 ### [Website](https://tversteeg.nl/chuot/)
 

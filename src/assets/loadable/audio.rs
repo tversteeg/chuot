@@ -2,12 +2,11 @@
 
 use kira::sound::static_sound::StaticSoundData;
 
+use super::Loadable;
 use crate::{
     assets::{loader::ogg::OggLoader, Id},
     context::ContextInner,
 };
-
-use super::Loadable;
 
 /// Audio asset that can be loaded with metadata.
 pub(crate) struct Audio(pub(crate) StaticSoundData);

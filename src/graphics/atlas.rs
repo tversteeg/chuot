@@ -235,8 +235,12 @@ impl Atlas {
         queue: &wgpu::Queue,
     ) {
         // Get the region in the atlas for the already pushed sprite
-        let [sprite_region_x, sprite_region_y, sprite_region_width, sprite_region_height] =
-            self.rects[texture_ref as usize];
+        let [
+            sprite_region_x,
+            sprite_region_y,
+            sprite_region_width,
+            sprite_region_height,
+        ] = self.rects[texture_ref as usize];
 
         let x = x.round() as u32;
         let y = y.round() as u32;

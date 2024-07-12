@@ -142,10 +142,6 @@ mod input;
 mod random;
 
 pub use assets::source::AssetSource;
-pub use config::Config;
-pub use context::Context;
-pub use random::random;
-
 /// Define the directory of the assets.
 ///
 /// *MUST* be passed as first argument to [`Game::run`].
@@ -164,7 +160,9 @@ pub use random::random;
 /// chuot::load_assets!();
 /// ```
 pub use chuot_macros::load_assets;
-
+pub use config::Config;
+pub use context::Context;
+pub use random::random;
 use web_time::Instant;
 use winit::{
     application::ApplicationHandler,

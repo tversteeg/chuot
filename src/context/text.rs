@@ -103,7 +103,7 @@ impl<'font, 'text, 'ctx> TextContext<'font, 'text, 'ctx> {
 
                 // Setup the sprite for the glyph
                 let sprite = font.sprites[char_offset];
-                let affine_matrix = sprite.affine_matrix(x, y, 0.0);
+                let affine_matrix = sprite.affine_matrix(x, y, 0.0, 1.0, 1.0);
 
                 // Push the graphics
                 ctx.graphics

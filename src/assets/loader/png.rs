@@ -4,9 +4,8 @@ use std::io::Cursor;
 
 use png::{BitDepth, ColorType, Decoder, Transformations};
 
-use crate::assets::Id;
-
 use super::Loader;
+use crate::assets::Id;
 
 /// PNG asset loader.
 ///

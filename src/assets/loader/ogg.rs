@@ -4,9 +4,8 @@ use std::io::Cursor;
 
 use kira::sound::static_sound::StaticSoundData;
 
-use crate::assets::Id;
-
 use super::Loader;
+use crate::assets::Id;
 
 /// OGG audio asset loader.
 #[non_exhaustive]

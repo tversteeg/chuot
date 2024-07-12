@@ -2,9 +2,8 @@
 
 use nanoserde::DeRon;
 
-use crate::assets::Id;
-
 use super::Loader;
+use crate::assets::Id;
 
 /// RON file asset loader.
 #[non_exhaustive]
