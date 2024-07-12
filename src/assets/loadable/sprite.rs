@@ -76,6 +76,32 @@ impl Sprite {
             .collect()
     }
 
+    /// Split into equal vertical parts.
+    pub(crate) fn vertical_parts(&self, part_height: f32) -> Vec<Self> {
+        let (x, y, width, height) = self.sub_rectangle;
+
+        // Ensure that the image can be split into equal parts
+        assert!(
+            height % part_height == 0.0,
+            "Cannot split image into equal vertical parts of {part_height} pixels"
+        );
+
+        // How many images we need to make
+        let sub_images = (height / part_height) as usize;
+
+        (0..sub_images)
+            .map(|index| {
+                // Use the same sub rectangle only changing the position and size
+                let sub_rectangle = (x, part_height.mul_add(index as f32, y), width, part_height);
+
+                Self {
+                    sub_rectangle,
+                    ..*self
+                }
+            })
+            .collect()
+    }
+
     /// Calculate the transformation matrix.
     #[inline]
     pub(crate) fn affine_matrix(
