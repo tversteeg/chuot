@@ -2,7 +2,7 @@
 
 use chuot::{
     context::{KeyCode, MouseButton},
-    Config, Context, Game,
+    Config, Context, Game, RGBA8,
 };
 
 /// Width of the screen but also width of the sandbox simulation.
@@ -62,14 +62,14 @@ impl GameState {
     }
 
     /// Get the sandbox as a vector of pixels to draw.
-    fn pixels(&self) -> Vec<u32> {
+    fn pixels(&self) -> Vec<RGBA8> {
         self.sandbox
             .iter()
             .map(|cell| match cell.element {
-                Element::Air => 0xFFFFDDDD,
-                Element::Sand => 0xFFFF00FF,
-                Element::Rock => 0x999999FF,
-                Element::Water => 0x1111FFFF,
+                Element::Air => RGBA8::new(0xCC, 0xCC, 0xFF, 0xFF),
+                Element::Sand => RGBA8::new(0xFF, 0xFF, 0x44, 0xFF),
+                Element::Rock => RGBA8::new(0xAA, 0xAA, 0xAA, 0xFF),
+                Element::Water => RGBA8::new(0x55, 0x55, 0xFF, 0xFF),
             })
             .collect()
     }
@@ -303,7 +303,7 @@ fn main() {
         buffer_height: HEIGHT,
         scaling: 3.0,
         // Use a slightly darker viewport color than the color of air
-        viewport_color: 0xFFCCCCEE,
+        viewport_color: RGBA8::new(0xAA, 0xAA, 0xFF, 0xFF),
         ..Default::default()
     };
 

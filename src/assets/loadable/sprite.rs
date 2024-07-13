@@ -2,6 +2,7 @@
 
 use glam::{Affine2, Vec2};
 use nanoserde::DeRon;
+use rgb::RGBA8;
 
 use super::Loadable;
 use crate::{
@@ -29,7 +30,7 @@ impl Sprite {
     pub(crate) fn new_and_upload(
         width: f32,
         height: f32,
-        pixels: &[u32],
+        pixels: &[RGBA8],
         ctx: &mut ContextInner,
     ) -> Self {
         // Upload it to the GPU, returning a reference

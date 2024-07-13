@@ -10,6 +10,7 @@ use std::{borrow::Cow, sync::Arc};
 
 #[cfg(feature = "embed-assets")]
 use imgref::ImgVec;
+use rgb::RGBA8;
 use wgpu::util::DeviceExt;
 use winit::window::Window;
 
@@ -82,7 +83,7 @@ pub(crate) struct Graphics {
 
 impl Graphics {
     /// Upload a texture to the GPU.
-    pub fn upload_texture(&mut self, width: u32, height: u32, pixels: &[u32]) -> TextureRef {
+    pub fn upload_texture(&mut self, width: u32, height: u32, pixels: &[RGBA8]) -> TextureRef {
         self.atlas.add_texture(width, height, pixels, &self.queue)
     }
 
@@ -121,6 +122,14 @@ impl Graphics {
 
         // Get the surface capabilities
         let swapchain_capabilities = surface.get_capabilities(&adapter);
+
+        // Check that we support the texture format
+        assert!(
+            swapchain_capabilities
+                .formats
+                .contains(&PREFERRED_TEXTURE_FORMAT),
+            "{PREFERRED_TEXTURE_FORMAT:?} texture format not supported"
+        );
 
         // Create the logical device and command queue
         let (device, queue) = adapter
@@ -350,8 +359,8 @@ impl Graphics {
         let letterbox = (0.0, 0.0, buffer_width * scaling, buffer_height * scaling);
 
         // Convert the u32 colors to WGPU colors
-        let background_color = u32_to_wgpu_color(background_color);
-        let viewport_color = u32_to_wgpu_color(viewport_color);
+        let background_color = rgba_to_wgpu_color(background_color);
+        let viewport_color = rgba_to_wgpu_color(viewport_color);
 
         Self {
             window,
@@ -570,11 +579,11 @@ impl Graphics {
 }
 
 /// Convert an `u32` color to a WGPU [`wgpu::Color`] taking in account sRGB.
-fn u32_to_wgpu_color(argb: u32) -> wgpu::Color {
-    let a = ((argb & 0xFF000000) >> 24) as f64 / 255.0;
-    let r = ((argb & 0x00FF0000) >> 16) as f64 / 255.0;
-    let g = ((argb & 0x0000FF00) >> 8) as f64 / 255.0;
-    let b = (argb & 0x000000FF) as f64 / 255.0;
+fn rgba_to_wgpu_color(color: RGBA8) -> wgpu::Color {
+    let r = color.r as f64 / 255.0;
+    let g = color.g as f64 / 255.0;
+    let b = color.b as f64 / 255.0;
+    let a = color.a as f64 / 255.0;
 
     if PREFERRED_TEXTURE_FORMAT.is_srgb() {
         // Convert to sRGB space

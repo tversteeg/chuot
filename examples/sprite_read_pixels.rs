@@ -9,7 +9,7 @@
 //! (offset: Middle)
 //! ```
 
-use chuot::{Config, Context, Game};
+use chuot::{Config, Context, Game, RGBA8};
 
 /// Which sprite to draw.
 const SPRITE: &str = "threeforms";
@@ -18,11 +18,11 @@ const SPRITE: &str = "threeforms";
 #[derive(Default)]
 struct GameState {
     /// Pixel value underneath the mouse.
-    pixel: Option<u32>,
+    pixel: Option<RGBA8>,
     /// Pixel values of the sprite.
     ///
     /// Will be set once.
-    pixels: Option<(f32, f32, Vec<u32>)>,
+    pixels: Option<(f32, f32, Vec<RGBA8>)>,
 }
 
 impl Game for GameState {
@@ -78,9 +78,12 @@ impl Game for GameState {
 
         if let Some(pixel) = self.pixel {
             // Draw the pixel value on the mouse
-            ctx.text("Beachball", &format!("{pixel:08X}"))
-                .translate(ctx.mouse().unwrap_or_default())
-                .draw();
+            ctx.text(
+                "Beachball",
+                &format!("{:02X}{:02X}{:02X}", pixel.r, pixel.g, pixel.b),
+            )
+            .translate(ctx.mouse().unwrap_or_default())
+            .draw();
         } else {
             // Notify the user to hover
             ctx.text("Beachball", "Hover the mouse\nover the sprite")

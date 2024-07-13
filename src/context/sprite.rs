@@ -1,5 +1,7 @@
 //! Zero-cost abstraction types for building more complicated sprite drawing constructions.
 
+use rgb::RGBA8;
+
 use crate::{
     assets::{loadable::sprite::Sprite, Id},
     Context,
@@ -231,7 +233,7 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
     /// - When a sprite with the same ID already exists.
     /// - When `width * height != pixels.len()`.
     #[inline]
-    pub fn create(self, size: impl Into<(f32, f32)>, pixels: impl AsRef<[u32]>) {
+    pub fn create(self, size: impl Into<(f32, f32)>, pixels: impl AsRef<[RGBA8]>) {
         let (width, height) = size.into();
         let pixels = pixels.as_ref();
 
@@ -260,7 +262,7 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
     pub fn update_pixels(
         self,
         sub_rectangle: impl Into<(f32, f32, f32, f32)>,
-        pixels: impl AsRef<[u32]>,
+        pixels: impl AsRef<[RGBA8]>,
     ) {
         let sub_rectangle = sub_rectangle.into();
         let pixels = pixels.as_ref();
@@ -297,7 +299,7 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
     #[inline]
     #[must_use]
     #[cfg(feature = "read-texture")]
-    pub fn read_pixels(self) -> Vec<u32> {
+    pub fn read_pixels(self) -> Vec<RGBA8> {
         self.ctx.write(|ctx| {
             // Get the sprite
             let sprite = ctx.sprite(self.path);

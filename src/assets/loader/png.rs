@@ -3,6 +3,7 @@
 use std::io::Cursor;
 
 use png::{BitDepth, ColorType, Decoder, Transformations};
+use rgb::RGBA8;
 
 use super::Loader;
 use crate::assets::Id;
@@ -13,11 +14,11 @@ use crate::assets::Id;
 #[non_exhaustive]
 pub struct PngLoader;
 
-impl Loader<(u32, u32, Vec<u32>)> for PngLoader {
+impl Loader<(u32, u32, Vec<RGBA8>)> for PngLoader {
     const EXTENSION: &'static str = "png";
 
     #[inline]
-    fn load(bytes: &[u8], id: &Id) -> (u32, u32, Vec<u32>) {
+    fn load(bytes: &[u8], id: &Id) -> (u32, u32, Vec<RGBA8>) {
         // Copy the bytes into a cursor
         let cursor = Cursor::new(bytes.to_vec());
 
@@ -46,7 +47,7 @@ impl Loader<(u32, u32, Vec<u32>)> for PngLoader {
         );
 
         // Read the PNG
-        let mut pixels = vec![0_u32; reader.output_buffer_size()];
+        let mut pixels = vec![RGBA8::default(); reader.output_buffer_size()];
         let info = reader
             .next_frame(bytemuck::cast_slice_mut(&mut pixels))
             .expect("Error reading image");

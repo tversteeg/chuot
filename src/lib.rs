@@ -163,6 +163,7 @@ pub use chuot_macros::load_assets;
 pub use config::Config;
 pub use context::Context;
 pub use random::random;
+pub use rgb::RGBA8;
 use web_time::Instant;
 use winit::{
     application::ApplicationHandler,

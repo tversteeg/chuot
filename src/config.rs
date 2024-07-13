@@ -1,5 +1,7 @@
 //! Initial game configuration.
 
+use rgb::RGBA8;
+
 /// Initial game configuration passed to [`crate::Game::run`].
 ///
 /// There's two ways to initialize the config:
@@ -47,16 +49,16 @@ pub struct Config {
     ///
     /// Defaults to `"Pixel Game"`.
     pub title: String,
-    /// Color of the viewport.
+    /// RGBA color of the viewport.
     ///
     /// The viewport is the area outside of the buffer when inside a bigger window.
     ///
-    /// Defaults to `0xFF76428A` (purple).
-    pub viewport_color: u32,
-    /// Color of the background of the buffer.
+    /// Defaults to `0x76428AFF` (purple).
+    pub viewport_color: RGBA8,
+    /// RGBA color of the background of the buffer.
     ///
-    /// Defaults to `0xFF9BADB7` (gray).
-    pub background_color: u32,
+    /// Defaults to `0x9BADB7FF` (gray).
+    pub background_color: RGBA8,
     /// Shader algorithm to use when rotating sprites.
     ///
     /// Different algorithms have different performance and aesthetic trade offs.
@@ -142,7 +144,7 @@ impl Config {
     /// Set the factor applied to the buffer size for the requested window size.
     #[inline]
     #[must_use]
-    pub const fn with_viewport_color(mut self, viewport_color: u32) -> Self {
+    pub const fn with_viewport_color(mut self, viewport_color: RGBA8) -> Self {
         self.viewport_color = viewport_color;
 
         self
@@ -151,7 +153,7 @@ impl Config {
     /// Set the color of the background of the buffer.
     #[inline]
     #[must_use]
-    pub const fn with_background_color(mut self, background_color: u32) -> Self {
+    pub const fn with_background_color(mut self, background_color: RGBA8) -> Self {
         self.background_color = background_color;
 
         self
@@ -198,8 +200,8 @@ impl Default for Config {
             scaling: 2.0,
             vsync: true,
             title: "Pixel Game".to_owned(),
-            viewport_color: 0xFF76428A,
-            background_color: 0xFF9BADB7,
+            viewport_color: RGBA8::new(0x76, 0x42, 0x8A, 0xFF),
+            background_color: RGBA8::new(0x9B, 0xAD, 0xB7, 0xFF),
             rotation_algorithm: RotationAlgorithm::default(),
             max_frame_time_secs: 1.0 / 4.0,
             update_delta_time: 1.0 / 30.0,
