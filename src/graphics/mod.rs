@@ -392,24 +392,17 @@ impl Graphics {
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
-        // Determine whether we need a downscale pass, we know this if the letterbox is at position zero it fits exactly
-        // If we need a downscale pass use that as the texture target, otherwise use the framebuffer directly
-        if self.letterbox.0 != 0.0 || self.letterbox.1 != 0.0 {
-            // First pass, render all instances
-            self.render_instances(&mut encoder, None);
+        // First pass, render all instances
+        self.render_instances(&mut encoder, None);
 
-            // Second optional pass, render the custom buffer to the viewport
-            self.downscale.render(
-                &mut encoder,
-                &surface_view,
-                &self.screen_info,
-                Some(self.letterbox),
-                self.viewport_color,
-            );
-        } else {
-            // Single pass, render all instances directly to the window
-            self.render_instances(&mut encoder, Some(&surface_view));
-        }
+        // Second pass, render the custom buffer to the viewport
+        self.downscale.render(
+            &mut encoder,
+            &surface_view,
+            &self.screen_info,
+            Some(self.letterbox),
+            self.viewport_color,
+        );
 
         // Send all the queued items to draw to the surface texture
         self.queue.submit(Some(encoder.finish()));
