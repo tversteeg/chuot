@@ -18,29 +18,40 @@ use crate::graphics::Graphics;
 pub(crate) struct ButtonState {
     /// Whether the button is being held down this update tick.
     is_down: bool,
-    /// Whether the button was being held down the previous update tick.
-    was_down_previous_tick: bool,
+    /// Whether the button received a pressed event this update tick.
+    is_pressed: bool,
+    /// Whether the button received a released event this update tick.
+    is_released: bool,
 }
 
 impl ButtonState {
     /// Create a new state.
     pub(crate) const fn new(is_down: bool) -> Self {
-        let was_down_previous_tick = false;
+        // Button is only registered when it's being pressed or released
+        let is_pressed = !is_down;
+        let is_released = is_down;
 
         Self {
             is_down,
-            was_down_previous_tick,
+            is_pressed,
+            is_released,
         }
     }
 
     /// Handle the state if the button is currently pressed.
     pub(crate) fn handle_event(&mut self, pressed: bool) {
         self.is_down = pressed;
+
+        if pressed {
+            self.is_pressed = true;
+            self.is_released = true;
+        }
     }
 
     /// Handle the state changes using the update tick to respond to changes.
     pub(crate) fn update(&mut self) {
-        self.was_down_previous_tick = self.is_down;
+        self.is_pressed = false;
+        self.is_released = false;
     }
 
     /// Whether the button is being pressed now.
@@ -50,12 +61,12 @@ impl ButtonState {
 
     /// Whether the button goes from released to pressed.
     pub(crate) const fn pressed(&self) -> bool {
-        !self.was_down_previous_tick && self.is_down
+        self.is_pressed
     }
 
     /// Whether the button goes from pressed to released.
     pub(crate) const fn released(&self) -> bool {
-        self.was_down_previous_tick && !self.is_down
+        self.is_released
     }
 }
 

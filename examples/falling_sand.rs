@@ -237,16 +237,16 @@ impl Game for GameState {
         }
 
         // Handle changing the brush with the keyboard
-        if ctx.key_released(KeyCode::Digit1) {
+        if ctx.key_released(KeyCode::Digit1) || ctx.key_released(KeyCode::KeyS) {
             self.brush = Element::Sand;
         }
-        if ctx.key_released(KeyCode::Digit2) {
+        if ctx.key_released(KeyCode::Digit2) || ctx.key_released(KeyCode::KeyW) {
             self.brush = Element::Water;
         }
-        if ctx.key_released(KeyCode::Digit3) {
+        if ctx.key_released(KeyCode::Digit3) || ctx.key_released(KeyCode::KeyR) {
             self.brush = Element::Rock;
         }
-        if ctx.key_released(KeyCode::Digit4) {
+        if ctx.key_released(KeyCode::Digit4) || ctx.key_released(KeyCode::KeyA) {
             self.brush = Element::Air;
         }
 
