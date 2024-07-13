@@ -1,0 +1,312 @@
+//! A simple falling sand game.
+
+use chuot::{
+    context::{KeyCode, MouseButton},
+    Config, Context, Game,
+};
+
+/// Width of the screen but also width of the sandbox simulation.
+const WIDTH: f32 = 240.0;
+/// Height of the screen but also height of the sandbox simulation.
+const HEIGHT: f32 = 192.0;
+/// How many cells to fill to draw when clicking.
+const BRUSH_SIZE: isize = 2;
+
+/// State of a single pixel in the sand box.
+#[derive(Clone, Copy, Default)]
+struct Cell {
+    /// Type of the cell.
+    element: Element,
+    /// Whether the cell is visited this update loop.
+    visited: bool,
+}
+
+/// Type of a cell.
+#[derive(Clone, Copy, Default, PartialEq, Eq)]
+enum Element {
+    /// Empty.
+    #[default]
+    Air,
+    /// Solid powder material.
+    Sand,
+    /// Solid un-movable material.
+    Rock,
+    /// Fluid material.
+    Water,
+}
+
+/// Define a game state for our example.
+struct GameState {
+    /// Whether the texture already has been created and uploaded.
+    created: bool,
+    /// What kind of element to draw when clicking.
+    brush: Element,
+    /// Grid of pixels for each cell.
+    sandbox: Vec<Cell>,
+}
+
+impl GameState {
+    /// Setup the grid.
+    fn new() -> Self {
+        let created = false;
+        // Fill the sandbox with air
+        let sandbox = vec![Cell::default(); (WIDTH * HEIGHT) as usize];
+        // The default brush is sand
+        let brush = Element::Sand;
+
+        Self {
+            created,
+            brush,
+            sandbox,
+        }
+    }
+
+    /// Get the sandbox as a vector of pixels to draw.
+    fn pixels(&self) -> Vec<u32> {
+        self.sandbox
+            .iter()
+            .map(|cell| match cell.element {
+                Element::Air => 0xFFFFDDDD,
+                Element::Sand => 0xFFFF00FF,
+                Element::Rock => 0x999999FF,
+                Element::Water => 0x1111FFFF,
+            })
+            .collect()
+    }
+
+    /// Update the state of a single cell.
+    fn update_cell(&mut self, x: usize, y: usize) {
+        // Reference to the cell
+        let Some(cell) = self.cell(x, y) else {
+            return;
+        };
+
+        // Do nothing if the cell is already updated this loop or a static type
+        if cell.visited || cell.element == Element::Air || cell.element == Element::Rock {
+            return;
+        }
+
+        match cell.element {
+            // Sand is a powder so it falls down in a triangle shape
+            Element::Sand => self.handle_powder(x, y),
+            // Water is a fluid so it also moves horizontally
+            Element::Water => self.handle_fluid(x, y),
+            Element::Rock | Element::Air => unreachable!(),
+        }
+    }
+
+    /// Update the cell as a powder.
+    fn handle_powder(&mut self, x: usize, y: usize) {
+        // Check if we can move down
+        if let Some(below) = self.cell(x, y + 1) {
+            if below.element == Element::Air || below.element == Element::Water {
+                self.swap(x, y, x, y + 1);
+                return;
+            }
+        }
+
+        // Choose a random diagonal direction to see if we can move there
+        let direction = chuot::random(-1.0, 1.0).signum() as isize;
+        if let Some(diagonal_next) = self.cell(x.wrapping_add_signed(direction), y + 1) {
+            if diagonal_next.element == Element::Air || diagonal_next.element == Element::Water {
+                self.swap(x, y, x.wrapping_add_signed(direction), y + 1);
+                return;
+            }
+        }
+
+        // Choose the other diagonal direction to see if we can move there
+        if let Some(diagonal_mirror) = self.cell(x.wrapping_add_signed(-direction), y + 1) {
+            if diagonal_mirror.element == Element::Air || diagonal_mirror.element == Element::Water
+            {
+                self.swap(x, y, x.wrapping_add_signed(-direction), y + 1);
+            }
+        }
+    }
+
+    /// Update the cell as a fluid.
+    fn handle_fluid(&mut self, x: usize, y: usize) {
+        // Check if we can move down
+        if let Some(below) = self.cell(x, y + 1) {
+            if below.element == Element::Air {
+                self.swap(x, y, x, y + 1);
+                return;
+            }
+        }
+
+        // Choose a random diagonal direction to see if we can move there
+        let direction = chuot::random(-1.0, 1.0).signum() as isize;
+        if let Some(diagonal_next) = self.cell(x.wrapping_add_signed(direction), y + 1) {
+            if diagonal_next.element == Element::Air {
+                self.swap(x, y, x.wrapping_add_signed(direction), y + 1);
+                return;
+            }
+        }
+
+        // Choose the other diagonal direction to see if we can move there
+        if let Some(diagonal_mirror) = self.cell(x.wrapping_add_signed(-direction), y + 1) {
+            if diagonal_mirror.element == Element::Air {
+                self.swap(x, y, x.wrapping_add_signed(-direction), y + 1);
+                return;
+            }
+        }
+
+        // Choose a random diagonal direction to see if we can move there
+        let direction = chuot::random(-1.0, 1.0).signum() as isize;
+        if let Some(horizontal_next) = self.cell(x.wrapping_add_signed(direction), y) {
+            if horizontal_next.element == Element::Air {
+                self.swap(x, y, x.wrapping_add_signed(direction), y);
+                return;
+            }
+        }
+
+        // Choose the other diagonal direction to see if we can move there
+        if let Some(horizontal_mirror) = self.cell(x.wrapping_add_signed(-direction), y) {
+            if horizontal_mirror.element == Element::Air {
+                self.swap(x, y, x.wrapping_add_signed(-direction), y);
+            }
+        }
+    }
+
+    /// Get the cell at the position.
+    fn cell(&self, x: usize, y: usize) -> Option<Cell> {
+        // Ignore cells at the edges
+        if x >= WIDTH as usize || y >= HEIGHT as usize {
+            return None;
+        }
+
+        Some(self.sandbox[Self::cell_index(x, y)])
+    }
+
+    /// Swap two cells.
+    fn swap(&mut self, x1: usize, y1: usize, x2: usize, y2: usize) {
+        let index1 = Self::cell_index(x1, y1);
+        let index2 = Self::cell_index(x2, y2);
+
+        // Mark them as visited
+        self.sandbox[index1].visited = true;
+        self.sandbox[index2].visited = true;
+
+        // Swap the elements in the array
+        self.sandbox.swap(index1, index2);
+    }
+
+    /// Calculate the cell index for a coordinate.
+    const fn cell_index(x: usize, y: usize) -> usize {
+        x + y * WIDTH as usize
+    }
+}
+
+impl Game for GameState {
+    /// Do nothing during the update loop.
+    fn update(&mut self, ctx: Context) {
+        // Create the sprite once
+        if !self.created {
+            // Create a new sprite with the size of the screen
+            ctx.sprite("sandbox").create((WIDTH, HEIGHT), self.pixels());
+
+            // Only create the image once
+            self.created = true;
+
+            return;
+        }
+
+        // Only handle the mouse when it's on the buffer
+        if let Some((mouse_x, mouse_y)) = ctx.mouse() {
+            // Set the pixels to the selected element
+            if ctx.mouse_held(MouseButton::Left) {
+                // Draw a square of pixels
+                for y in -BRUSH_SIZE..=BRUSH_SIZE {
+                    for x in -BRUSH_SIZE..=BRUSH_SIZE {
+                        // Convert mouse coordinates to index into the sandbox
+                        let cell_index = Self::cell_index(
+                            (mouse_x + x as f32).clamp(0.0, WIDTH - 1.0) as usize,
+                            (mouse_y + y as f32).clamp(0.0, HEIGHT - 1.0) as usize,
+                        );
+
+                        // Create a cell for the brush
+                        let element = self.brush;
+
+                        // Set the cell under the mouse
+                        self.sandbox[cell_index] = Cell {
+                            element,
+                            ..Default::default()
+                        };
+                    }
+                }
+            }
+        }
+
+        // Handle changing the brush with the keyboard
+        if ctx.key_released(KeyCode::Digit1) {
+            self.brush = Element::Sand;
+        }
+        if ctx.key_released(KeyCode::Digit2) {
+            self.brush = Element::Water;
+        }
+        if ctx.key_released(KeyCode::Digit3) {
+            self.brush = Element::Rock;
+        }
+        if ctx.key_released(KeyCode::Digit4) {
+            self.brush = Element::Air;
+        }
+
+        // Reset the state for each cell to start the simulation
+        self.sandbox
+            .iter_mut()
+            .for_each(|cell| cell.visited = false);
+
+        // Perform the simulation
+        for y in 0..(HEIGHT as usize) {
+            for x in 0..(WIDTH as usize) {
+                self.update_cell(x, y);
+            }
+        }
+    }
+
+    /// Render the game.
+    fn render(&mut self, ctx: Context) {
+        if !self.created {
+            // Only do something when the texture has been created
+            return;
+        }
+
+        // Update the sandbox texture's pixels
+        ctx.sprite("sandbox")
+            .update_pixels((0.0, 0.0, WIDTH, HEIGHT), self.pixels());
+
+        // Draw the sandbox
+        ctx.sprite("sandbox").draw();
+
+        // Show the keyboard buttons for the brush as text on the screen
+        ctx.text(
+            "Beachball",
+            &format!(
+                "Active: {}\n1: Sand\n2: Water\n3: Rock\n4: Air",
+                match self.brush {
+                    Element::Air => "Air",
+                    Element::Sand => "Sand",
+                    Element::Rock => "Rock",
+                    Element::Water => "Water",
+                }
+            ),
+        )
+        .translate((1.0, 1.0))
+        .draw();
+    }
+}
+
+/// Open an empty window.
+fn main() {
+    // Game configuration
+    let config = Config {
+        buffer_width: WIDTH,
+        buffer_height: HEIGHT,
+        scaling: 3.0,
+        // Use a slightly darker viewport color than the color of air
+        viewport_color: 0xFFCCCCEE,
+        ..Default::default()
+    };
+
+    // Spawn the window and run the game
+    GameState::new().run(chuot::load_assets!(), config);
+}
