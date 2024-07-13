@@ -1,6 +1,6 @@
 //! Create a sprite without loading any assets from disk or memory.
 
-use chuot::{AssetSource, Config, Context, Game};
+use chuot::{AssetSource, Config, Context, Game, RGBA8};
 
 /// Define a game state for our example.
 #[derive(Default)]
@@ -24,7 +24,7 @@ impl Game for GameState {
                     let y = index / width as u32;
 
                     // Create a nice XOR pattern
-                    0xFF000000 | x ^ y
+                    RGBA8::new((x ^ y) as u8, 0, 0, 0xFF)
                 })
                 .collect::<Vec<_>>();
 

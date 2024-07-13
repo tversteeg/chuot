@@ -7,7 +7,7 @@
 //! (offset: Middle)
 //! ```
 
-use chuot::{config::RotationAlgorithm, context::MouseButton, Config, Context, Game};
+use chuot::{config::RotationAlgorithm, context::MouseButton, Config, Context, Game, RGBA8};
 
 /// Which sprite to draw.
 const SPRITE: &str = "threeforms";
@@ -37,7 +37,7 @@ impl Game for GameState {
             ctx.sprite(SPRITE).update_pixels(
                 // "Rectangle" of size 1 to fill with the "pixels"
                 (mouse_on_texture_x, mouse_on_texture_y, 1.0, 1.0),
-                [0xFF00FF00],
+                [RGBA8::new(0x00, 0xFF, 0x00, 0xFF)],
             );
         }
     }

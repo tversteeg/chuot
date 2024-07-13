@@ -3,6 +3,7 @@
 use std::borrow::Cow;
 
 use chuot_packer::Packer;
+use rgb::RGBA8;
 
 use super::{uniform::UniformArrayState, PREFERRED_TEXTURE_FORMAT};
 
@@ -29,7 +30,7 @@ pub struct Atlas {
     pub(crate) rects: UniformArrayState<[f32; 4]>,
     /// In-memory textures to receive the pixels from retroactively.
     #[cfg(feature = "read-texture")]
-    pub(crate) textures: hashbrown::HashMap<TextureRef, Vec<u32>>,
+    pub(crate) textures: hashbrown::HashMap<TextureRef, Vec<RGBA8>>,
     /// Packer algorithm used.
     packer: Packer,
 }
@@ -115,10 +116,7 @@ impl Atlas {
         });
 
         // Setup a new atlas packer
-        let packer = Packer::new((
-            const { ATLAS_TEXTURE_SIZE as u16 },
-            const { ATLAS_TEXTURE_SIZE as u16 },
-        ));
+        let packer = Packer::new((ATLAS_TEXTURE_SIZE as u16, ATLAS_TEXTURE_SIZE as u16));
 
         // Create and upload the uniforms
         let rects = UniformArrayState::new(preallocate_textures, device, queue);
@@ -143,7 +141,7 @@ impl Atlas {
         &mut self,
         width: u32,
         height: u32,
-        pixels: &[u32],
+        pixels: &[RGBA8],
         queue: &wgpu::Queue,
     ) -> TextureRef {
         // Pack the rectangle
@@ -206,6 +204,8 @@ impl Atlas {
         queue: &wgpu::Queue,
     ) {
         // Pack the rectangle
+
+        use rgb::RGBA8;
         let (x, y) = self
             .packer
             .insert((width as u16, height as u16))
@@ -222,8 +222,10 @@ impl Atlas {
 
         // Keep the pixels in memory
         #[cfg(feature = "read-texture")]
-        self.textures
-            .insert(texture_ref, vec![0_u32; (width * height) as usize]);
+        self.textures.insert(
+            texture_ref,
+            vec![RGBA8::default(); (width * height) as usize],
+        );
     }
 
     /// Update a region of pixels of the texture in the atlas.
@@ -231,7 +233,7 @@ impl Atlas {
         &mut self,
         texture_ref: TextureRef,
         (x, y, width, height): (f32, f32, f32, f32),
-        pixels: &[u32],
+        pixels: &[RGBA8],
         queue: &wgpu::Queue,
     ) {
         // Get the region in the atlas for the already pushed sprite
@@ -282,7 +284,7 @@ impl Atlas {
     fn update_pixels_raw_offset(
         &self,
         (x, y, width, height): (u32, u32, u32, u32),
-        pixels: &[u32],
+        pixels: &[RGBA8],
         queue: &wgpu::Queue,
     ) {
         // Write the new texture section to the GPU
