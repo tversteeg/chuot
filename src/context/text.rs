@@ -18,6 +18,8 @@ pub struct TextContext<'font, 'text, 'ctx> {
     pub(crate) y: f32,
     /// Text to draw.
     pub(crate) text: &'text str,
+    /// Whether to use the UI camera for positioning the text, `false` uses the regular game camera.
+    pub(crate) ui_camera: bool,
 }
 
 impl<'font, 'text, 'ctx> TextContext<'font, 'text, 'ctx> {
@@ -58,6 +60,15 @@ impl<'font, 'text, 'ctx> TextContext<'font, 'text, 'ctx> {
         let (x, y) = position.into();
         self.x += x;
         self.y += y;
+
+        self
+    }
+
+    /// Use the UI camera instead of the regular game camera for transforming the sprite.
+    #[inline(always)]
+    #[must_use]
+    pub const fn use_ui_camera(mut self) -> Self {
+        self.ui_camera = true;
 
         self
     }
@@ -145,6 +156,7 @@ impl Context {
             x: 0.0,
             y: 0.0,
             text,
+            ui_camera: false,
         }
     }
 }

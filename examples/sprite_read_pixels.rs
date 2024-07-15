@@ -44,14 +44,13 @@ impl Game for GameState {
         };
 
         // Only do something when the mouse is on a pixel
-        let Some((mouse_x, mouse_y)) = ctx.mouse() else {
+        let Some((mouse_x, mouse_y)) = ctx.main_camera().mouse() else {
             return;
         };
 
-        // Offset the mouse with the sprite in the middle of the screen
-        // Also offset by half of the sprite itself since it's centered in the configuration
-        let mouse_x = mouse_x - ctx.width() / 2.0 + sprite_width / 2.0;
-        let mouse_y = mouse_y - ctx.height() / 2.0 + sprite_height / 2.0;
+        // Offset the mouse by the image size
+        let mouse_x = mouse_x + sprite_width / 2.0;
+        let mouse_y = mouse_y + sprite_height / 2.0;
 
         // Convert the mouse coordinate to the pixel, ignoring when we don't hover over the image
         self.pixel =
@@ -70,11 +69,7 @@ impl Game for GameState {
     /// Render the game.
     fn render(&mut self, ctx: Context) {
         // Draw the sprite
-        ctx.sprite(SPRITE)
-            // Place the sprite in the middle of the screen
-            .translate_x(ctx.width() / 2.0)
-            .translate_y(ctx.height() / 2.0)
-            .draw();
+        ctx.sprite(SPRITE).draw();
 
         if let Some(pixel) = self.pixel {
             // Draw the pixel value on the mouse
@@ -82,11 +77,15 @@ impl Game for GameState {
                 "Beachball",
                 &format!("{:02X}{:02X}{:02X}", pixel.r, pixel.g, pixel.b),
             )
+            // Use the UI camera which draws the center in the top left
+            .use_ui_camera()
             .translate(ctx.mouse().unwrap_or_default())
             .draw();
         } else {
             // Notify the user to hover
             ctx.text("Beachball", "Hover the mouse\nover the sprite")
+            // Use the UI camera which draws the center in the top left
+            .use_ui_camera()
                 .translate((2.0, 2.0))
                 .draw();
         }

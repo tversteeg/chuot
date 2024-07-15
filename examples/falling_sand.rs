@@ -261,6 +261,10 @@ impl Game for GameState {
                 self.update_cell(x, y);
             }
         }
+
+        // Update the sandbox texture's pixels
+        ctx.sprite("sandbox")
+            .update_pixels((0.0, 0.0, WIDTH, HEIGHT), self.pixels());
     }
 
     /// Render the game.
@@ -270,12 +274,11 @@ impl Game for GameState {
             return;
         }
 
-        // Update the sandbox texture's pixels
-        ctx.sprite("sandbox")
-            .update_pixels((0.0, 0.0, WIDTH, HEIGHT), self.pixels());
-
         // Draw the sandbox
-        ctx.sprite("sandbox").draw();
+        ctx.sprite("sandbox")
+            // Use the UI camera which draws the center in the top left
+            .use_ui_camera()
+            .draw();
 
         // Show the keyboard buttons for the brush as text on the screen
         ctx.text(
@@ -290,6 +293,8 @@ impl Game for GameState {
                 }
             ),
         )
+        // Use the UI camera which draws the center in the top left
+        .use_ui_camera()
         .translate((1.0, 1.0))
         .draw();
     }

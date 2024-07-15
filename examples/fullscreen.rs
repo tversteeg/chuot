@@ -19,6 +19,8 @@ impl Game for GameState {
     /// Render text explaining what to do.
     fn render(&mut self, ctx: Context) {
         ctx.text("Beachball", "Press 'f'\nto toggle\nfullscreen")
+            // Use the UI camera which draws the center in the top left
+            .use_ui_camera()
             .translate((2.0, 2.0))
             .draw();
     }

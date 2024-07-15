@@ -58,6 +58,8 @@ impl Game for GameState {
 
         // Draw each sprite efficiently using an iterator
         ctx.sprite(SPRITE)
+            // Use the UI camera which draws the center in the top left
+            .use_ui_camera()
             .draw_multiple_translated((0..(tile_x * tile_y)).map(|index| {
                 let x = (index % tile_x) * sprite_width as u32;
                 let y = (index / tile_x) * sprite_height as u32;

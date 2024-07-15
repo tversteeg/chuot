@@ -22,6 +22,7 @@ impl Game for GameState {
 
         if connected_gamepad_ids.is_empty() {
             ctx.text("Beachball", "Activate or\nconnect a gamepad")
+                .use_ui_camera()
                 .translate((2.0, line_y))
                 .draw();
         }
@@ -30,6 +31,7 @@ impl Game for GameState {
         for (index, gamepad_id) in connected_gamepad_ids.iter().enumerate() {
             // Draw the gamepad index
             ctx.text("Beachball", &format!("Connected gamepad {}:", index + 1))
+                .use_ui_camera()
                 .translate((2.0, line_y))
                 .draw();
             line_y += 12.0;
@@ -70,6 +72,7 @@ impl Game for GameState {
                 // Show the button state text
                 if let Some(state) = state {
                     ctx.text("Beachball", &format!(" {name}: {state}"))
+                        .use_ui_camera()
                         .translate((2.0, line_y))
                         .draw();
                     line_y += 12.0;
@@ -80,6 +83,7 @@ impl Game for GameState {
                     // Only show when engaged
                     if value > 0.0 && value < 1.0 {
                         ctx.text("Beachball", &format!(" {name}: {value:.1}"))
+                            .use_ui_camera()
                             .translate((2.0, line_y))
                             .draw();
                         line_y += 12.0;
@@ -102,6 +106,7 @@ impl Game for GameState {
                     // Only show when engaged
                     if value != 0.0 {
                         ctx.text("Beachball", &format!(" {name}: {value:.1}"))
+                            .use_ui_camera()
                             .translate((2.0, line_y))
                             .draw();
                         line_y += 12.0;
