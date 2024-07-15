@@ -51,7 +51,10 @@ impl Game for GameState {
         let example_txt = ctx.asset::<TxtString>("example");
 
         // Draw the asset text
-        ctx.text("Beachball", &example_txt.0).draw();
+        ctx.text("Beachball", &example_txt.0)
+            // Use the UI camera which draws the center in the top left
+            .use_ui_camera()
+            .draw();
     }
 
     /// Do nothing during the update loop.

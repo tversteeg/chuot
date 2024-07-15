@@ -42,12 +42,6 @@ impl Game for GameState {
     fn render(&mut self, ctx: Context) {
         // Draw the rotated sprite
         ctx.sprite("threeforms")
-            // Place the sprite in the middle of the screen
-            .translate({
-                let (width, height) = ctx.size();
-
-                (width / 2.0, height / 2.0)
-            })
             // Scale it
             .scale_x(self.scale_x)
             .scale_y(self.scale_y)

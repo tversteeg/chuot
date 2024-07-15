@@ -27,6 +27,8 @@ pub struct SpriteContext<'path, 'ctx> {
     pub(crate) scale_x: f32,
     /// Vertical scaling.
     pub(crate) scale_y: f32,
+    /// Whether to use the UI camera for positioning the sprite, `false` uses the regular game camera.
+    pub(crate) ui_camera: bool,
 }
 
 impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
@@ -127,6 +129,15 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
         self
     }
 
+    /// Use the UI camera instead of the regular game camera for transforming the sprite.
+    #[inline(always)]
+    #[must_use]
+    pub const fn use_ui_camera(mut self) -> Self {
+        self.ui_camera = true;
+
+        self
+    }
+
     /// Draw the sprite.
     ///
     /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
@@ -140,9 +151,17 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
             // Push the instance if the texture is already uploaded
             let sprite = ctx.sprite(self.path);
 
+            // Get the camera to draw the sprite with
+            let camera = ctx.camera_mut(self.ui_camera);
+
             // Create the affine matrix
-            let affine_matrix =
-                sprite.affine_matrix(self.x, self.y, self.rotation, self.scale_x, self.scale_y);
+            let affine_matrix = sprite.affine_matrix(
+                self.x + camera.offset_x(),
+                self.y + camera.offset_y(),
+                self.rotation,
+                self.scale_x,
+                self.scale_y,
+            );
 
             // Push the graphics
             ctx.graphics
@@ -388,6 +407,7 @@ impl Context {
             rotation: 0.0,
             scale_x: 1.0,
             scale_y: 1.0,
+            ui_camera: false,
         }
     }
 }

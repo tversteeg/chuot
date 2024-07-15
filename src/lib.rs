@@ -135,6 +135,7 @@
 //! [^escape-key]: [`Context::key_pressed`]
 
 pub mod assets;
+mod camera;
 pub mod config;
 pub mod context;
 mod graphics;
@@ -496,6 +497,10 @@ impl<G: Game> ApplicationHandler<Context> for State<G> {
                     ctx.write(|ctx| {
                         // Update the input so pressed and released events can be handled
                         ctx.input.update();
+
+                        // Update cameras
+                        ctx.main_camera.update();
+                        ctx.ui_camera.update();
 
                         // Handle hot reloaded assets
                         #[cfg(not(target_arch = "wasm32"))]

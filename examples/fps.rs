@@ -22,6 +22,8 @@ impl Game for GameState {
 
         // Load a text asset and draw the FPS with 1 decimal accuracy
         ctx.text("Beachball", &format!("{fps:.1}"))
+            // Use the UI camera which draws the center in the top left
+            .use_ui_camera()
             // Offset a bit from the corner
             .translate((2.0, 2.0))
             // Draw the text on the screen

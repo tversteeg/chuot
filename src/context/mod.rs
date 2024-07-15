@@ -1,6 +1,7 @@
 //! Main interface with the game.
 
 pub mod audio;
+pub mod camera;
 pub mod sprite;
 pub mod text;
 
@@ -21,6 +22,7 @@ use crate::{
         source::AssetSource,
         AssetManager, CustomAssetManager, Id,
     },
+    camera::Camera,
     config::Config,
     graphics::Graphics,
     input::Input,
@@ -275,7 +277,7 @@ impl Context {
 
 /// Mouse input methods.
 impl Context {
-    /// Get the position if the mouse is inside the viewport frame.
+    /// Get the absolute position if the mouse is inside the viewport frame.
     ///
     /// This is `Some(..`) if the mouse is inside the viewport frame, not the entire window.
     /// The value of the coordinates corresponds to the pixel, when the frame is scaled this also encodes the subpixel in the fractional part.
@@ -290,7 +292,7 @@ impl Context {
         self.read(|ctx| ctx.input.mouse())
     }
 
-    /// Get the horizontal position if the mouse is inside the viewport frame.
+    /// Get the absolute horizontal position if the mouse is inside the viewport frame.
     ///
     /// This is `Some(..`) if the mouse is inside the viewport frame, not the entire window.
     /// The value of the coordinates corresponds to the pixel, when the frame is scaled this also encodes the subpixel in the fractional part.
@@ -305,7 +307,7 @@ impl Context {
         self.read(|ctx| ctx.input.mouse().map(|(x, _y)| x))
     }
 
-    /// Get the vertical position if the mouse is inside the viewport frame.
+    /// Get the absolute vertical position if the mouse is inside the viewport frame.
     ///
     /// This is `Some(..`) if the mouse is inside the viewport frame, not the entire window.
     /// The value of the coordinates corresponds to the pixel, when the frame is scaled this also encodes the subpixel in the fractional part.
@@ -632,6 +634,10 @@ pub struct ContextInner {
     pub(crate) window: Arc<Window>,
     /// Graphics state.
     pub(crate) graphics: Graphics,
+    /// Main game camera state.
+    pub(crate) main_camera: Camera,
+    /// UI camera state.
+    pub(crate) ui_camera: Camera,
     /// Frames per second for the render tick.
     pub(crate) frames_per_second: f32,
     /// Interpolation alpha for the render tick.
@@ -667,6 +673,13 @@ impl ContextInner {
         // Setup the initial graphics
         let graphics = Graphics::new(config.clone(), Arc::clone(&window), &asset_source).await;
 
+        // The main camera is centered
+        let mut main_camera = Camera::default();
+        main_camera.center(config.buffer_width, config.buffer_height);
+
+        // The UI camera is top-left
+        let ui_camera = Camera::default();
+
         // Setup the audio manager to play audio
         let audio_manager = AudioManager::new(AudioManagerSettings::default()).unwrap();
 
@@ -688,6 +701,8 @@ impl ContextInner {
             asset_source,
             window,
             graphics,
+            main_camera,
+            ui_camera,
             frames_per_second,
             blending_factor,
             input,
@@ -808,5 +823,25 @@ impl ContextInner {
         self.fonts.remove(id);
         self.audio.remove(id);
         self.custom.remove(id);
+    }
+
+    /// Get a mutable reference to the camera based on whether it's the main camera or the UI camera.
+    #[inline]
+    pub(crate) fn camera_mut(&mut self, is_ui_camera: bool) -> &mut Camera {
+        if is_ui_camera {
+            &mut self.ui_camera
+        } else {
+            &mut self.main_camera
+        }
+    }
+
+    /// Get a reference to the camera based on whether it's the main camera or the UI camera.
+    #[inline]
+    pub(crate) const fn camera(&self, is_ui_camera: bool) -> &Camera {
+        if is_ui_camera {
+            &self.ui_camera
+        } else {
+            &self.main_camera
+        }
     }
 }

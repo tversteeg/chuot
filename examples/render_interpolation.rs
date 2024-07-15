@@ -25,7 +25,7 @@ impl Game for GameState {
         self.previous_y = self.y;
 
         // If the left mouse button is pressed add a new sprite
-        if let Some((mouse_x, mouse_y)) = ctx.mouse() {
+        if let Some((mouse_x, mouse_y)) = ctx.main_camera().mouse() {
             // Follow the mouse
             self.x += (mouse_x - self.x) * 0.1;
             self.y += (mouse_y - self.y) * 0.1;
@@ -60,6 +60,8 @@ impl Game for GameState {
 
         // Draw a basic FPS counter
         ctx.text("Beachball", &format!("{:.1}", ctx.frames_per_second()))
+            // Use the UI camera which draws the center in the top left
+            .use_ui_camera()
             .draw();
 
         // Draw some instructions at the bottom of the screen
@@ -70,6 +72,8 @@ impl Game for GameState {
                 if self.interpolate { "on" } else { "off" }
             ),
         )
+            // Use the UI camera which draws the center in the top left
+            .use_ui_camera()
         .translate_y(ctx.height() - 24.0)
         .draw();
     }

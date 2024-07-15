@@ -45,6 +45,8 @@ impl Game for GameState {
 
         // Load a sprite asset and draw it
         ctx.sprite("pattern")
+            // Use the UI camera which draws the center in the top left
+            .use_ui_camera()
             // Draw the sprite on the screen
             .draw();
     }

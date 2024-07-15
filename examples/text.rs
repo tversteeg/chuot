@@ -19,6 +19,8 @@ impl Game for GameState {
     fn render(&mut self, ctx: Context) {
         // Load a text asset and draw it
         ctx.text("Beachball", "Hello world!")
+            // Use the UI camera which draws the center in the top left
+            .use_ui_camera()
             // Draw at the middle of the screen
             .translate((1.0, 40.0))
             // Draw the text on the screen
