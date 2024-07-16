@@ -37,8 +37,6 @@ enum Element {
 
 /// Define a game state for our example.
 struct GameState {
-    /// Whether the texture already has been created and uploaded.
-    created: bool,
     /// What kind of element to draw when clicking.
     brush: Element,
     /// Grid of pixels for each cell.
@@ -48,17 +46,12 @@ struct GameState {
 impl GameState {
     /// Setup the grid.
     fn new() -> Self {
-        let created = false;
         // Fill the sandbox with air
         let sandbox = vec![Cell::default(); (WIDTH * HEIGHT) as usize];
         // The default brush is sand
         let brush = Element::Sand;
 
-        Self {
-            created,
-            brush,
-            sandbox,
-        }
+        Self { brush, sandbox }
     }
 
     /// Get the sandbox as a vector of pixels to draw.
@@ -197,19 +190,14 @@ impl GameState {
 }
 
 impl Game for GameState {
-    /// Do nothing during the update loop.
+    /// Create the texture once at startup.
+    fn init(&mut self, ctx: Context) {
+        // Create a new sprite with the size of the screen
+        ctx.sprite("sandbox").create((WIDTH, HEIGHT), self.pixels());
+    }
+
+    /// Update the sandbox and handle input in the update loop.
     fn update(&mut self, ctx: Context) {
-        // Create the sprite once
-        if !self.created {
-            // Create a new sprite with the size of the screen
-            ctx.sprite("sandbox").create((WIDTH, HEIGHT), self.pixels());
-
-            // Only create the image once
-            self.created = true;
-
-            return;
-        }
-
         // Only handle the mouse when it's on the buffer
         if let Some((mouse_x, mouse_y)) = ctx.mouse() {
             // Set the pixels to the selected element
@@ -269,11 +257,6 @@ impl Game for GameState {
 
     /// Render the game.
     fn render(&mut self, ctx: Context) {
-        if !self.created {
-            // Only do something when the texture has been created
-            return;
-        }
-
         // Draw the sandbox
         ctx.sprite("sandbox")
             // Use the UI camera which draws the center in the top left

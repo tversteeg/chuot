@@ -236,7 +236,7 @@ where
     /// # Example
     ///
     /// ```
-    /// use chuot::{context::KeyCode, Context, Game};
+    /// use chuot::{Context, Game};
     ///
     /// struct MyGame;
     ///
@@ -253,7 +253,47 @@ where
     /// ```
     fn render(&mut self, ctx: Context);
 
+    /// Optionally implement this method to run this function at startup.
+    ///
+    /// Will run after the window is set up and the context is created.
+    ///
+    /// # Arguments
+    ///
+    /// * `ctx` - Game context, used to obtain information and queue draw calls.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use chuot::{Context, Game};
+    ///
+    /// struct MyGame;
+    ///
+    /// impl Game for MyGame {
+    ///     fn init(&mut self, ctx: Context) {
+    ///         // Do something you only want to do once, such as setting the camera offset:
+    ///         ctx.main_camera().set_top_left();
+    ///     }
+    ///
+    ///     fn render(&mut self, ctx: Context) {
+    ///         // ..
+    ///     }
+    ///
+    ///     fn update(&mut self, ctx: Context) {
+    ///         // ..
+    ///     }
+    /// }
+    /// ```
+    #[inline(always)]
+    #[allow(unused_variables)]
+    fn init(&mut self, ctx: Context) {}
+
     /// Run the game, spawning the window.
+    ///
+    /// <div class="warning">
+    ///
+    /// Don't implement/override this method.
+    ///
+    /// </div>
     ///
     /// # Arguments
     ///
@@ -433,14 +473,20 @@ impl<G: Game> ApplicationHandler<Context> for State<G> {
             #[cfg(not(target_arch = "wasm32"))]
             {
                 // Because pollster returns the value we can set it immediately
-                self.ctx = Some(pollster::block_on(async {
+                let ctx = pollster::block_on(async {
                     Context::new(
                         self.config.clone(),
                         self.asset_source.take().unwrap(),
                         window,
                     )
                     .await
-                }));
+                });
+
+                // Set the context
+                self.ctx = Some(ctx.clone());
+
+                // Call user passed init function
+                self.game.init(ctx);
             }
             #[cfg(target_arch = "wasm32")]
             {
@@ -568,6 +614,9 @@ impl<G: Game> ApplicationHandler<Context> for State<G> {
     }
 
     fn user_event(&mut self, _event_loop: &ActiveEventLoop, ctx: Context) {
+        // Call user passed init function
+        self.game.init(ctx.clone());
+
         // We received the context from initializing, set it
         self.ctx = Some(ctx);
     }

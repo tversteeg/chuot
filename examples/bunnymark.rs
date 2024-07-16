@@ -84,9 +84,6 @@ impl Game for GameState {
             // Apply gravity
             bunny.velocity_y += GRAVITY * dt;
         });
-
-        // Draw the bunnies with absolute coordinates from the top left
-        ctx.main_camera().top_left();
     }
 
     /// Render the game.
@@ -106,6 +103,12 @@ impl Game for GameState {
         )
         .use_ui_camera()
         .draw();
+    }
+
+    /// Configure the camera.
+    fn init(&mut self, ctx: Context) {
+        // Draw the bunnies with absolute coordinates from the top left
+        ctx.main_camera().set_top_left();
     }
 }
 

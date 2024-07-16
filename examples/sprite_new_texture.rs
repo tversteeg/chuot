@@ -2,47 +2,33 @@
 
 use chuot::{AssetSource, Config, Context, Game, RGBA8};
 
-/// Define a game state for our example.
-#[derive(Default)]
-struct GameState {
-    /// Whether the sprite already has been created.
-    created: bool,
-}
+/// Define an empty game state for our example.
+struct GameState;
 
 impl Game for GameState {
-    /// Do nothing during the update loop.
-    fn update(&mut self, ctx: Context) {
+    /// Create the image at startup once.
+    fn init(&mut self, ctx: Context) {
         // Create the sprite once
-        if !self.created {
-            // Size of the buffer
-            let (width, height) = ctx.size();
+        // Size of the buffer
+        let (width, height) = ctx.size();
 
-            // Generate the pixels for the sprite with a nice XOR pattern
-            let pixels = (0..(width * height) as u32)
-                .map(|index| {
-                    let x = index % width as u32;
-                    let y = index / width as u32;
+        // Generate the pixels for the sprite with a nice XOR pattern
+        let pixels = (0..(width * height) as u32)
+            .map(|index| {
+                let x = index % width as u32;
+                let y = index / width as u32;
 
-                    // Create a nice XOR pattern
-                    RGBA8::new((x ^ y) as u8, 0, 0, 0xFF)
-                })
-                .collect::<Vec<_>>();
+                // Create a nice XOR pattern
+                RGBA8::new((x ^ y) as u8, 0, 0, 0xFF)
+            })
+            .collect::<Vec<_>>();
 
-            // Create a new sprite with the size of the screen
-            ctx.sprite("pattern").create((width, height), pixels);
-
-            // Only create the image once
-            self.created = true;
-        }
+        // Create a new sprite with the size of the screen
+        ctx.sprite("pattern").create((width, height), pixels);
     }
 
     /// Render the game.
     fn render(&mut self, ctx: Context) {
-        if !self.created {
-            // Only do something when the texture has been created
-            return;
-        }
-
         // Load a sprite asset and draw it
         ctx.sprite("pattern")
             // Use the UI camera which draws the center in the top left
@@ -50,6 +36,9 @@ impl Game for GameState {
             // Draw the sprite on the screen
             .draw();
     }
+
+    /// Do nothing during the update loop.
+    fn update(&mut self, _ctx: Context) {}
 }
 
 /// Open an empty window.
@@ -65,7 +54,7 @@ fn main() {
     };
 
     // Spawn the window and run the 'game'
-    GameState::default().run(
+    GameState.run(
         // In this example we don't use any stored assets so we also don't have to embed them into the binary
         AssetSource::new(),
         config,

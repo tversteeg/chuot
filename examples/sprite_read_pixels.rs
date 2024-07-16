@@ -19,29 +19,15 @@ const SPRITE: &str = "threeforms";
 struct GameState {
     /// Pixel value underneath the mouse.
     pixel: Option<RGBA8>,
-    /// Pixel values of the sprite.
-    ///
-    /// Will be set once.
-    pixels: Option<(f32, f32, Vec<RGBA8>)>,
 }
 
 impl Game for GameState {
     /// Update the game.
     fn update(&mut self, ctx: Context) {
-        // Cache the pixels of the sprite once
-        if self.pixels.is_none() {
-            // Read the size of the sprite
-            let (width, height) = ctx.sprite(SPRITE).size();
-            // Read the pixels of the sprite
-            let pixels = ctx.sprite(SPRITE).read_pixels();
-
-            self.pixels = Some((width, height, pixels));
-        }
-
-        // Get the cached pixel values
-        let Some((sprite_width, sprite_height, pixels)) = &self.pixels else {
-            return;
-        };
+        // Read the size of the sprite
+        let (sprite_width, sprite_height) = ctx.sprite(SPRITE).size();
+        // Read the pixels of the sprite
+        let pixels = ctx.sprite(SPRITE).read_pixels();
 
         // Only do something when the mouse is on a pixel
         let Some((mouse_x, mouse_y)) = ctx.main_camera().mouse() else {
@@ -54,8 +40,7 @@ impl Game for GameState {
 
         // Convert the mouse coordinate to the pixel, ignoring when we don't hover over the image
         self.pixel =
-            if mouse_x < 0.0 || mouse_x > *sprite_width || mouse_y < 0.0 || mouse_y > *sprite_height
-            {
+            if mouse_x < 0.0 || mouse_x > sprite_width || mouse_y < 0.0 || mouse_y > sprite_height {
                 None
             } else {
                 // Convert the mouse_coordinates to the index inside the pixel data
