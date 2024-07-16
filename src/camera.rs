@@ -30,6 +30,18 @@ impl Camera {
         self.y = self.y.lerp(self.target_y, self.lerp_y);
     }
 
+    /// Set the horizontal lerp.
+    #[inline]
+    pub(crate) fn set_lerp_x(&mut self, lerp_x: f32) {
+        self.lerp_x = lerp_x;
+    }
+
+    /// Set the vertical lerp.
+    #[inline]
+    pub(crate) fn set_lerp_y(&mut self, lerp_y: f32) {
+        self.lerp_y = lerp_y;
+    }
+
     /// Set the target horizontal position.
     #[inline]
     pub(crate) fn set_target_x(&mut self, x: f32) {
