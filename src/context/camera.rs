@@ -13,29 +13,6 @@ pub struct CameraContext<'ctx> {
 }
 
 impl<'ctx> CameraContext<'ctx> {
-    /// Center the camera at the middle of the screen.
-    ///
-    /// This is the default for the main camera.
-    #[inline]
-    pub fn center(&self) {
-        self.ctx.write(|ctx| {
-            let width = ctx.config.buffer_width;
-            let height = ctx.config.buffer_height;
-
-            ctx.camera_mut(self.is_ui_camera).center(width, height);
-        });
-    }
-
-    /// Center the camera at the top left corner of the screen.
-    ///
-    /// This is the default for the UI camera.
-    #[inline]
-    pub fn top_left(&self) {
-        self.ctx.write(|ctx| {
-            ctx.camera_mut(self.is_ui_camera).top_left();
-        });
-    }
-
     /// Make the camera move towards the location on the horizontal axis only.
     ///
     /// # Arguments
@@ -131,12 +108,71 @@ impl<'ctx> CameraContext<'ctx> {
     #[must_use]
     pub fn mouse_y(&self) -> Option<f32> {
         self.ctx.read(|ctx| {
-            ctx.input.mouse().map(|(_, mouse_y)| {
-                let camera = ctx.camera(self.is_ui_camera);
-
-                mouse_y - camera.offset_y()
-            })
+            ctx.input
+                .mouse()
+                .map(|(_, mouse_y)| mouse_y - ctx.camera(self.is_ui_camera).offset_y())
         })
+    }
+
+    /// Set the horizontal linear interpolation factor applied every update tick.
+    ///
+    /// # Arguments
+    ///
+    /// * `lerp_x` - Horizontal linear interpolation applied to the camera every update tick.
+    #[inline]
+    pub fn set_lerp_x(&self, lerp_x: f32) {
+        self.ctx.write(|ctx| {
+            ctx.camera_mut(self.is_ui_camera).set_lerp_x(lerp_x);
+        });
+    }
+
+    /// Set the vertical linear interpolation factor applied every update tick.
+    ///
+    /// # Arguments
+    ///
+    /// * `lerp_y` - Vertical linear interpolation applied to the camera every update tick.
+    #[inline]
+    pub fn set_lerp_y(&self, lerp_y: f32) {
+        self.ctx.write(|ctx| {
+            ctx.camera_mut(self.is_ui_camera).set_lerp_y(lerp_y);
+        });
+    }
+
+    /// Set both the the horizontal and vertical linear interpolation factor applied every update tick.
+    ///
+    /// # Arguments
+    ///
+    /// * `lerp` - Horizontal and vertical linear interpolation applied to the camera every update tick.
+    #[inline]
+    pub fn set_lerp(&self, lerp: f32) {
+        self.ctx.write(|ctx| {
+            let camera = ctx.camera_mut(self.is_ui_camera);
+            camera.set_lerp_x(lerp);
+            camera.set_lerp_y(lerp);
+        });
+    }
+
+    /// Center the camera at the middle of the screen.
+    ///
+    /// This is the default for the main camera.
+    #[inline]
+    pub fn set_center(&self) {
+        self.ctx.write(|ctx| {
+            let width = ctx.config.buffer_width;
+            let height = ctx.config.buffer_height;
+
+            ctx.camera_mut(self.is_ui_camera).center(width, height);
+        });
+    }
+
+    /// Center the camera at the top left corner of the screen.
+    ///
+    /// This is the default for the UI camera.
+    #[inline]
+    pub fn set_top_left(&self) {
+        self.ctx.write(|ctx| {
+            ctx.camera_mut(self.is_ui_camera).top_left();
+        });
     }
 }
 
