@@ -197,7 +197,7 @@ impl Context {
 
     /// Configure the camera for drawing user interfaces.
     ///
-    /// This is the default camera that will be used to position all graphical elements on the screen specified with [`super::SpriteContext::use_ui_camera`] and [`super::TextContext::use_ui_camera`].
+    /// This is the default camera that will be used to position all graphical elements on the screen specified with [`crate::context::sprite::SpriteContext::use_ui_camera`] and [`crate::context::text::TextContext::use_ui_camera`].
     /// If you want the sprites or text to move with the game use [`Context::main_camera`].
     ///
     /// # Returns

@@ -1,4 +1,7 @@
 #![forbid(unsafe_code)]
+#![doc(
+    html_logo_url = "https://github.com/tversteeg/chuot-website/blob/main/static/favicon-32x32.png?raw=true"
+)]
 
 //! AGPL licensed and opinionated game engine for 2D pixel-art games.
 //!
@@ -87,7 +90,7 @@
 //! ```
 //! use chuot::{
 //!   Game, Context, Config,
-//!   context::{MouseButton, KeyCode},
+//!   MouseButton, KeyCode,
 //! };
 //!
 //! /// Object holding all game state.
@@ -163,7 +166,10 @@ pub use assets::source::AssetSource;
 pub use chuot_macros::load_assets;
 pub use config::Config;
 pub use context::Context;
+/// Re-exported [`gilrs`](https://docs.rs/gilrs) type.
+pub use gilrs::ev::{Axis as GamepadAxis, Button as GamepadButton};
 pub use random::random;
+/// Re-exported [`rgb`](https://docs.rs/rgb) type.
 pub use rgb::RGBA8;
 use web_time::Instant;
 use winit::{
@@ -173,6 +179,8 @@ use winit::{
     event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
     window::{WindowAttributes, WindowId},
 };
+/// Re-exported [`winit`](https://docs.rs/winit) type.
+pub use winit::{event::MouseButton, keyboard::KeyCode};
 
 /// How fast old FPS values decay in the smoothed average.
 const FPS_SMOOTHED_AVERAGE_ALPHA: f32 = 0.8;
@@ -203,7 +211,7 @@ where
     /// # Example
     ///
     /// ```
-    /// use chuot::{context::KeyCode, Context, Game};
+    /// use chuot::{Context, Game, KeyCode};
     ///
     /// struct MyGame;
     ///
@@ -308,7 +316,7 @@ where
     /// # Example
     ///
     /// ```no_run
-    /// use chuot::{context::KeyCode, Config, Context, Game};
+    /// use chuot::{Config, Context, Game, KeyCode};
     ///
     /// struct MyGame;
     ///

@@ -7,7 +7,7 @@
 //! (offset: Middle)
 //! ```
 
-use chuot::{config::RotationAlgorithm, context::MouseButton, Config, Context, Game};
+use chuot::{config::RotationAlgorithm, Config, Context, Game, MouseButton};
 
 /// How many bunnies to spawn per frame when clicking.
 const BUNNIES_TO_SPAWN: usize = 500;

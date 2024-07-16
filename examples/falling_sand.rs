@@ -1,9 +1,6 @@
 //! A simple falling sand game.
 
-use chuot::{
-    context::{KeyCode, MouseButton},
-    Config, Context, Game, RGBA8,
-};
+use chuot::{Config, Context, Game, KeyCode, MouseButton, RGBA8};
 
 /// Width of the screen but also width of the sandbox simulation.
 const WIDTH: f32 = 240.0;

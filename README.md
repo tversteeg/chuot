@@ -97,7 +97,7 @@ When the 'Escape' key is pressed[^escape-key] the game will exit and the window 
 ```rust
 use chuot::{
   Game, Context, Config,
-  context::{MouseButton, KeyCode},
+  MouseButton, KeyCode,
 };
 
 /// Object holding all game state.

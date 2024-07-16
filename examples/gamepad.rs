@@ -3,10 +3,7 @@
 //! Show text for most button presses.
 //! The state of the gamepads is checked in the `render` function, which is something you normally would not want to do, you would want to check it in the `update` function. But for this example that doesn't matter because the update delta time is low enough that it lasts multiple render functions.
 
-use chuot::{
-    context::{Axis, Button},
-    Config, Context, Game,
-};
+use chuot::{Config, Context, Game, GamepadAxis, GamepadButton};
 
 /// Define empty game state.
 struct GameState;
@@ -38,25 +35,25 @@ impl Game for GameState {
 
             // Show the button states
             for (button, name) in [
-                (Button::North, "North"),
-                (Button::South, "South"),
-                (Button::East, "East"),
-                (Button::West, "West"),
-                (Button::C, "C"),
-                (Button::Z, "Z"),
-                (Button::LeftTrigger, "Left Trigger"),
-                (Button::LeftTrigger2, "Left Trigger 2"),
-                (Button::RightTrigger, "Right Trigger"),
-                (Button::RightTrigger2, "Right Trigger 2"),
-                (Button::Select, "Select"),
-                (Button::Start, "Start"),
-                (Button::Mode, "Mode"),
-                (Button::LeftThumb, "Left Thumb"),
-                (Button::RightThumb, "Right Thumb"),
-                (Button::DPadUp, "D-Pad Up"),
-                (Button::DPadDown, "D-Pad Down"),
-                (Button::DPadLeft, "D-Pad Left"),
-                (Button::DPadRight, "D-Pad Right"),
+                (GamepadButton::North, "North"),
+                (GamepadButton::South, "South"),
+                (GamepadButton::East, "East"),
+                (GamepadButton::West, "West"),
+                (GamepadButton::C, "C"),
+                (GamepadButton::Z, "Z"),
+                (GamepadButton::LeftTrigger, "Left Trigger"),
+                (GamepadButton::LeftTrigger2, "Left Trigger 2"),
+                (GamepadButton::RightTrigger, "Right Trigger"),
+                (GamepadButton::RightTrigger2, "Right Trigger 2"),
+                (GamepadButton::Select, "Select"),
+                (GamepadButton::Start, "Start"),
+                (GamepadButton::Mode, "Mode"),
+                (GamepadButton::LeftThumb, "Left Thumb"),
+                (GamepadButton::RightThumb, "Right Thumb"),
+                (GamepadButton::DPadUp, "D-Pad Up"),
+                (GamepadButton::DPadDown, "D-Pad Down"),
+                (GamepadButton::DPadLeft, "D-Pad Left"),
+                (GamepadButton::DPadRight, "D-Pad Right"),
             ] {
                 // Get the state of the button
                 let state = if ctx.gamepad_button_pressed(*gamepad_id, button) == Some(true) {
@@ -93,14 +90,14 @@ impl Game for GameState {
 
             // Show the axis values
             for (axis, name) in [
-                (Axis::LeftStickX, "Left Stick X"),
-                (Axis::LeftStickY, "Left Stick Y"),
-                (Axis::LeftZ, "Left Z"),
-                (Axis::RightStickX, "Right Stick X"),
-                (Axis::RightStickY, "Right Stick Y"),
-                (Axis::RightZ, "Right Z"),
-                (Axis::DPadX, "D-Pad X"),
-                (Axis::DPadY, "D-Pad Y"),
+                (GamepadAxis::LeftStickX, "Left Stick X"),
+                (GamepadAxis::LeftStickY, "Left Stick Y"),
+                (GamepadAxis::LeftZ, "Left Z"),
+                (GamepadAxis::RightStickX, "Right Stick X"),
+                (GamepadAxis::RightStickY, "Right Stick Y"),
+                (GamepadAxis::RightZ, "Right Z"),
+                (GamepadAxis::DPadX, "D-Pad X"),
+                (GamepadAxis::DPadY, "D-Pad Y"),
             ] {
                 if let Some(value) = ctx.gamepad_axis(*gamepad_id, axis) {
                     // Only show when engaged

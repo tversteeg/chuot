@@ -16,7 +16,7 @@
 //! (offset: Middle)
 //! ```
 
-use chuot::{context::KeyCode, Config, Context, Game};
+use chuot::{Config, Context, Game, KeyCode};
 
 /// How fast the "player" moves.
 const PLAYER_SPEED: f32 = 50.0;

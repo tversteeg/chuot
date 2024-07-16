@@ -1,6 +1,6 @@
 //! Show how to interpolate a sprite in the render loop by keeping a previous state in the update loop.
 
-use chuot::{context::MouseButton, Config, Context, Game};
+use chuot::{Config, Context, Game, MouseButton};
 
 /// Define a game state for our example.
 #[derive(Default)]
