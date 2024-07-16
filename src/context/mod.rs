@@ -7,14 +7,10 @@ pub mod text;
 
 use std::{cell::RefCell, rc::Rc, sync::Arc};
 
-/// Re-exported `gilrs` types for [`Context`] arguments.
-pub use gilrs::ev::{Axis, Button};
 use gilrs::GamepadId;
 use kira::manager::{AudioManager, AudioManagerSettings, DefaultBackend};
 use smallvec::SmallVec;
 use winit::window::{Fullscreen, Window};
-/// Re-exported `winit` types for [`Context`] arguments.
-pub use winit::{event::MouseButton, keyboard::KeyCode};
 
 use crate::{
     assets::{
@@ -26,6 +22,7 @@ use crate::{
     config::Config,
     graphics::Graphics,
     input::Input,
+    GamepadAxis, GamepadButton, KeyCode, MouseButton,
 };
 
 /// Context containing most functionality for interfacing with the game engine.
@@ -216,7 +213,7 @@ impl Context {
     /// # Example
     ///
     /// ```no_run
-    /// use chuot::{Context, context::KeyCode};
+    /// use chuot::{Context, KeyCode};
     ///
     /// # struct Empty; impl Empty {
     /// // In `Game::render` trait implementation
@@ -248,7 +245,7 @@ impl Context {
     /// # Example
     ///
     /// ```no_run
-    /// use chuot::{Context, context::KeyCode };
+    /// use chuot::{Context, KeyCode};
     ///
     /// # #[derive(Default)] struct S{x: f32, y: f32, prev_x: f32, prev_y : f32}
     /// # struct Empty; impl Empty {
@@ -463,7 +460,11 @@ impl Context {
     /// - `Some(true)` when gamepad button is being pressed this update tick.
     #[inline]
     #[must_use]
-    pub fn gamepad_button_pressed(&self, gamepad_id: GamepadId, button: Button) -> Option<bool> {
+    pub fn gamepad_button_pressed(
+        &self,
+        gamepad_id: GamepadId,
+        button: GamepadButton,
+    ) -> Option<bool> {
         self.read(|ctx| ctx.input.gamepad_button_pressed(gamepad_id, button))
     }
 
@@ -480,7 +481,11 @@ impl Context {
     /// - `Some(true)` when gamepad button is being released this update tick.
     #[inline]
     #[must_use]
-    pub fn gamepad_button_released(&self, gamepad_id: GamepadId, button: Button) -> Option<bool> {
+    pub fn gamepad_button_released(
+        &self,
+        gamepad_id: GamepadId,
+        button: GamepadButton,
+    ) -> Option<bool> {
         self.read(|ctx| ctx.input.gamepad_button_released(gamepad_id, button))
     }
 
@@ -498,7 +503,11 @@ impl Context {
     /// - `Some(false)` when gamepad button is released.
     #[inline]
     #[must_use]
-    pub fn gamepad_button_held(&self, gamepad_id: GamepadId, button: Button) -> Option<bool> {
+    pub fn gamepad_button_held(
+        &self,
+        gamepad_id: GamepadId,
+        button: GamepadButton,
+    ) -> Option<bool> {
         self.read(|ctx| ctx.input.gamepad_button_held(gamepad_id, button))
     }
 
@@ -518,7 +527,11 @@ impl Context {
     /// - `Some(1.0)` when gamepad axis element is fully engaged.
     #[inline]
     #[must_use]
-    pub fn gamepad_button_value(&self, gamepad_id: GamepadId, button: Button) -> Option<f32> {
+    pub fn gamepad_button_value(
+        &self,
+        gamepad_id: GamepadId,
+        button: GamepadButton,
+    ) -> Option<f32> {
         self.read(|ctx| ctx.input.gamepad_button_value(gamepad_id, button))
     }
 
@@ -539,7 +552,7 @@ impl Context {
     /// - `Some(-1.0)` when gamepad axis element is fully negatively engaged, for example a horizontal axis being moved left.
     #[inline]
     #[must_use]
-    pub fn gamepad_axis(&self, gamepad_id: GamepadId, axis: Axis) -> Option<f32> {
+    pub fn gamepad_axis(&self, gamepad_id: GamepadId, axis: GamepadAxis) -> Option<f32> {
         self.read(|ctx| ctx.input.gamepad_axis(gamepad_id, axis))
     }
 }
