@@ -141,6 +141,7 @@ impl Graphics {
                     // On desktop we can use a cfg! flag to set it to defaults, but this will allow us to create an application that might not work on the web
                     required_limits: wgpu::Limits::downlevel_webgl2_defaults()
                         .using_resolution(adapter.limits()),
+                    memory_hints: wgpu::MemoryHints::Performance,
                 },
                 None,
             )
@@ -305,6 +306,7 @@ impl Graphics {
                 alpha_to_coverage_enabled: false,
             },
             multiview: None,
+            cache: None,
         });
 
         // Create the initial empty instance buffer, will be resized by the render call
