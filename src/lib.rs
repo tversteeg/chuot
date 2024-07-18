@@ -14,6 +14,7 @@
 //! - Simple bitmap font drawing.
 //! - OGG audio playback.
 //! - First-class gamepad support.
+//! - Separate managed camera systems for UI and game elements.
 //!
 //! # Goals
 //!
@@ -88,10 +89,7 @@
 //! When the 'Escape' key is pressed[^escape-key] the game will exit and the window will close.
 //!
 //! ```
-//! use chuot::{
-//!   Game, Context, Config,
-//!   MouseButton, KeyCode,
-//! };
+//! use chuot::{Game, Context, Config, MouseButton, KeyCode};
 //!
 //! /// Object holding all game state.
 //! struct MyGame {

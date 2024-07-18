@@ -23,6 +23,7 @@ AGPL licensed and opinionated game engine for 2D pixel-art games.
 - Simple bitmap font drawing.
 - OGG audio playback.
 - First-class gamepad support.
+- Separate managed camera systems for UI and game elements.
 
 #### Goals
 
@@ -95,10 +96,7 @@ The counter is rendered as text[^text] loaded from a font in the top-left corner
 When the 'Escape' key is pressed[^escape-key] the game will exit and the window will close.
 
 ```rust
-use chuot::{
-  Game, Context, Config,
-  MouseButton, KeyCode,
-};
+use chuot::{Game, Context, Config, MouseButton, KeyCode};
 
 /// Object holding all game state.
 struct MyGame {

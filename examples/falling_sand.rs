@@ -10,15 +10,32 @@ const HEIGHT: f32 = 192.0;
 const BRUSH_SIZE: isize = 2;
 
 /// State of a single pixel in the sand box.
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy)]
 struct Cell {
     /// Type of the cell.
     element: Element,
     /// Whether the cell is visited this update loop.
     visited: bool,
+    /// Color of the cell.
+    color: RGBA8,
+}
+
+impl Default for Cell {
+    fn default() -> Self {
+        let element = Element::Air;
+        let color = element.random_color();
+        let visited = false;
+
+        Self {
+            element,
+            visited,
+            color,
+        }
+    }
 }
 
 /// Type of a cell.
+#[repr(u8)]
 #[derive(Clone, Copy, Default, PartialEq, Eq)]
 enum Element {
     /// Empty.
@@ -31,6 +48,25 @@ enum Element {
     /// Fluid material.
     Water,
 }
+impl Element {
+    /// Create a random color based on the type
+    fn random_color(self) -> RGBA8 {
+        match self {
+            Self::Air => RGBA8::new(0xCC, 0xCC, 0xFF, 0xFF),
+            Self::Sand => {
+                let variation = chuot::random(0.0, 15.0) as u8;
+
+                RGBA8::new(0xFF, 0xFF - variation, 0x44 - variation, 0xFF - variation)
+            }
+            Self::Rock => {
+                let variation = chuot::random(0.0, 20.0) as u8;
+
+                RGBA8::new(0xAA - variation, 0xAA - variation, 0xAA - variation, 0xFF)
+            }
+            Self::Water => RGBA8::new(0xAA, 0xAA, 0xFF, 0xFF),
+        }
+    }
+}
 
 /// Define a game state for our example.
 struct GameState {
@@ -38,6 +74,8 @@ struct GameState {
     brush: Element,
     /// Grid of pixels for each cell.
     sandbox: Vec<Cell>,
+    /// Which horizontal direction to draw, toggles every update tick.
+    update_horizontal_cells_forward: bool,
 }
 
 impl GameState {
@@ -47,21 +85,19 @@ impl GameState {
         let sandbox = vec![Cell::default(); (WIDTH * HEIGHT) as usize];
         // The default brush is sand
         let brush = Element::Sand;
+        // Initial direction, value doesn't matter because it updates every update tick
+        let draw_forward = false;
 
-        Self { brush, sandbox }
+        Self {
+            brush,
+            sandbox,
+            update_horizontal_cells_forward: draw_forward,
+        }
     }
 
     /// Get the sandbox as a vector of pixels to draw.
     fn pixels(&self) -> Vec<RGBA8> {
-        self.sandbox
-            .iter()
-            .map(|cell| match cell.element {
-                Element::Air => RGBA8::new(0xCC, 0xCC, 0xFF, 0xFF),
-                Element::Sand => RGBA8::new(0xFF, 0xFF, 0x44, 0xFF),
-                Element::Rock => RGBA8::new(0xAA, 0xAA, 0xAA, 0xFF),
-                Element::Water => RGBA8::new(0x55, 0x55, 0xFF, 0xFF),
-            })
-            .collect()
+        self.sandbox.iter().map(|cell| cell.color).collect()
     }
 
     /// Update the state of a single cell.
@@ -72,7 +108,7 @@ impl GameState {
         };
 
         // Do nothing if the cell is already updated this loop or a static type
-        if cell.visited || cell.element == Element::Air || cell.element == Element::Rock {
+        if cell.element == Element::Air || cell.element == Element::Rock || cell.visited {
             return;
         }
 
@@ -81,6 +117,7 @@ impl GameState {
             Element::Sand => self.handle_powder(x, y),
             // Water is a fluid so it also moves horizontally
             Element::Water => self.handle_fluid(x, y),
+            // These have been handled already by the check above
             Element::Rock | Element::Air => unreachable!(),
         }
     }
@@ -200,8 +237,8 @@ impl Game for GameState {
             // Set the pixels to the selected element
             if ctx.mouse_held(MouseButton::Left) {
                 // Draw a square of pixels
-                for y in -BRUSH_SIZE..=BRUSH_SIZE {
-                    for x in -BRUSH_SIZE..=BRUSH_SIZE {
+                for y in -BRUSH_SIZE..BRUSH_SIZE {
+                    for x in -BRUSH_SIZE..BRUSH_SIZE {
                         // Convert mouse coordinates to index into the sandbox
                         let cell_index = Self::cell_index(
                             (mouse_x + x as f32).clamp(0.0, WIDTH - 1.0) as usize,
@@ -211,9 +248,13 @@ impl Game for GameState {
                         // Create a cell for the brush
                         let element = self.brush;
 
+                        // Create a color from the element
+                        let color = element.random_color();
+
                         // Set the cell under the mouse
                         self.sandbox[cell_index] = Cell {
                             element,
+                            color,
                             ..Default::default()
                         };
                     }
@@ -242,18 +283,27 @@ impl Game for GameState {
 
         // Perform the simulation
         for y in 0..(HEIGHT as usize) {
-            for x in 0..(WIDTH as usize) {
-                self.update_cell(x, y);
+            if self.update_horizontal_cells_forward {
+                for x in 0..(WIDTH as usize) {
+                    self.update_cell(x, y);
+                }
+            } else {
+                for x in (0..(WIDTH as usize)).rev() {
+                    self.update_cell(x, y);
+                }
             }
         }
 
-        // Update the sandbox texture's pixels
-        ctx.sprite("sandbox")
-            .update_pixels((0.0, 0.0, WIDTH, HEIGHT), self.pixels());
+        // Toggle the forward updates so it switches every tick
+        self.update_horizontal_cells_forward = !self.update_horizontal_cells_forward;
     }
 
     /// Render the game.
     fn render(&mut self, ctx: Context) {
+        // Update the sandbox texture's pixels
+        ctx.sprite("sandbox")
+            .update_pixels((0.0, 0.0, WIDTH, HEIGHT), self.pixels());
+
         // Draw the sandbox
         ctx.sprite("sandbox")
             // Use the UI camera which draws the center in the top left
@@ -264,7 +314,8 @@ impl Game for GameState {
         ctx.text(
             "Beachball",
             &format!(
-                "Active: {}\n1: Sand\n2: Water\n3: Rock\n4: Air",
+                "FPS: {:.0}\nActive: {}\n1: Sand\n2: Water\n3: Rock\n4: Air",
+                ctx.frames_per_second(),
                 match self.brush {
                     Element::Air => "Air",
                     Element::Sand => "Sand",
@@ -289,6 +340,8 @@ fn main() {
         scaling: 3.0,
         // Use a slightly darker viewport color than the color of air
         viewport_color: RGBA8::new(0xAA, 0xAA, 0xFF, 0xFF),
+        // Update 100 times per second
+        update_delta_time: 100.0_f32.recip(),
         ..Default::default()
     };
 
