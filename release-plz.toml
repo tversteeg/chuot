@@ -5,6 +5,18 @@ dependencies_update = true
 pr_labels = ["release"]
 repo_url = "https://github.com/tversteeg/chuot"
 
+# Configure as the main release version without the 'chuot-' prefix
+[[package]]
+name = "chuot"
+git_release_name = "v{{ version }}"
+git_tag_name = "v{{ version }}"
+
+# Don't tag and create git release for the macros since it's always bound to the main crate
+[[package]]
+name = "chuot-macros"
+git_release_enable = false
+git_tag_enable = false
+
 # Ignore run-wasm
 [[package]]
 name = "run-wasm"
