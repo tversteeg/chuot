@@ -13,6 +13,23 @@ pub struct CameraContext<'ctx> {
 }
 
 impl<'ctx> CameraContext<'ctx> {
+    /// Apply a basic omni-directional screenshake effect with a linear decay.
+    ///
+    /// Based on: <https://jonny.morrill.me/en/blog/gamedev-how-to-implement-a-camera-shake-effect/>
+    ///
+    /// # Arguments
+    ///
+    /// * `duration` - Seconds the screen shake lasts.
+    /// * `amplitude` - How many pixels the camera is moved to.
+    /// * `frequency` - Frequency of the shake in Hertz.
+    #[inline]
+    pub fn shake(&self, duration: f32, amplitude: f32, frequency: f32) {
+        self.ctx.write(|ctx| {
+            ctx.camera_mut(self.is_ui_camera)
+                .shake(duration, amplitude, frequency);
+        });
+    }
+
     /// Make the camera move towards the location on the horizontal axis only.
     ///
     /// # Arguments

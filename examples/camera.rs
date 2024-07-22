@@ -16,7 +16,7 @@
 //! (offset: Middle)
 //! ```
 
-use chuot::{Config, Context, Game, KeyCode};
+use chuot::{Config, Context, Game, KeyCode, MouseButton};
 
 /// How fast the "player" moves.
 const PLAYER_SPEED: f32 = 50.0;
@@ -52,6 +52,14 @@ impl Game for GameState {
 
         // Follow the player with the main camera
         ctx.main_camera().follow((self.player_x, self.player_y));
+
+        // Shake the camera when clicking, using the mouse position to determine the intensity and duration
+        if let Some((mouse_x, mouse_y)) = ctx.mouse() {
+            if ctx.mouse_pressed(MouseButton::Left) {
+                // Horizontal mouse is the duration, vertical mouse the force
+                ctx.main_camera().shake(1.0, mouse_x / 10.0, mouse_y / 2.0);
+            }
+        }
     }
 
     /// Render the game.
@@ -62,8 +70,8 @@ impl Game for GameState {
                 // Load a sprite asset and draw it statically
                 ctx.sprite("bunnymark")
                     // Draw it at the same position every frame
-                    .translate_x(x as f32 * 50.0)
-                    .translate_y(y as f32 * 50.0)
+                    .translate_x(x as f32 * 150.0)
+                    .translate_y(y as f32 * 150.0)
                     // Draw the sprite on the screen
                     .draw();
             }
@@ -76,6 +84,27 @@ impl Game for GameState {
             .translate_y(self.player_y)
             // Draw the sprite on the screen
             .draw();
+
+        // Draw the instructions
+        let instructions = if let Some((mouse_x, mouse_y)) = ctx.mouse() {
+            format!(
+                "Arrow keys to move\n\nClick to shake camera:\n- Duration:  1.00 s\n- Amplitude: {:.2} px\n- Frequency: {:.2} hz",
+                mouse_x / 10.0,
+                mouse_y / 2.0,
+            )
+        } else {
+            "Arrow keys to move\n\nClick to shake camera".to_owned()
+        };
+
+        ctx.text("Beachball", &instructions).draw();
+    }
+
+    /// Setup the camera.
+    fn init(&mut self, ctx: Context) {
+        // Follow the camera slowly horizontally
+        ctx.main_camera().set_lerp_x(0.1);
+        // Follow the camera quickly vertically
+        ctx.main_camera().set_lerp_y(0.8);
     }
 }
 

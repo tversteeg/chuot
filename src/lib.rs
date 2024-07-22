@@ -551,8 +551,8 @@ impl<G: Game> ApplicationHandler<Context> for State<G> {
                         ctx.input.update();
 
                         // Update cameras
-                        ctx.main_camera.update();
-                        ctx.ui_camera.update();
+                        ctx.main_camera.update(self.config.update_delta_time);
+                        ctx.ui_camera.update(self.config.update_delta_time);
 
                         // Handle hot reloaded assets
                         #[cfg(not(target_arch = "wasm32"))]
@@ -569,6 +569,10 @@ impl<G: Game> ApplicationHandler<Context> for State<G> {
                         ctx.frames_per_second,
                         (1.0 - FPS_SMOOTHED_AVERAGE_ALPHA) * frame_time.recip(),
                     );
+
+                    // Update cameras
+                    ctx.main_camera.render(ctx.blending_factor);
+                    ctx.ui_camera.render(ctx.blending_factor);
                 });
 
                 // Only call render loop when the window is not minimized
