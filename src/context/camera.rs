@@ -4,7 +4,7 @@ use crate::Context;
 
 /// Specify how the text should be drawn.
 ///
-/// Used by [`crate::Context::main_camera`] and [`crate::Context::ui_camera`].
+/// Used by [`Context::main_camera`](crate::Context::main_camera) and [`Context::ui_camera`](crate::Context::ui_camera).
 pub struct CameraContext<'ctx> {
     /// Reference to the context the text will draw in when finished.
     pub(crate) ctx: &'ctx Context,
@@ -131,11 +131,11 @@ impl<'ctx> CameraContext<'ctx> {
         })
     }
 
-    /// Set the horizontal linear interpolation factor applied every update tick.
+    /// Set the horizontal linear interpolation factor applied every render tick.
     ///
     /// # Arguments
     ///
-    /// * `lerp_x` - Horizontal linear interpolation applied to the camera every update tick.
+    /// * `lerp_x` - Horizontal linear interpolation applied to the camera every render tick.
     #[inline]
     pub fn set_lerp_x(&self, lerp_x: f32) {
         self.ctx.write(|ctx| {
@@ -143,11 +143,11 @@ impl<'ctx> CameraContext<'ctx> {
         });
     }
 
-    /// Set the vertical linear interpolation factor applied every update tick.
+    /// Set the vertical linear interpolation factor applied every render tick.
     ///
     /// # Arguments
     ///
-    /// * `lerp_y` - Vertical linear interpolation applied to the camera every update tick.
+    /// * `lerp_y` - Vertical linear interpolation applied to the camera every render tick.
     #[inline]
     pub fn set_lerp_y(&self, lerp_y: f32) {
         self.ctx.write(|ctx| {
@@ -155,11 +155,11 @@ impl<'ctx> CameraContext<'ctx> {
         });
     }
 
-    /// Set both the the horizontal and vertical linear interpolation factor applied every update tick.
+    /// Set both the the horizontal and vertical linear interpolation factor applied every render tick.
     ///
     /// # Arguments
     ///
-    /// * `lerp` - Horizontal and vertical linear interpolation applied to the camera every update tick.
+    /// * `lerp` - Horizontal and vertical linear interpolation applied to the camera every render tick.
     #[inline]
     pub fn set_lerp(&self, lerp: f32) {
         self.ctx.write(|ctx| {
@@ -200,6 +200,12 @@ impl Context {
     /// This is the default camera that will be used to position all graphical elements on the screen and move them in the game world.
     /// If you want the sprites or text to not move with the game use [`Context::ui_camera`].
     ///
+    /// <div class="warning">
+    ///
+    /// If the object you are following is moving with a lot of jitters you are probably missing a call to [`SpriteContext::translate_previous`](crate::context::sprite::SpriteContext::translate_previous), see that documentation for more information.
+    ///
+    /// </div>
+    ///
     /// # Returns
     ///
     /// - A helper struct allowing you to configure the camera.
@@ -214,7 +220,7 @@ impl Context {
 
     /// Configure the camera for drawing user interfaces.
     ///
-    /// This is the default camera that will be used to position all graphical elements on the screen specified with [`crate::context::sprite::SpriteContext::use_ui_camera`] and [`crate::context::text::TextContext::use_ui_camera`].
+    /// This is the default camera that will be used to position all graphical elements on the screen specified with [`SpriteContext::use_ui_camera`](crate::context::sprite::SpriteContext::use_ui_camera) and [`TextContext::use_ui_camera`](crate::context::text::TextContext::use_ui_camera).
     /// If you want the sprites or text to move with the game use [`Context::main_camera`].
     ///
     /// # Returns

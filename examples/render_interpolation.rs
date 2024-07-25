@@ -39,24 +39,22 @@ impl Game for GameState {
 
     /// Render the game.
     fn render(&mut self, ctx: Context) {
-        let position = if self.interpolate {
-            // Interpolate with the blending factor to create a smooth transition
-            let blending_factor = ctx.blending_factor();
-            let interpolated_x = self
-                .x
-                .mul_add(blending_factor, self.previous_x * (1.0 - blending_factor));
-            let interpolated_y = self
-                .y
-                .mul_add(blending_factor, self.previous_y * (1.0 - blending_factor));
+        // Which sprite to draw
+        let sprite = ctx
+            .sprite("threeforms")
+            .translate_x(self.x)
+            .translate_y(self.y);
 
-            (interpolated_x, interpolated_y)
+        if self.interpolate {
+            // Interpolate with the blending factor to create a smooth transition
+            sprite
+                .translate_previous_x(self.previous_x)
+                .translate_previous_y(self.previous_y)
         } else {
             // Draw the sprite following the mouse without interpolation
-            (self.x, self.y)
-        };
-
-        // Draw the sprite based on the position calculated above
-        ctx.sprite("threeforms").translate(position).draw();
+            sprite
+        }
+        .draw();
 
         // Draw a basic FPS counter
         ctx.text("Beachball", &format!("{:.1}", ctx.frames_per_second()))
