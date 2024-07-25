@@ -27,6 +27,12 @@ pub struct SpriteContext<'path, 'ctx> {
     pub(crate) scale_x: f32,
     /// Vertical scaling.
     pub(crate) scale_y: f32,
+    /// Whether to blend the rendering with the previous state.
+    pub(crate) blend: bool,
+    /// Previous X position to draw the sprite with blending.
+    pub(crate) previous_x: f32,
+    /// Previous Y position to draw the sprite with blending.
+    pub(crate) previous_y: f32,
     /// Whether to use the UI camera for positioning the sprite, `false` uses the regular game camera.
     pub(crate) ui_camera: bool,
 }
@@ -69,6 +75,81 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
         let (x, y) = position.into();
         self.x += x;
         self.y += y;
+
+        self
+    }
+
+    /// Only move the previous horizontal position of the sprite for smooth rendering based on the blending factor.
+    ///
+    /// This only makes sense to call when there's multiple update ticks in a single render tick.
+    ///
+    /// Calculated as:
+    ///
+    /// ```
+    /// # fn func(x: f32, previous_x: f32, ctx: chuot::Context) -> f32{
+    /// chuot::lerp(previous_x, x, ctx.blending_factor())
+    /// # }
+    /// ```
+    ///
+    /// # Arguments
+    ///
+    /// * `previous_x` - Horizontal position of the target sprite in the previous update tick on the buffer in pixels, will be offset by the sprite offset metadata.
+    #[inline(always)]
+    #[must_use]
+    pub fn translate_previous_x(mut self, previous_x: f32) -> Self {
+        self.previous_x += previous_x;
+        self.blend = true;
+
+        self
+    }
+
+    /// Only move the previous vertical position of the sprite for smooth rendering based on the blending factor.
+    ///
+    /// This only makes sense to call when there's multiple update ticks in a single render tick.
+    ///
+    /// Calculated as:
+    ///
+    /// ```
+    /// # fn func(y: f32, previous_y: f32, ctx: chuot::Context) -> f32{
+    /// chuot::lerp(previous_y, y, ctx.blending_factor())
+    /// # }
+    /// ```
+    ///
+    /// # Arguments
+    ///
+    /// * `previous_y` - Vertical position of the target sprite in the previous update tick on the buffer in pixels, will be offset by the sprite offset metadata.
+    #[inline(always)]
+    #[must_use]
+    pub fn translate_previous_y(mut self, previous_y: f32) -> Self {
+        self.previous_y += previous_y;
+        self.blend = true;
+
+        self
+    }
+
+    /// Move the previous position of the sprite for smooth rendering based on the blending factor.
+    ///
+    /// This only makes sense to call when there's multiple update ticks in a single render tick.
+    ///
+    /// Calculated as:
+    ///
+    /// ```
+    /// # fn func(x: f32, y: f32, previous_x: f32, previous_y: f32, ctx: chuot::Context) -> (f32, f32) {(
+    /// chuot::lerp(previous_x, x, ctx.blending_factor()),
+    /// chuot::lerp(previous_y, y, ctx.blending_factor())
+    /// # )}
+    /// ```
+    ///
+    /// # Arguments
+    ///
+    /// * `(previous_x, previous_y)` - Position tuple of the target sprite in the previous update tick on the buffer in pixels, will be offset by the sprite offset metadata.
+    #[inline(always)]
+    #[must_use]
+    pub fn translate_previous(mut self, previous_position: impl Into<(f32, f32)>) -> Self {
+        let (previous_x, previous_y) = previous_position.into();
+        self.previous_x += previous_x;
+        self.previous_y += previous_y;
+        self.blend = true;
 
         self
     }
@@ -153,11 +234,17 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
 
             // Get the camera to draw the sprite with
             let camera = ctx.camera_mut(self.ui_camera);
+            let offset_x = camera.offset_x();
+            let offset_y = camera.offset_y();
 
             // Create the affine matrix
             let affine_matrix = sprite.affine_matrix(
-                self.x + camera.offset_x(),
-                self.y + camera.offset_y(),
+                self.x + offset_x,
+                self.y + offset_y,
+                self.previous_x + offset_x,
+                self.previous_y + offset_y,
+                ctx.blending_factor,
+                self.blend,
                 self.rotation,
                 self.scale_x,
                 self.scale_y,
@@ -216,9 +303,23 @@ impl<'path, 'ctx> SpriteContext<'path, 'ctx> {
             // Push the instance if the texture is already uploaded
             let sprite = ctx.sprite(self.path);
 
+            // Get the camera to draw the sprites with
+            let camera = ctx.camera_mut(self.ui_camera);
+            let offset_x = camera.offset_x();
+            let offset_y = camera.offset_y();
+
             // Create the affine matrix
-            let affine_matrix =
-                sprite.affine_matrix(self.x, self.y, self.rotation, self.scale_x, self.scale_y);
+            let affine_matrix = sprite.affine_matrix(
+                self.x + offset_x,
+                self.y + offset_y,
+                self.previous_x + offset_x,
+                self.previous_y + offset_y,
+                ctx.blending_factor,
+                self.blend,
+                self.rotation,
+                self.scale_x,
+                self.scale_y,
+            );
 
             // Push the graphics
             ctx.graphics
@@ -408,6 +509,9 @@ impl Context {
             scale_x: 1.0,
             scale_y: 1.0,
             ui_camera: false,
+            blend: false,
+            previous_x: 0.0,
+            previous_y: 0.0,
         }
     }
 }

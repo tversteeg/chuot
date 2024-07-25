@@ -245,7 +245,7 @@ impl Context {
     /// # Example
     ///
     /// ```no_run
-    /// use chuot::{Context, KeyCode};
+    /// use chuot::Context;
     ///
     /// # #[derive(Default)] struct S{x: f32, y: f32, prev_x: f32, prev_y : f32}
     /// # struct Empty; impl Empty {
@@ -253,18 +253,37 @@ impl Context {
     /// // ..
     /// fn render(&mut self, ctx: Context) {
     /// # let sprite = S::default();
-    ///   // Lerp a sprite between it's last position and the current position
-    ///   let interpolated_x =
-    ///       sprite.x * ctx.blending_factor() +
-    ///       sprite.prev_x * (1.0 - ctx.blending_factor());
-    ///   let interpolated_y =
-    ///       sprite.y * ctx.blending_factor() +
-    ///       sprite.prev_y * (1.0 - ctx.blending_factor());
+    ///     // Lerp a sprite between it's last position and the current position
+    ///     let interpolated_x = chuot::lerp(sprite.prev_x, sprite.x, ctx.blending_factor());
+    ///     let interpolated_y = chuot::lerp(sprite.prev_y, sprite.y, ctx.blending_factor());
     ///
-    ///   // Draw the sprite with smooth position
-    ///   ctx.sprite("sprite").translate((interpolated_x, interpolated_y)).draw();
+    ///     // Draw the sprite with smooth position
+    ///     ctx.sprite("sprite")
+    ///         .translate((interpolated_x, interpolated_y))
+    ///         .draw();
     /// }
     /// # }
+    /// ```
+    ///
+    /// This is quite cumbersome to write every time, so it can also be written as:
+    ///
+    /// ```no_run
+    /// use chuot::Context;
+    ///
+    /// # #[derive(Default)] struct S{x: f32, y: f32, prev_x: f32, prev_y : f32}
+    /// # struct Empty; impl Empty {
+    /// // In `Game::render` trait implementation
+    /// // ..
+    /// fn render(&mut self, ctx: Context) {
+    /// # let sprite = S::default();
+    ///     // Draw the sprite with smooth position
+    ///     ctx.sprite("sprite")
+    ///         .translate((sprite.x, sprite.y))
+    ///         .translate_previous((sprite.prev_x, sprite.prev_y))
+    ///         .draw();
+    /// }
+    /// # }
+    /// ```
     #[inline]
     #[must_use]
     pub fn blending_factor(&self) -> f32 {

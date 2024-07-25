@@ -141,6 +141,7 @@ pub mod config;
 pub mod context;
 mod graphics;
 mod input;
+mod math;
 mod random;
 
 pub use assets::source::AssetSource;
@@ -166,6 +167,7 @@ pub use config::Config;
 pub use context::Context;
 /// Re-exported [`gilrs`](https://docs.rs/gilrs) type.
 pub use gilrs::ev::{Axis as GamepadAxis, Button as GamepadButton};
+pub use math::lerp;
 pub use random::random;
 /// Re-exported [`rgb`](https://docs.rs/rgb) type.
 pub use rgb::RGBA8;
@@ -550,9 +552,9 @@ impl<G: Game> ApplicationHandler<Context> for State<G> {
                         // Update the input so pressed and released events can be handled
                         ctx.input.update();
 
-                        // Update cameras
-                        ctx.main_camera.update(self.config.update_delta_time);
-                        ctx.ui_camera.update(self.config.update_delta_time);
+                        // Update camera targets
+                        ctx.main_camera.update_target();
+                        ctx.ui_camera.update_target();
 
                         // Handle hot reloaded assets
                         #[cfg(not(target_arch = "wasm32"))]
@@ -571,8 +573,8 @@ impl<G: Game> ApplicationHandler<Context> for State<G> {
                     );
 
                     // Update cameras
-                    ctx.main_camera.render(ctx.blending_factor);
-                    ctx.ui_camera.render(ctx.blending_factor);
+                    ctx.main_camera.update(frame_time, ctx.blending_factor);
+                    ctx.ui_camera.update(frame_time, ctx.blending_factor);
                 });
 
                 // Only call render loop when the window is not minimized

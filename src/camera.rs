@@ -1,24 +1,14 @@
 //! The camera system for both UI and the game camera.
 
-use glam::FloatExt;
-
 /// Camera for offsetting sprites.
 pub(crate) struct Camera {
     /// Current horizontal position.
     x: f32,
     /// Current vertical position.
     y: f32,
-    /// Next horizontal position.
-    ///
-    /// Set by update and interpolated with using the blending factor.
-    next_x: f32,
-    /// Next vertical position.
-    ///
-    /// Set by update and interpolated with using the blending factor.
-    next_y: f32,
-    /// Interpolated rendering horizontal position.
+    /// Horizontal position calculated for rendering.
     render_x: f32,
-    /// Interpolated rendering vertical position.
+    /// Vertical position calculated for rendering.
     render_y: f32,
     /// Screen horizontal offset.
     offset_x: f32,
@@ -28,6 +18,10 @@ pub(crate) struct Camera {
     target_x: f32,
     /// Target vertical position.
     target_y: f32,
+    /// Previous target horizontal position.
+    prev_target_x: f32,
+    /// Previous target vertical position.
+    prev_target_y: f32,
     /// How fast to interpolate between the horizontal positions.
     lerp_x: f32,
     /// How fast to interpolate between the vertical positions.
@@ -42,19 +36,31 @@ pub(crate) struct Camera {
     shake_current_duration: f32,
     /// Shake force in pixels.
     shake_amplitude: f32,
-    /// Shake frequency in Hertz.
-    shake_frequency: f32,
+    /// Reciprocal of shake frequency in Hertz.
+    shake_frequency_recip: f32,
 }
 
 impl Camera {
-    /// Update the camera.
+    /// Update the target.
+    ///
+    /// Must be done in the update tick.
     #[inline]
-    pub(crate) fn update(&mut self, dt: f32) {
-        // Keep track of the next movement and the previous to interpolate with in the rendering tick
-        self.x = self.next_x;
-        self.y = self.next_y;
-        self.next_x = self.x.lerp(self.target_x, self.lerp_x);
-        self.next_y = self.y.lerp(self.target_y, self.lerp_y);
+    pub(crate) fn update_target(&mut self) {
+        self.prev_target_x = self.x;
+        self.prev_target_y = self.y;
+
+        // // Interpolate with the lerp factor
+        self.x = crate::math::lerp(self.x, self.target_x, self.lerp_x);
+        self.y = crate::math::lerp(self.y, self.target_y, self.lerp_y);
+    }
+
+    /// Update the camera.
+    ///
+    /// Must be done in the render tick.
+    pub(crate) fn update(&mut self, dt: f32, blending_factor: f32) {
+        // Interpolate the targets with the blending factor, to reduce jitters
+        self.render_x = crate::math::lerp(self.prev_target_x, self.x, blending_factor);
+        self.render_y = crate::math::lerp(self.prev_target_y, self.y, blending_factor);
 
         // Apply camera shake
         if self.shake_current_duration > 0.0 {
@@ -66,13 +72,13 @@ impl Camera {
             self.shake_x.update(
                 dt,
                 self.shake_current_duration,
-                self.shake_frequency,
+                self.shake_frequency_recip,
                 amplitude,
             );
             self.shake_y.update(
                 dt,
                 self.shake_current_duration,
-                self.shake_frequency,
+                self.shake_frequency_recip,
                 amplitude,
             );
 
@@ -84,18 +90,6 @@ impl Camera {
                 self.shake_y = Shake::default();
             }
         }
-    }
-
-    /// Render the camera.
-    #[inline]
-    pub(crate) fn render(&mut self, blending_factor: f32) {
-        // Interpolate between this step and the next one using the blending factor
-        self.render_x = self.x.lerp(self.next_x, blending_factor);
-        self.render_y = self.y.lerp(self.next_y, blending_factor);
-
-        // Interpolate the shake values
-        self.shake_x.render(blending_factor);
-        self.shake_y.render(blending_factor);
     }
 
     /// Set the horizontal lerp.
@@ -153,7 +147,7 @@ impl Camera {
         self.shake_duration = duration;
         self.shake_current_duration = duration;
         self.shake_amplitude = amplitude;
-        self.shake_frequency = frequency;
+        self.shake_frequency_recip = frequency.recip();
     }
 }
 
@@ -162,8 +156,12 @@ impl Default for Camera {
         Self {
             x: 0.0,
             y: 0.0,
+            render_x: 0.0,
+            render_y: 0.0,
             target_x: 0.0,
             target_y: 0.0,
+            prev_target_x: 0.0,
+            prev_target_y: 0.0,
             lerp_x: 0.3,
             lerp_y: 0.3,
             offset_x: 0.0,
@@ -173,11 +171,7 @@ impl Default for Camera {
             shake_duration: 0.0,
             shake_current_duration: 0.0,
             shake_amplitude: 0.0,
-            shake_frequency: 60.0,
-            next_x: 0.0,
-            next_y: 0.0,
-            render_x: 0.0,
-            render_y: 0.0,
+            shake_frequency_recip: 0.0,
         }
     }
 }
@@ -189,47 +183,43 @@ struct Shake {
     random_point_start: f32,
     /// Shake interpolation end, interval is the frequency.
     random_point_end: f32,
-    /// Previous value.
-    prev: f32,
-    /// Next value.
-    next: f32,
     /// Current interpolated render value.
-    render: f32,
+    value: f32,
 }
 
 impl Shake {
     /// Update the shake.
     ///
     /// Based on: <https://jonny.morrill.me/en/blog/gamedev-how-to-implement-a-camera-shake-effect/>
-    fn update(&mut self, dt: f32, duration: f32, frequency: f32, amplitude: f32) {
+    fn update(&mut self, dt: f32, duration: f32, frequency_recip: f32, amplitude: f32) {
+        // If the frequecy is higher than the time a frame takes there's no need to interpolate
+        if frequency_recip <= dt {
+            self.value = crate::random(-amplitude, amplitude);
+            return;
+        }
+
         // Check if subtracting the delta time crosses the lerp point
-        let current_round = duration % frequency.recip();
-        if current_round >= frequency.recip() - dt {
+        let current_round = duration % frequency_recip;
+        if current_round >= frequency_recip - dt {
             // We need to calculate a new lerp point to progress
             self.random_point_start = self.random_point_end;
             self.random_point_end = crate::random(-1.0, 1.0);
         }
 
         // Calculate what to interpolate by finding the distance until the next time unit
-        let lerp_offset = 1.0 - current_round / frequency.recip();
+        let lerp_offset = 1.0 - current_round / frequency_recip;
 
         // Interpolate the random value
-        let direction = self
-            .random_point_start
-            .lerp(self.random_point_end, lerp_offset);
+        let direction =
+            crate::math::lerp(self.random_point_start, self.random_point_end, lerp_offset);
 
         // Update the state
-        self.prev = self.next;
-        self.next = direction * amplitude;
-    }
-
-    /// Update the interpolated render value.
-    fn render(&mut self, blending_factor: f32) {
-        self.render = self.prev.lerp(self.next, blending_factor);
+        self.value = direction * amplitude;
     }
 
     /// Get the interpolated render value.
+    #[inline]
     const fn value(&self) -> f32 {
-        self.render
+        self.value
     }
 }

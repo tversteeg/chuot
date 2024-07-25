@@ -79,10 +79,15 @@ impl Sprite {
 
     /// Calculate the transformation matrix.
     #[inline]
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn affine_matrix(
         &self,
         x: f32,
         y: f32,
+        previous_x: f32,
+        previous_y: f32,
+        blending_factor: f32,
+        blend: bool,
         rotation: f32,
         scale_x: f32,
         scale_y: f32,
@@ -92,6 +97,16 @@ impl Sprite {
             .metadata
             .offset
             .offset(self.sub_rectangle.2, self.sub_rectangle.3);
+
+        // Apply the blending factor if applicable
+        let (x, y) = if blend {
+            (
+                crate::math::lerp(previous_x, x, blending_factor),
+                crate::math::lerp(previous_y, y, blending_factor),
+            )
+        } else {
+            (x, y)
+        };
 
         // Draw with a more optimized version if no rotation and scaling needs to be applied
         #[allow(clippy::float_cmp)]

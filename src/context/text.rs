@@ -16,6 +16,12 @@ pub struct TextContext<'font, 'text, 'ctx> {
     pub(crate) x: f32,
     /// Y position to draw the text at.
     pub(crate) y: f32,
+    /// Whether to blend the rendering with the previous state.
+    pub(crate) blend: bool,
+    /// Previous X position to draw the sprite with blending.
+    pub(crate) previous_x: f32,
+    /// Previous Y position to draw the sprite with blending.
+    pub(crate) previous_y: f32,
     /// Text to draw.
     pub(crate) text: &'text str,
     /// Whether to use the UI camera for positioning the text, `false` uses the regular game camera.
@@ -86,10 +92,22 @@ impl<'font, 'text, 'ctx> TextContext<'font, 'text, 'ctx> {
             // Push the instance if the texture is already uploaded
             let font = ctx.font(self.font);
 
+            // Get the camera to draw the sprite with
+            let camera = ctx.camera_mut(self.ui_camera);
+            let offset_x = camera.offset_x();
+            let offset_y = camera.offset_y();
+
+            // Calculate the difference for the smooth rendering
+            let (diff_x, diff_y) = if self.blend {
+                (self.previous_x - self.x, self.previous_y - self.y)
+            } else {
+                (0.0, 0.0)
+            };
+
             // Put the start position back 1 glyph since the first action is to move the cursor
-            let start_x = self.x - font.metadata.glyph_width;
+            let start_x = self.x + offset_x - font.metadata.glyph_width;
             let mut x = start_x;
-            let mut y = self.y;
+            let mut y = self.y + offset_y;
 
             // Draw each character from the string
             self.text.chars().for_each(|ch| {
@@ -114,7 +132,17 @@ impl<'font, 'text, 'ctx> TextContext<'font, 'text, 'ctx> {
 
                 // Setup the sprite for the glyph
                 let sprite = font.sprites[char_offset];
-                let affine_matrix = sprite.affine_matrix(x, y, 0.0, 1.0, 1.0);
+                let affine_matrix = sprite.affine_matrix(
+                    x,
+                    y,
+                    x + diff_x,
+                    y + diff_y,
+                    ctx.blending_factor,
+                    self.blend,
+                    0.0,
+                    1.0,
+                    1.0,
+                );
 
                 // Push the graphics
                 ctx.graphics
@@ -155,6 +183,9 @@ impl Context {
             ctx: self,
             x: 0.0,
             y: 0.0,
+            blend: false,
+            previous_x: 0.0,
+            previous_y: 0.0,
             text,
             ui_camera: false,
         }

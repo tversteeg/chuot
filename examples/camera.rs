@@ -19,7 +19,7 @@
 use chuot::{Config, Context, Game, KeyCode, MouseButton};
 
 /// How fast the "player" moves.
-const PLAYER_SPEED: f32 = 50.0;
+const PLAYER_SPEED: f32 = 90.0;
 
 /// Define a game state for our example.
 #[derive(Default)]
@@ -28,11 +28,19 @@ struct GameState {
     player_x: f32,
     /// Simulate the vertical player movement, the camera will follow this.
     player_y: f32,
+    /// Previous horizontal position, for smooth rendering.
+    previous_player_x: f32,
+    /// Previous vertical position, for smooth rendering.
+    previous_player_y: f32,
 }
 
 impl Game for GameState {
     /// Move the "player" around with keyboard input.
     fn update(&mut self, ctx: Context) {
+        // Set the previous position before updating the current one
+        self.previous_player_x = self.player_x;
+        self.previous_player_y = self.player_y;
+
         // Move left on left arrow or 'a' key
         if ctx.key_held(KeyCode::ArrowLeft) || ctx.key_held(KeyCode::KeyA) {
             self.player_x -= PLAYER_SPEED * ctx.delta_time();
@@ -57,7 +65,7 @@ impl Game for GameState {
         if let Some((mouse_x, mouse_y)) = ctx.mouse() {
             if ctx.mouse_pressed(MouseButton::Left) {
                 // Horizontal mouse is the duration, vertical mouse the force
-                ctx.main_camera().shake(1.0, mouse_x / 10.0, mouse_y / 2.0);
+                ctx.main_camera().shake(1.0, mouse_x / 10.0, mouse_y / 4.0);
             }
         }
     }
@@ -82,6 +90,11 @@ impl Game for GameState {
             // Make the sprite move, the camera will follow it
             .translate_x(self.player_x)
             .translate_y(self.player_y)
+            // Make the sprite render smoothly by interpolating based on the render blending factor,
+            // this is applicable when there's multiple update tick calls in a single render tick,
+            // if we don't do this the player will move in a jittery motion
+            .translate_previous_x(self.previous_player_x)
+            .translate_previous_y(self.previous_player_y)
             // Draw the sprite on the screen
             .draw();
 
@@ -90,13 +103,13 @@ impl Game for GameState {
             format!(
                 "Arrow keys to move\n\nClick to shake camera:\n- Duration:  1.00 s\n- Amplitude: {:.2} px\n- Frequency: {:.2} hz",
                 mouse_x / 10.0,
-                mouse_y / 2.0,
+                mouse_y / 4.0,
             )
         } else {
             "Arrow keys to move\n\nClick to shake camera".to_owned()
         };
 
-        ctx.text("Beachball", &instructions).draw();
+        ctx.text("Beachball", &instructions).use_ui_camera().draw();
     }
 
     /// Setup the camera.
@@ -104,7 +117,7 @@ impl Game for GameState {
         // Follow the camera slowly horizontally
         ctx.main_camera().set_lerp_x(0.1);
         // Follow the camera quickly vertically
-        ctx.main_camera().set_lerp_y(0.8);
+        ctx.main_camera().set_lerp_y(0.5);
     }
 }
 
