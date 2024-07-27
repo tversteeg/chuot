@@ -167,10 +167,3 @@ This doesn't apply any extra rotation effects.
 ##### Scale2x
 
 ![Scale2x](./img/scale2x.png)
-
-#### Credits
-
-- [Torcado](https://torcado.com/cleanEdge/) for the awesome cleanEdge algorithm.
-- [gtoknu](https://www.shadertoy.com/view/4l2SRz) for the branchless scale2x shader.
-- [@damieng](https://damieng.com/typography/zx-origins/beachball/) for the font behind the `default-font` feature.
-- [KenneyNL](https://kenney.nl/assets/ui-audio) for the audio sample in the example.
