@@ -2,6 +2,7 @@
 
 pub mod audio;
 pub mod camera;
+pub mod extensions;
 pub mod sprite;
 pub mod text;
 

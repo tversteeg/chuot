@@ -1,8 +1,8 @@
 # Assets
 
 - [`assets/Beachball.png`] - https://damieng.com/typography/zx-origins/beachball/
-- [`assets/threeforms.png`] - https://opengameart.org/content/bosses-and-monsters-spritesheets-ars-notoria
-- [`assets/switch31`] - https://kenney.nl/assets/ui-audio
+- [`assets/threeforms{,_animation}.png`] - https://opengameart.org/content/bosses-and-monsters-spritesheets-ars-notoria
+- [`assets/switch31.ogg`] - https://kenney.nl/assets/ui-audio
 
 # Shaders
 
