@@ -1,4 +1,4 @@
-//! Show how to draw a sprite.
+//! Show how to draw a sprite from a sprite sheet.
 //!
 //! The `threeforms.png` sprite image for this example is:
 //! {{ img(src="/assets/threeforms.png" alt="Sprite") }}
@@ -7,7 +7,7 @@
 //! (offset: Middle)
 //! ```
 
-use chuot::{Config, Context, Draw, Game};
+use chuot::{Config, Context, Game};
 
 /// Define a game state for our example.
 struct GameState;

@@ -77,6 +77,14 @@ impl Sprite {
             .collect()
     }
 
+    /// Get the sprite offset based on the metadata.
+    #[inline]
+    pub(crate) fn offset(&self) -> (f32, f32) {
+        self.metadata
+            .offset
+            .offset(self.sub_rectangle.2, self.sub_rectangle.3)
+    }
+
     /// Calculate the transformation matrix.
     #[inline]
     #[allow(clippy::too_many_arguments)]

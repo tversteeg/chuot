@@ -164,7 +164,16 @@ pub use assets::source::AssetSource;
 /// ```
 pub use chuot_macros::load_assets;
 pub use config::Config;
-pub use context::Context;
+pub use context::{
+    extensions::{
+        camera::Camera,
+        draw::Draw,
+        rotate::Rotate,
+        scale::Scale,
+        translate::{Translate, TranslatePrevious},
+    },
+    Context,
+};
 /// Re-exported [`gilrs`](https://docs.rs/gilrs) type.
 pub use gilrs::ev::{Axis as GamepadAxis, Button as GamepadButton};
 pub use math::lerp;

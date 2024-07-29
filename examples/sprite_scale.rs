@@ -7,7 +7,7 @@
 //! (offset: Middle)
 //! ```
 
-use chuot::{config::RotationAlgorithm, Config, Context, Game};
+use chuot::{config::RotationAlgorithm, Config, Context, Draw, Game, Scale};
 
 /// How much we will scale with the mouse.
 const SCALE_FACTOR: f32 = 50.0;

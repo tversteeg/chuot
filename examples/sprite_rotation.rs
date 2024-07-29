@@ -7,7 +7,7 @@
 //! (offset: Middle)
 //! ```
 
-use chuot::{config::RotationAlgorithm, Config, Context, Game};
+use chuot::{config::RotationAlgorithm, Config, Context, Draw, Game, Rotate};
 
 /// Define a game state for our example.
 #[derive(Default)]
@@ -27,7 +27,6 @@ impl Game for GameState {
     fn render(&mut self, ctx: Context) {
         // Draw the rotated sprite
         ctx.sprite("threeforms")
-
             // Rotate it
             .rotate(self.rotation)
             .draw();
