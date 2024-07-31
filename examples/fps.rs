@@ -8,7 +8,7 @@
 //! (glyph_width: 10,  glyph_height: 10)
 //! ```
 
-use chuot::{Config, Context, Draw, Game, Translate};
+use chuot::{Config, Context, Game};
 
 /// Define a game state for our example.
 #[derive(Default)]

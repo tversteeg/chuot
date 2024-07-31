@@ -7,7 +7,7 @@
 //! (offset: Middle)
 //! ```
 
-use chuot::{Config, Context, Draw, Game};
+use chuot::{Config, Context, Game};
 
 /// Define a game state for our example.
 struct GameState;

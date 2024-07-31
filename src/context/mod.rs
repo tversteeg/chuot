@@ -2,7 +2,7 @@
 
 pub mod audio;
 pub mod camera;
-pub mod extensions;
+pub(crate) mod extensions;
 pub mod sprite;
 pub mod text;
 

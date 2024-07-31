@@ -7,7 +7,7 @@
 //! (offset: Middle)
 //! ```
 
-use chuot::{config::RotationAlgorithm, Config, Context, Draw, Game, Rotate};
+use chuot::{config::RotationAlgorithm, Config, Context, Game};
 
 /// Define a game state for our example.
 #[derive(Default)]
