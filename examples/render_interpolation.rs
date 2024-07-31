@@ -46,15 +46,15 @@ impl Game for GameState {
             .translate_y(self.y);
 
         if self.interpolate {
-            // Interpolate with the blending factor to create a smooth transition
+            // Draw with interpolating with the blending factor to create a smooth transition
             sprite
                 .translate_previous_x(self.previous_x)
                 .translate_previous_y(self.previous_y)
+                .draw();
         } else {
             // Draw the sprite following the mouse without interpolation
-            sprite
+            sprite.draw();
         }
-        .draw();
 
         // Draw a basic FPS counter
         ctx.text("Beachball", &format!("{:.1}", ctx.frames_per_second()))

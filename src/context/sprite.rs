@@ -1,44 +1,24 @@
 //! Zero-cost abstraction types for building more complicated sprite drawing constructions.
 
-use std::{marker::PhantomData, rc::Rc};
+use std::{convert::Into, marker::PhantomData, rc::Rc};
 
 use glam::Affine2;
 use rgb::RGBA8;
 
-use crate::{
-    assets::{loadable::sprite::Sprite, Id},
-    Camera, Context, Draw, Rotate, Scale, Translate, TranslatePrevious,
-};
-
 use super::{
     extensions::{
         camera::{IsUiCamera, MainCamera, UiCamera},
-        rotate::Rotation,
-        scale::Scaling,
-        translate::{PreviousTranslation, Translation},
+        rotate::{Rotate, Rotation},
+        scale::{Scale, Scaling},
+        translate::{PreviousTranslation, Translate, TranslatePrevious, Translation},
         Empty,
     },
     ContextInner,
 };
-
-/// With translation, ensures the type is used properly.
-type WithTranslation<'path, 'ctx, P, R, S, C> = SpriteContext<'path, 'ctx, Translation, P, R, S, C>;
-/// Without translation, ensures the type is used properly.
-type WithoutTranslation<'path, 'ctx, P, R, S, C> = SpriteContext<'path, 'ctx, Empty, P, R, S, C>;
-/// With previous translation, ensures the type is used properly.
-type WithPreviousTranslation<'path, 'ctx, T, R, S, C> =
-    SpriteContext<'path, 'ctx, T, PreviousTranslation, R, S, C>;
-/// Without previous translation, ensures the type is used properly.
-type WithoutPreviousTranslation<'path, 'ctx, T, R, S, C> =
-    SpriteContext<'path, 'ctx, T, Empty, R, S, C>;
-/// With rotation, ensures the type is used properly.
-type WithRotation<'path, 'ctx, T, P, S, C> = SpriteContext<'path, 'ctx, T, P, Rotation, S, C>;
-/// Without previous translation, ensures the type is used properly.
-type WithoutRotation<'path, 'ctx, T, P, S, C> = SpriteContext<'path, 'ctx, T, P, Empty, S, C>;
-/// With rotation, ensures the type is used properly.
-type WithScaling<'path, 'ctx, T, P, R, C> = SpriteContext<'path, 'ctx, T, P, R, Scaling, C>;
-/// Without previous translation, ensures the type is used properly.
-type WithoutScaling<'path, 'ctx, T, P, R, C> = SpriteContext<'path, 'ctx, T, P, R, Empty, C>;
+use crate::{
+    assets::{loadable::sprite::Sprite, Id},
+    Context,
+};
 
 /// Specify how a sprite should be drawn.
 ///
@@ -62,92 +42,205 @@ pub struct SpriteContext<'path, 'ctx, T, P, R, S, C> {
     pub(crate) phantom: PhantomData<C>,
 }
 
-impl<'path, 'ctx, T, P, R, S, C: IsUiCamera> SpriteContext<'path, 'ctx, T, P, R, S, C> {
-    /// Optimized way to draw the sprite multiple times with a translation added to each.
-    ///
-    /// Calling [`Self::translate`] and/or [`Self::rotate`] before this method will create a base matrix onto which each item translation is applied afterwards.
-    /// This allows you to easily draw thousands of sprites, perfect for particle effects.
-    ///
-    /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
+impl<'path, 'ctx, T: Translate, P: TranslatePrevious, R: Rotate, S: Scale, C: IsUiCamera>
+    SpriteContext<'path, 'ctx, T, P, R, S, C>
+{
+    /// Only move the horizontal position.
     ///
     /// # Arguments
     ///
-    /// * `translations` - Iterator of translation `(x, y)` tuple offsets, will draw each item as a sprite at the base position with the offset applied.
-    ///
-    /// # Panics
-    ///
-    /// - When asset failed loading.
-    ///
-    /// # Example
-    ///
-    /// This example runs on my PC with an average FPS of 35 when rendering 100000 sprites:
-    ///
-    /// ```no_run
-    /// # fn call(ctx: chuot::Context) {
-    /// ctx.sprite("some_asset")
-    ///     .draw_multiple_translated((0..10).map(|x| (x as f32, 0.0)));
-    /// # }
-    /// ```
-    ///
-    /// It's functionally the same as:
-    ///
-    /// ```no_run
-    /// # fn call(ctx: chuot::Context) {
-    /// for x in 0..10 {
-    ///     ctx.sprite("some_asset").translate_x(x as f32).draw();
-    /// }
-    /// # }
-    /// ```
-    ///
-    /// But the second example runs on my PC with an average FPS of 11 when rendering 100000 sprites.
+    /// * `x` - Horizontal position on the buffer in pixels.
     #[inline(always)]
-    pub fn draw_multiple_translated<I>(self, translations: impl Iterator<Item = I>)
-    where
-        I: Into<(f32, f32)>,
-    {
-        todo!()
-        /*
-        self.ctx.write(|ctx| {
-            // Push the instance if the texture is already uploaded
-            let sprite = ctx.sprite(self.path);
+    #[must_use]
+    pub fn translate_x(self, x: f32) -> SpriteContext<'path, 'ctx, Translation, P, R, S, C> {
+        self.translate_impl((x, 0.0))
+    }
 
-            // Get the camera to draw the sprites with
-            let camera = ctx.camera_mut(self.ui_camera);
-            let offset_x = camera.offset_x();
-            let offset_y = camera.offset_y();
+    /// Only move the vertical position.
+    ///
+    /// # Arguments
+    ///
+    /// * `y` - Vertical position on the buffer in pixels.
+    #[inline(always)]
+    #[must_use]
+    pub fn translate_y(self, y: f32) -> SpriteContext<'path, 'ctx, Translation, P, R, S, C> {
+        self.translate_impl((0.0, y))
+    }
 
-            // Create the affine matrix
-            let affine_matrix = sprite.affine_matrix(
-                self.x + offset_x,
-                self.y + offset_y,
-                self.previous_x + offset_x,
-                self.previous_y + offset_y,
-                ctx.blending_factor,
-                self.blend,
-                self.rotation,
-                self.scale_x,
-                self.scale_y,
-            );
+    /// Move the position.
+    ///
+    /// # Arguments
+    ///
+    /// * `(x, y)` - Position tuple on the buffer in pixels.
+    #[inline]
+    #[must_use]
+    pub fn translate(
+        self,
+        position: impl Into<(f32, f32)>,
+    ) -> SpriteContext<'path, 'ctx, Translation, P, R, S, C> {
+        self.translate_impl(position.into())
+    }
 
-            // Push the graphics
-            ctx.graphics
-                .instances
-                .extend(translations.map(|translation| {
-                    let (x_offset, y_offset) = translation.into();
+    /// Only move the previous horizontal position for smooth rendering based on the blending factor.
+    ///
+    /// This only makes sense to call when there's multiple update ticks in a single render tick.
+    ///
+    /// Calculated as:
+    ///
+    /// ```
+    /// # fn func(x: f32, previous_x: f32, ctx: chuot::Context) -> f32{
+    /// chuot::lerp(previous_x, x, ctx.blending_factor())
+    /// # }
+    /// ```
+    ///
+    /// # Arguments
+    ///
+    /// * `previous_x` - Horizontal position in the previous update tick on the buffer in pixels, will be offset by the sprite offset metadata.
+    #[inline(always)]
+    #[must_use]
+    pub fn translate_previous_x(
+        self,
+        previous_x: f32,
+    ) -> SpriteContext<'path, 'ctx, T, PreviousTranslation, R, S, C> {
+        self.translate_previous_impl((previous_x, 0.0))
+    }
 
-                    // Copy the matrix
-                    let mut affine_matrix_with_offset = affine_matrix;
-                    affine_matrix_with_offset.translation.x += x_offset;
-                    affine_matrix_with_offset.translation.y += y_offset;
+    /// Only move the previous vertical position for smooth rendering based on the blending factor.
+    ///
+    /// This only makes sense to call when there's multiple update ticks in a single render tick.
+    ///
+    /// Calculated as:
+    ///
+    /// ```
+    /// # fn func(y: f32, previous_y: f32, ctx: chuot::Context) -> f32{
+    /// chuot::lerp(previous_y, y, ctx.blending_factor())
+    /// # }
+    /// ```
+    ///
+    /// # Arguments
+    ///
+    /// * `previous_y` - Vertical position in the previous update tick on the buffer in pixels, will be offset by the sprite offset metadata.
+    #[inline(always)]
+    #[must_use]
+    pub fn translate_previous_y(
+        self,
+        previous_y: f32,
+    ) -> SpriteContext<'path, 'ctx, T, PreviousTranslation, R, S, C> {
+        self.translate_previous_impl((0.0, previous_y))
+    }
 
-                    (
-                        affine_matrix_with_offset,
-                        sprite.sub_rectangle,
-                        sprite.texture,
-                    )
-                }));
-        });
-        */
+    /// Move the previous position for smooth rendering based on the blending factor.
+    ///
+    /// This only makes sense to call when there's multiple update ticks in a single render tick.
+    ///
+    /// Calculated as:
+    ///
+    /// ```
+    /// # fn func(x: f32, y: f32, previous_x: f32, previous_y: f32, ctx: chuot::Context) -> (f32, f32) {(
+    /// chuot::lerp(previous_x, x, ctx.blending_factor()),
+    /// chuot::lerp(previous_y, y, ctx.blending_factor())
+    /// # )}
+    /// ```
+    ///
+    /// # Arguments
+    ///
+    /// * `(previous_x, previous_y)` - Position tuple in the previous update tick on the buffer in pixels, will be offset by the sprite offset metadata.
+    #[inline(always)]
+    #[must_use]
+    pub fn translate_previous(
+        self,
+        previous_position: impl Into<(f32, f32)>,
+    ) -> SpriteContext<'path, 'ctx, T, PreviousTranslation, R, S, C> {
+        self.translate_previous_impl(previous_position.into())
+    }
+
+    /// Only scale the horizontal size.
+    ///
+    /// # Arguments
+    ///
+    /// * `scale_x` - Horizontal scale on the buffer. `-1.0` to flip.
+    #[inline(always)]
+    #[must_use]
+    pub fn scale_x(self, scale_x: f32) -> SpriteContext<'path, 'ctx, T, P, R, Scaling, C> {
+        self.scale_impl((scale_x, 0.0))
+    }
+
+    /// Only move the vertical position.
+    ///
+    /// # Arguments
+    ///
+    /// * `scale_y` - Vertical scale on the buffer. `-1.0` to flip.
+    #[inline(always)]
+    #[must_use]
+    pub fn scale_y(self, scale_y: f32) -> SpriteContext<'path, 'ctx, T, P, R, Scaling, C> {
+        self.scale_impl((0.0, scale_y))
+    }
+
+    /// Move the position.
+    ///
+    /// # Arguments
+    ///
+    /// * `(scale_x, scale_y)` - Scale tuple on the buffer.
+    #[inline]
+    #[must_use]
+    pub fn scale(
+        self,
+        scale: impl Into<(f32, f32)>,
+    ) -> SpriteContext<'path, 'ctx, T, P, R, Scaling, C> {
+        self.scale_impl(scale.into())
+    }
+
+    /// Rotate.
+    ///
+    /// Rotation will always be applied before translation, this mean it will always rotate around the center point specified in the sprite offset metadata.
+    ///
+    /// # Arguments
+    ///
+    /// * `rotation` - Rotation in radians, will be applied using the algorithm passed in [`crate::config::Config::with_rotation_algorithm`].
+    #[inline]
+    #[must_use]
+    pub fn rotate(self, rotation: f32) -> SpriteContext<'path, 'ctx, T, P, Rotation, S, C> {
+        let rotation = self.rotation.inner_rotate(rotation);
+
+        SpriteContext {
+            path: self.path,
+            ctx: self.ctx,
+            translation: self.translation,
+            rotation,
+            scaling: self.scaling,
+            previous_translation: self.previous_translation,
+            phantom: PhantomData,
+        }
+    }
+
+    /// Use the UI camera instead of the regular game camera for transforming the drawable object.
+    #[inline]
+    #[must_use]
+    pub fn use_ui_camera(self) -> SpriteContext<'path, 'ctx, T, P, R, S, UiCamera> {
+        SpriteContext {
+            path: self.path,
+            ctx: self.ctx,
+            translation: self.translation,
+            previous_translation: self.previous_translation,
+            rotation: self.rotation,
+            scaling: self.scaling,
+            phantom: PhantomData,
+        }
+    }
+
+    /// Use the regular game camera instead of the UI camera for transforming the drawable object.
+    #[inline]
+    #[must_use]
+    pub fn use_main_camera(self) -> SpriteContext<'path, 'ctx, T, P, R, S, MainCamera> {
+        SpriteContext {
+            path: self.path,
+            ctx: self.ctx,
+            translation: self.translation,
+            previous_translation: self.previous_translation,
+            rotation: self.rotation,
+            scaling: self.scaling,
+            phantom: PhantomData,
+        }
     }
 
     /// Create a new empty sprite at runtime.
@@ -288,22 +381,22 @@ impl<'path, 'ctx, T, P, R, S, C: IsUiCamera> SpriteContext<'path, 'ctx, T, P, R,
     }
 
     /// Draw a single item.
-    fn draw_single(
+    fn draw_impl(
         self,
-        DrawSingleArgs {
+        DrawArgs {
             translation,
             previous_translation,
             rotation,
-            scale,
+            scaling,
             blend,
-        }: DrawSingleArgs,
+        }: DrawArgs,
     ) {
         self.ctx.write(|ctx| {
             // Push the instance if the texture is already uploaded
             let sprite = ctx.sprite(self.path);
 
             // Get the camera to draw the sprite with
-            let camera = ctx.camera_mut(false);
+            let camera = ctx.camera(C::is_ui_camera());
             let offset_x = camera.offset_x();
             let offset_y = camera.offset_y();
 
@@ -316,8 +409,8 @@ impl<'path, 'ctx, T, P, R, S, C: IsUiCamera> SpriteContext<'path, 'ctx, T, P, R,
                 ctx.blending_factor,
                 blend,
                 rotation.0,
-                scale.scale_x,
-                scale.scale_y,
+                scaling.scale_x,
+                scaling.scale_y,
             );
 
             // Push the graphics
@@ -326,172 +419,130 @@ impl<'path, 'ctx, T, P, R, S, C: IsUiCamera> SpriteContext<'path, 'ctx, T, P, R,
                 .push(affine_matrix, sprite.sub_rectangle, sprite.texture);
         });
     }
-}
 
-/// No translation yet.
-impl<'path, 'ctx, P, R, S, C> Translate for WithoutTranslation<'path, 'ctx, P, R, S, C> {
-    type Into = WithTranslation<'path, 'ctx, P, R, S, C>;
+    /// Draw multiple items.
+    fn draw_multiple_translated_impl(
+        self,
+        DrawArgs {
+            translation,
+            previous_translation,
+            rotation,
+            scaling,
+            blend,
+        }: DrawArgs,
+        translations: impl Iterator<Item = (f32, f32)>,
+    ) {
+        self.ctx.write(|ctx| {
+            // Push the instance if the texture is already uploaded
+            let sprite = ctx.sprite(self.path);
 
+            // Get the camera to draw the sprite with
+            let camera = ctx.camera(C::is_ui_camera());
+            let offset_x = camera.offset_x();
+            let offset_y = camera.offset_y();
+
+            // Create the affine matrix
+            let affine_matrix = sprite.affine_matrix(
+                translation.x + offset_x,
+                translation.y + offset_y,
+                previous_translation.previous_x + offset_x,
+                previous_translation.previous_y + offset_y,
+                ctx.blending_factor,
+                blend,
+                rotation.0,
+                scaling.scale_x,
+                scaling.scale_y,
+            );
+
+            // Push the graphics
+            ctx.graphics
+                .instances
+                .extend(translations.map(|(x_offset, y_offset)| {
+                    // Copy the matrix
+                    let mut affine_matrix_with_offset = affine_matrix;
+                    affine_matrix_with_offset.translation.x += x_offset;
+                    affine_matrix_with_offset.translation.y += y_offset;
+
+                    (
+                        affine_matrix_with_offset,
+                        sprite.sub_rectangle,
+                        sprite.texture,
+                    )
+                }));
+        });
+    }
+
+    /// Perform the translation with the type.
     #[inline]
-    fn inner_translate(self, translation: (f32, f32)) -> Self::Into {
-        Self::Into {
+    #[must_use]
+    fn translate_impl(
+        self,
+        position: (f32, f32),
+    ) -> SpriteContext<'path, 'ctx, Translation, P, R, S, C> {
+        let translation = self.translation.inner_translate(position);
+
+        SpriteContext {
             path: self.path,
             ctx: self.ctx,
-            translation: Translation::new(translation),
+            translation,
             previous_translation: self.previous_translation,
             rotation: self.rotation,
             scaling: self.scaling,
             phantom: PhantomData,
         }
     }
-}
 
-/// Already has translation.
-impl<'path, 'ctx, P, R, S, C> Translate for WithTranslation<'path, 'ctx, P, R, S, C> {
-    type Into = Self;
-
+    /// Perform the previous translation with the type.
     #[inline]
-    fn inner_translate(mut self, translation: (f32, f32)) -> Self::Into {
-        self.translation = self.translation.inner_translate(translation);
-
-        self
-    }
-}
-
-/// No previous translation yet.
-impl<'path, 'ctx, T, R, S, C> TranslatePrevious
-    for WithoutPreviousTranslation<'path, 'ctx, T, R, S, C>
-{
-    type Into = WithPreviousTranslation<'path, 'ctx, T, R, S, C>;
-
-    #[inline]
-    fn inner_translate_previous(self, translation: (f32, f32)) -> Self::Into {
-        Self::Into {
-            path: self.path,
-            ctx: self.ctx,
-            translation: self.translation,
-            previous_translation: PreviousTranslation::new(translation),
-            rotation: self.rotation,
-            scaling: self.scaling,
-            phantom: PhantomData,
-        }
-    }
-}
-
-/// Already has previous translation.
-impl<'path, 'ctx, T, R, S, C> TranslatePrevious
-    for WithPreviousTranslation<'path, 'ctx, T, R, S, C>
-{
-    type Into = Self;
-
-    #[inline]
-    fn inner_translate_previous(mut self, previous_translation: (f32, f32)) -> Self::Into {
-        self.previous_translation = self
+    #[must_use]
+    fn translate_previous_impl(
+        self,
+        previous_position: (f32, f32),
+    ) -> SpriteContext<'path, 'ctx, T, PreviousTranslation, R, S, C> {
+        let previous_translation = self
             .previous_translation
-            .inner_translate_previous(previous_translation);
+            .inner_translate_previous(previous_position);
 
-        self
-    }
-}
-
-/// No rotation yet.
-impl<'path, 'ctx, T, P, S, C> Rotate for WithoutRotation<'path, 'ctx, T, P, S, C> {
-    type Into = WithRotation<'path, 'ctx, T, P, S, C>;
-
-    #[inline]
-    fn rotate(self, rotation: f32) -> Self::Into {
-        Self::Into {
+        SpriteContext {
             path: self.path,
             ctx: self.ctx,
             translation: self.translation,
-            previous_translation: self.previous_translation,
-            rotation: Rotation(rotation),
+            rotation: self.rotation,
             scaling: self.scaling,
+            previous_translation,
             phantom: PhantomData,
         }
     }
-}
 
-/// Already has rotation.
-impl<'path, 'ctx, T, P, S, C> Rotate for WithRotation<'path, 'ctx, T, P, S, C> {
-    type Into = Self;
-
+    /// Perform the translation with the type.
     #[inline]
-    fn rotate(mut self, rotation: f32) -> Self::Into {
-        self.rotation = self.rotation.rotate(rotation);
+    #[must_use]
+    fn scale_impl(self, scale: (f32, f32)) -> SpriteContext<'path, 'ctx, T, P, R, Scaling, C> {
+        let scaling = self.scaling.inner_scale(scale);
 
-        self
-    }
-}
-
-/// No translation yet.
-impl<'path, 'ctx, T, P, R, C> Scale for WithoutScaling<'path, 'ctx, T, P, R, C> {
-    type Into = WithScaling<'path, 'ctx, T, P, R, C>;
-
-    #[inline]
-    fn inner_scale(self, scaling: (f32, f32)) -> Self::Into {
-        Self::Into {
+        SpriteContext {
             path: self.path,
             ctx: self.ctx,
             translation: self.translation,
             previous_translation: self.previous_translation,
             rotation: self.rotation,
-            scaling: Scaling::new(scaling),
-            phantom: PhantomData,
-        }
-    }
-}
-
-/// Already has translation.
-impl<'path, 'ctx, T, P, R, C> Scale for WithScaling<'path, 'ctx, T, P, R, C> {
-    type Into = Self;
-
-    #[inline]
-    fn inner_scale(mut self, scaling: (f32, f32)) -> Self::Into {
-        self.scaling = self.scaling.inner_scale(scaling);
-
-        self
-    }
-}
-
-/// Select the camera.
-impl<'path, 'ctx, T, P, R, S, C> Camera for SpriteContext<'path, 'ctx, T, P, R, S, C> {
-    type IntoUi = SpriteContext<'path, 'ctx, T, P, R, S, UiCamera>;
-    type IntoMain = SpriteContext<'path, 'ctx, T, P, R, S, MainCamera>;
-
-    #[inline]
-    fn use_ui_camera(self) -> Self::IntoUi {
-        Self::IntoUi {
-            path: self.path,
-            ctx: self.ctx,
-            translation: self.translation,
-            previous_translation: self.previous_translation,
-            rotation: self.rotation,
-            scaling: self.scaling,
-            phantom: PhantomData,
-        }
-    }
-
-    #[inline]
-    fn use_main_camera(self) -> Self::IntoMain {
-        Self::IntoMain {
-            path: self.path,
-            ctx: self.ctx,
-            translation: self.translation,
-            previous_translation: self.previous_translation,
-            rotation: self.rotation,
-            scaling: self.scaling,
+            scaling,
             phantom: PhantomData,
         }
     }
 }
 
 /// Nothing.
-impl<'path, 'ctx, C: IsUiCamera> Draw
-    for SpriteContext<'path, 'ctx, Empty, Empty, Empty, Empty, C>
-{
+impl<'path, 'ctx, C: IsUiCamera> SpriteContext<'path, 'ctx, Empty, Empty, Empty, Empty, C> {
+    /// Draw the sprite to the screen at the zero coordinate of the camera.
+    ///
+    /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
     #[inline]
-    fn draw(self) {
+    pub fn draw(self) {
         self.ctx.write(|ctx| {
             let (sprite, affine_matrix) =
                 ctx.sprite_with_base_affine_matrix(self.path, C::is_ui_camera());
@@ -502,14 +553,65 @@ impl<'path, 'ctx, C: IsUiCamera> Draw
                 .push(affine_matrix, sprite.sub_rectangle, sprite.texture);
         });
     }
+
+    /// Optimized way to draw the sprite multiple times with a translation added to each.
+    ///
+    /// Calling [`Self::translate`] and/or [`Self::rotate`] before this method will create a base matrix onto which each item translation is applied afterwards.
+    /// This allows you to easily draw thousands of sprites, perfect for particle effects.
+    ///
+    /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
+    ///
+    /// # Arguments
+    ///
+    /// * `translations` - Iterator of translation `(x, y)` tuple offsets, will draw each item as a sprite at the base position with the offset applied.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
+    ///
+    /// # Example
+    ///
+    /// This example runs on my PC with an average FPS of 35 when rendering 100000 sprites:
+    ///
+    /// ```no_run
+    /// # fn call(ctx: chuot::Context) {
+    /// ctx.sprite("some_asset")
+    ///     .draw_multiple_translated((0..10).map(|x| (x as f32, 0.0)));
+    /// # }
+    /// ```
+    ///
+    /// It's functionally the same as:
+    ///
+    /// ```no_run
+    /// # fn call(ctx: chuot::Context) {
+    /// for x in 0..10 {
+    ///     ctx.sprite("some_asset").translate_x(x as f32).draw();
+    /// }
+    /// # }
+    /// ```
+    ///
+    /// But the second example runs on my PC with an average FPS of 11 when rendering 100000 sprites.
+    #[inline]
+    pub fn draw_multiple_translated<I>(self, translations: impl Iterator<Item = I>)
+    where
+        I: Into<(f32, f32)>,
+    {
+        // TODO: optimize using affine matrix base
+        self.draw_multiple_translated_impl(DrawArgs::default(), translations.map(Into::into));
+    }
 }
 
 /// Only translation.
-impl<'path, 'ctx, C: IsUiCamera> Draw
-    for SpriteContext<'path, 'ctx, Translation, Empty, Empty, Empty, C>
-{
+impl<'path, 'ctx, C: IsUiCamera> SpriteContext<'path, 'ctx, Translation, Empty, Empty, Empty, C> {
+    /// Draw the sprite to the screen.
+    ///
+    /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
     #[inline]
-    fn draw(self) {
+    pub fn draw(self) {
         self.ctx.write(|ctx| {
             let (sprite, mut affine_matrix) =
                 ctx.sprite_with_base_affine_matrix(self.path, C::is_ui_camera());
@@ -524,56 +626,90 @@ impl<'path, 'ctx, C: IsUiCamera> Draw
                 .push(affine_matrix, sprite.sub_rectangle, sprite.texture);
         });
     }
-}
 
-/// Only rotation.
-impl<'path, 'ctx, C: IsUiCamera> Draw
-    for SpriteContext<'path, 'ctx, Empty, Empty, Rotation, Empty, C>
-{
+    /// Optimized way to draw the sprite multiple times with a translation added to each.
+    ///
+    /// Calling [`Self::translate`] and/or [`Self::rotate`] before this method will create a base matrix onto which each item translation is applied afterwards.
+    /// This allows you to easily draw thousands of sprites, perfect for particle effects.
+    ///
+    /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
+    ///
+    /// # Arguments
+    ///
+    /// * `translations` - Iterator of translation `(x, y)` tuple offsets, will draw each item as a sprite at the base position with the offset applied.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
+    ///
+    /// # Example
+    ///
+    /// This example runs on my PC with an average FPS of 35 when rendering 100000 sprites:
+    ///
+    /// ```no_run
+    /// # fn call(ctx: chuot::Context) {
+    /// ctx.sprite("some_asset")
+    ///     .draw_multiple_translated((0..10).map(|x| (x as f32, 0.0)));
+    /// # }
+    /// ```
+    ///
+    /// It's functionally the same as:
+    ///
+    /// ```no_run
+    /// # fn call(ctx: chuot::Context) {
+    /// for x in 0..10 {
+    ///     ctx.sprite("some_asset").translate_x(x as f32).draw();
+    /// }
+    /// # }
+    /// ```
+    ///
+    /// But the second example runs on my PC with an average FPS of 11 when rendering 100000 sprites.
     #[inline]
-    fn draw(self) {
-        let rotation = self.rotation;
-
-        // TODO: optimize using affine matrix base
-        self.draw_single(DrawSingleArgs {
-            rotation,
-            ..Default::default()
-        });
-    }
-}
-
-/// Translation and rotation.
-impl<'path, 'ctx, C: IsUiCamera> Draw
-    for SpriteContext<'path, 'ctx, Translation, Empty, Rotation, Empty, C>
-{
-    #[inline]
-    fn draw(self) {
+    pub fn draw_multiple_translated<I>(self, translations: impl Iterator<Item = I>)
+    where
+        I: Into<(f32, f32)>,
+    {
         let translation = self.translation;
-        let rotation = self.rotation;
 
         // TODO: optimize using affine matrix base
-        self.draw_single(DrawSingleArgs {
-            translation,
-            rotation,
-            ..Default::default()
-        });
+        self.draw_multiple_translated_impl(
+            DrawArgs {
+                translation,
+                ..Default::default()
+            },
+            translations.map(Into::into),
+        );
     }
 }
 
-/*
-
-impl<'path, 'ctx> Draw for WithTranslation<SpriteContext<'path, 'ctx>, WithTranslationPrevious> {
+/// Translation and previous translation.
+impl<'path, 'ctx, C: IsUiCamera>
+    SpriteContext<'path, 'ctx, Translation, PreviousTranslation, Empty, Empty, C>
+{
+    /// Draw the sprite to the screen, interpolating the position in the render step.
+    ///
+    /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
     #[inline]
-    fn draw(self) {
-        self.base.ctx.write(|ctx| {
+    pub fn draw(self) {
+        self.ctx.write(|ctx| {
             let (sprite, mut affine_matrix) =
-                ctx.sprite_with_base_affine_matrix(self.base.path, false);
+                ctx.sprite_with_base_affine_matrix(self.path, C::is_ui_camera());
 
             // Translate the coordinates
-            affine_matrix.translation.x +=
-                crate::math::lerp(self.previous.previous_x, self.x, ctx.blending_factor);
-            affine_matrix.translation.y +=
-                crate::math::lerp(self.previous.previous_y, self.y, ctx.blending_factor);
+            affine_matrix.translation.x += crate::math::lerp(
+                self.previous_translation.previous_x,
+                self.translation.x,
+                ctx.blending_factor,
+            );
+            affine_matrix.translation.y += crate::math::lerp(
+                self.previous_translation.previous_y,
+                self.translation.y,
+                ctx.blending_factor,
+            );
 
             // Push the graphics
             ctx.graphics
@@ -581,94 +717,809 @@ impl<'path, 'ctx> Draw for WithTranslation<SpriteContext<'path, 'ctx>, WithTrans
                 .push(affine_matrix, sprite.sub_rectangle, sprite.texture);
         });
     }
-}
 
-impl<'path, 'ctx> Draw for WithRotation<SpriteContext<'path, 'ctx>> {
+    /// Optimized way to draw the sprite multiple times with a translation added to each.
+    ///
+    /// Calling [`Self::translate`] and/or [`Self::rotate`] before this method will create a base matrix onto which each item translation is applied afterwards.
+    /// This allows you to easily draw thousands of sprites, perfect for particle effects.
+    ///
+    /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
+    ///
+    /// # Arguments
+    ///
+    /// * `translations` - Iterator of translation `(x, y)` tuple offsets, will draw each item as a sprite at the base position with the offset applied.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
+    ///
+    /// # Example
+    ///
+    /// This example runs on my PC with an average FPS of 35 when rendering 100000 sprites:
+    ///
+    /// ```no_run
+    /// # fn call(ctx: chuot::Context) {
+    /// ctx.sprite("some_asset")
+    ///     .draw_multiple_translated((0..10).map(|x| (x as f32, 0.0)));
+    /// # }
+    /// ```
+    ///
+    /// It's functionally the same as:
+    ///
+    /// ```no_run
+    /// # fn call(ctx: chuot::Context) {
+    /// for x in 0..10 {
+    ///     ctx.sprite("some_asset").translate_x(x as f32).draw();
+    /// }
+    /// # }
+    /// ```
+    ///
+    /// But the second example runs on my PC with an average FPS of 11 when rendering 100000 sprites.
     #[inline]
-    fn draw(self) {
+    pub fn draw_multiple_translated<I>(self, translations: impl Iterator<Item = I>)
+    where
+        I: Into<(f32, f32)>,
+    {
+        let translation = self.translation;
+        let previous_translation = self.previous_translation;
+
         // TODO: optimize using affine matrix base
-        self.base.draw_single(DrawSingleArgs {
-            rotation: self.rotation,
-            ..Default::default()
-        });
+        self.draw_multiple_translated_impl(
+            DrawArgs {
+                translation,
+                previous_translation,
+                blend: true,
+                ..Default::default()
+            },
+            translations.map(Into::into),
+        );
     }
 }
 
-impl<'path, 'ctx> Draw for WithRotation<WithTranslation<SpriteContext<'path, 'ctx>>> {
+/// Only rotation.
+impl<'path, 'ctx, C: IsUiCamera> SpriteContext<'path, 'ctx, Empty, Empty, Rotation, Empty, C> {
+    /// Draw the sprite rotated to the screen at the zero coordinate of the camera.
+    ///
+    /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
     #[inline]
-    fn draw(self) {
+    pub fn draw(self) {
+        let rotation = self.rotation;
+
         // TODO: optimize using affine matrix base
-        self.base.base.draw_single(DrawSingleArgs {
-            x: self.base.x,
-            y: self.base.y,
-            rotation: self.rotation,
+        self.draw_impl(DrawArgs {
+            rotation,
             ..Default::default()
         });
+    }
+
+    /// Optimized way to draw the sprite multiple times with a translation added to each.
+    ///
+    /// Calling [`Self::translate`] and/or [`Self::rotate`] before this method will create a base matrix onto which each item translation is applied afterwards.
+    /// This allows you to easily draw thousands of sprites, perfect for particle effects.
+    ///
+    /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
+    ///
+    /// # Arguments
+    ///
+    /// * `translations` - Iterator of translation `(x, y)` tuple offsets, will draw each item as a sprite at the base position with the offset applied.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
+    ///
+    /// # Example
+    ///
+    /// This example runs on my PC with an average FPS of 35 when rendering 100000 sprites:
+    ///
+    /// ```no_run
+    /// # fn call(ctx: chuot::Context) {
+    /// ctx.sprite("some_asset")
+    ///     .draw_multiple_translated((0..10).map(|x| (x as f32, 0.0)));
+    /// # }
+    /// ```
+    ///
+    /// It's functionally the same as:
+    ///
+    /// ```no_run
+    /// # fn call(ctx: chuot::Context) {
+    /// for x in 0..10 {
+    ///     ctx.sprite("some_asset").translate_x(x as f32).draw();
+    /// }
+    /// # }
+    /// ```
+    ///
+    /// But the second example runs on my PC with an average FPS of 11 when rendering 100000 sprites.
+    #[inline]
+    pub fn draw_multiple_translated<I>(self, translations: impl Iterator<Item = I>)
+    where
+        I: Into<(f32, f32)>,
+    {
+        let rotation = self.rotation;
+
+        // TODO: optimize using affine matrix base
+        self.draw_multiple_translated_impl(
+            DrawArgs {
+                rotation,
+                ..Default::default()
+            },
+            translations.map(Into::into),
+        );
     }
 }
 
-impl<'path, 'ctx> Draw for WithScale<SpriteContext<'path, 'ctx>> {
+/// Only scaling.
+impl<'path, 'ctx, C: IsUiCamera> SpriteContext<'path, 'ctx, Empty, Empty, Empty, Scaling, C> {
+    /// Draw the sprite scaled to the screen at the zero coordinate of the camera.
+    ///
+    /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
     #[inline]
-    fn draw(self) {
+    pub fn draw(self) {
+        let scaling = self.scaling;
+
         // TODO: optimize using affine matrix base
-        self.base.draw_single(DrawSingleArgs {
-            scale_x: self.scale_x,
-            scale_y: self.scale_y,
+        self.draw_impl(DrawArgs {
+            scaling,
             ..Default::default()
         });
+    }
+
+    /// Optimized way to draw the sprite multiple times with a translation added to each.
+    ///
+    /// Calling [`Self::translate`] and/or [`Self::rotate`] before this method will create a base matrix onto which each item translation is applied afterwards.
+    /// This allows you to easily draw thousands of sprites, perfect for particle effects.
+    ///
+    /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
+    ///
+    /// # Arguments
+    ///
+    /// * `translations` - Iterator of translation `(x, y)` tuple offsets, will draw each item as a sprite at the base position with the offset applied.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
+    ///
+    /// # Example
+    ///
+    /// This example runs on my PC with an average FPS of 35 when rendering 100000 sprites:
+    ///
+    /// ```no_run
+    /// # fn call(ctx: chuot::Context) {
+    /// ctx.sprite("some_asset")
+    ///     .draw_multiple_translated((0..10).map(|x| (x as f32, 0.0)));
+    /// # }
+    /// ```
+    ///
+    /// It's functionally the same as:
+    ///
+    /// ```no_run
+    /// # fn call(ctx: chuot::Context) {
+    /// for x in 0..10 {
+    ///     ctx.sprite("some_asset").translate_x(x as f32).draw();
+    /// }
+    /// # }
+    /// ```
+    ///
+    /// But the second example runs on my PC with an average FPS of 11 when rendering 100000 sprites.
+    #[inline]
+    pub fn draw_multiple_translated<I>(self, translations: impl Iterator<Item = I>)
+    where
+        I: Into<(f32, f32)>,
+    {
+        let scaling = self.scaling;
+
+        // TODO: optimize using affine matrix base
+        self.draw_multiple_translated_impl(
+            DrawArgs {
+                scaling,
+                ..Default::default()
+            },
+            translations.map(Into::into),
+        );
     }
 }
 
-impl<'path, 'ctx> Draw for WithScale<WithTranslation<SpriteContext<'path, 'ctx>>> {
+/// Translation and rotation.
+impl<'path, 'ctx, C: IsUiCamera>
+    SpriteContext<'path, 'ctx, Translation, Empty, Rotation, Empty, C>
+{
+    /// Draw the sprite rotated to the screen.
+    ///
+    /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
     #[inline]
-    fn draw(self) {
+    pub fn draw(self) {
+        let translation = self.translation;
+        let rotation = self.rotation;
+
         // TODO: optimize using affine matrix base
-        self.base.base.draw_single(DrawSingleArgs {
-            x: self.base.x,
-            y: self.base.y,
-            scale_x: self.scale_x,
-            scale_y: self.scale_y,
+        self.draw_impl(DrawArgs {
+            translation,
+            rotation,
             ..Default::default()
         });
+    }
+
+    /// Optimized way to draw the sprite multiple times with a translation added to each.
+    ///
+    /// Calling [`Self::translate`] and/or [`Self::rotate`] before this method will create a base matrix onto which each item translation is applied afterwards.
+    /// This allows you to easily draw thousands of sprites, perfect for particle effects.
+    ///
+    /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
+    ///
+    /// # Arguments
+    ///
+    /// * `translations` - Iterator of translation `(x, y)` tuple offsets, will draw each item as a sprite at the base position with the offset applied.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
+    ///
+    /// # Example
+    ///
+    /// This example runs on my PC with an average FPS of 35 when rendering 100000 sprites:
+    ///
+    /// ```no_run
+    /// # fn call(ctx: chuot::Context) {
+    /// ctx.sprite("some_asset")
+    ///     .draw_multiple_translated((0..10).map(|x| (x as f32, 0.0)));
+    /// # }
+    /// ```
+    ///
+    /// It's functionally the same as:
+    ///
+    /// ```no_run
+    /// # fn call(ctx: chuot::Context) {
+    /// for x in 0..10 {
+    ///     ctx.sprite("some_asset").translate_x(x as f32).draw();
+    /// }
+    /// # }
+    /// ```
+    ///
+    /// But the second example runs on my PC with an average FPS of 11 when rendering 100000 sprites.
+    #[inline]
+    pub fn draw_multiple_translated<I>(self, translations: impl Iterator<Item = I>)
+    where
+        I: Into<(f32, f32)>,
+    {
+        let translation = self.translation;
+        let rotation = self.rotation;
+
+        // TODO: optimize using affine matrix base
+        self.draw_multiple_translated_impl(
+            DrawArgs {
+                translation,
+                rotation,
+                ..Default::default()
+            },
+            translations.map(Into::into),
+        );
     }
 }
 
-impl<'path, 'ctx> Draw for WithScale<WithRotation<SpriteContext<'path, 'ctx>>> {
+/// Translation, previous translation and rotation.
+impl<'path, 'ctx, C: IsUiCamera>
+    SpriteContext<'path, 'ctx, Translation, PreviousTranslation, Rotation, Empty, C>
+{
+    /// Draw the sprite rotated to the screen, interpolating in the render step.
+    ///
+    /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
     #[inline]
-    fn draw(self) {
+    pub fn draw(self) {
+        let translation = self.translation;
+        let previous_translation = self.previous_translation;
+        let rotation = self.rotation;
+
         // TODO: optimize using affine matrix base
-        self.base.base.draw_single(DrawSingleArgs {
-            rotation: self.base.rotation,
-            scale_x: self.scale_x,
-            scale_y: self.scale_y,
+        self.draw_impl(DrawArgs {
+            translation,
+            previous_translation,
+            rotation,
+            blend: true,
             ..Default::default()
         });
+    }
+
+    /// Optimized way to draw the sprite multiple times with a translation added to each.
+    ///
+    /// Calling [`Self::translate`] and/or [`Self::rotate`] before this method will create a base matrix onto which each item translation is applied afterwards.
+    /// This allows you to easily draw thousands of sprites, perfect for particle effects.
+    ///
+    /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
+    ///
+    /// # Arguments
+    ///
+    /// * `translations` - Iterator of translation `(x, y)` tuple offsets, will draw each item as a sprite at the base position with the offset applied.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
+    ///
+    /// # Example
+    ///
+    /// This example runs on my PC with an average FPS of 35 when rendering 100000 sprites:
+    ///
+    /// ```no_run
+    /// # fn call(ctx: chuot::Context) {
+    /// ctx.sprite("some_asset")
+    ///     .draw_multiple_translated((0..10).map(|x| (x as f32, 0.0)));
+    /// # }
+    /// ```
+    ///
+    /// It's functionally the same as:
+    ///
+    /// ```no_run
+    /// # fn call(ctx: chuot::Context) {
+    /// for x in 0..10 {
+    ///     ctx.sprite("some_asset").translate_x(x as f32).draw();
+    /// }
+    /// # }
+    /// ```
+    ///
+    /// But the second example runs on my PC with an average FPS of 11 when rendering 100000 sprites.
+    #[inline]
+    pub fn draw_multiple_translated<I>(self, translations: impl Iterator<Item = I>)
+    where
+        I: Into<(f32, f32)>,
+    {
+        let translation = self.translation;
+        let previous_translation = self.previous_translation;
+        let rotation = self.rotation;
+
+        // TODO: optimize using affine matrix base
+        self.draw_multiple_translated_impl(
+            DrawArgs {
+                translation,
+                previous_translation,
+                rotation,
+                blend: true,
+                ..Default::default()
+            },
+            translations.map(Into::into),
+        );
     }
 }
 
-impl<'path, 'ctx> Draw for WithScale<WithRotation<WithTranslation<SpriteContext<'path, 'ctx>>>> {
+/// Translation and scaling.
+impl<'path, 'ctx, C: IsUiCamera> SpriteContext<'path, 'ctx, Translation, Empty, Empty, Scaling, C> {
+    /// Draw the sprite scaled to the screen.
+    ///
+    /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
     #[inline]
-    fn draw(self) {
+    pub fn draw(self) {
+        let translation = self.translation;
+        let scaling = self.scaling;
+
         // TODO: optimize using affine matrix base
-        self.base.base.base.draw_single(DrawSingleArgs {
-            x: self.base.base.x,
-            y: self.base.base.y,
-            rotation: self.base.rotation,
-            scale_x: self.scale_x,
-            scale_y: self.scale_y,
+        self.draw_impl(DrawArgs {
+            translation,
+            scaling,
             ..Default::default()
         });
     }
+
+    /// Optimized way to draw the sprite multiple times with a translation added to each.
+    ///
+    /// Calling [`Self::translate`] and/or [`Self::rotate`] before this method will create a base matrix onto which each item translation is applied afterwards.
+    /// This allows you to easily draw thousands of sprites, perfect for particle effects.
+    ///
+    /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
+    ///
+    /// # Arguments
+    ///
+    /// * `translations` - Iterator of translation `(x, y)` tuple offsets, will draw each item as a sprite at the base position with the offset applied.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
+    ///
+    /// # Example
+    ///
+    /// This example runs on my PC with an average FPS of 35 when rendering 100000 sprites:
+    ///
+    /// ```no_run
+    /// # fn call(ctx: chuot::Context) {
+    /// ctx.sprite("some_asset")
+    ///     .draw_multiple_translated((0..10).map(|x| (x as f32, 0.0)));
+    /// # }
+    /// ```
+    ///
+    /// It's functionally the same as:
+    ///
+    /// ```no_run
+    /// # fn call(ctx: chuot::Context) {
+    /// for x in 0..10 {
+    ///     ctx.sprite("some_asset").translate_x(x as f32).draw();
+    /// }
+    /// # }
+    /// ```
+    ///
+    /// But the second example runs on my PC with an average FPS of 11 when rendering 100000 sprites.
+    #[inline]
+    pub fn draw_multiple_translated<I>(self, translations: impl Iterator<Item = I>)
+    where
+        I: Into<(f32, f32)>,
+    {
+        let translation = self.translation;
+        let scaling = self.scaling;
+
+        // TODO: optimize using affine matrix base
+        self.draw_multiple_translated_impl(
+            DrawArgs {
+                translation,
+                scaling,
+                ..Default::default()
+            },
+            translations.map(Into::into),
+        );
+    }
 }
-*/
+
+/// Translation, previous translation and scaling.
+impl<'path, 'ctx, C: IsUiCamera>
+    SpriteContext<'path, 'ctx, Translation, PreviousTranslation, Empty, Scaling, C>
+{
+    /// Draw the sprite scaled to the screen, interpolating in the render step.
+    ///
+    /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
+    #[inline]
+    pub fn draw(self) {
+        let translation = self.translation;
+        let previous_translation = self.previous_translation;
+        let scaling = self.scaling;
+
+        // TODO: optimize using affine matrix base
+        self.draw_impl(DrawArgs {
+            translation,
+            previous_translation,
+            scaling,
+            blend: true,
+            ..Default::default()
+        });
+    }
+
+    /// Optimized way to draw the sprite multiple times with a translation added to each.
+    ///
+    /// Calling [`Self::translate`] and/or [`Self::rotate`] before this method will create a base matrix onto which each item translation is applied afterwards.
+    /// This allows you to easily draw thousands of sprites, perfect for particle effects.
+    ///
+    /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
+    ///
+    /// # Arguments
+    ///
+    /// * `translations` - Iterator of translation `(x, y)` tuple offsets, will draw each item as a sprite at the base position with the offset applied.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
+    ///
+    /// # Example
+    ///
+    /// This example runs on my PC with an average FPS of 35 when rendering 100000 sprites:
+    ///
+    /// ```no_run
+    /// # fn call(ctx: chuot::Context) {
+    /// ctx.sprite("some_asset")
+    ///     .draw_multiple_translated((0..10).map(|x| (x as f32, 0.0)));
+    /// # }
+    /// ```
+    ///
+    /// It's functionally the same as:
+    ///
+    /// ```no_run
+    /// # fn call(ctx: chuot::Context) {
+    /// for x in 0..10 {
+    ///     ctx.sprite("some_asset").translate_x(x as f32).draw();
+    /// }
+    /// # }
+    /// ```
+    ///
+    /// But the second example runs on my PC with an average FPS of 11 when rendering 100000 sprites.
+    #[inline]
+    pub fn draw_multiple_translated<I>(self, translations: impl Iterator<Item = I>)
+    where
+        I: Into<(f32, f32)>,
+    {
+        let translation = self.translation;
+        let previous_translation = self.previous_translation;
+        let scaling = self.scaling;
+
+        // TODO: optimize using affine matrix base
+        self.draw_multiple_translated_impl(
+            DrawArgs {
+                translation,
+                previous_translation,
+                scaling,
+                blend: true,
+                ..Default::default()
+            },
+            translations.map(Into::into),
+        );
+    }
+}
+
+/// Rotation and scaling.
+impl<'path, 'ctx, C: IsUiCamera> SpriteContext<'path, 'ctx, Empty, Empty, Rotation, Scaling, C> {
+    /// Draw the sprite rotated and scaled to the screen at the zero coordinate of the camera.
+    ///
+    /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
+    #[inline]
+    pub fn draw(self) {
+        let rotation = self.rotation;
+        let scaling = self.scaling;
+
+        // TODO: optimize using affine matrix base
+        self.draw_impl(DrawArgs {
+            rotation,
+            scaling,
+            ..Default::default()
+        });
+    }
+
+    /// Optimized way to draw the sprite multiple times with a translation added to each.
+    ///
+    /// Calling [`Self::translate`] and/or [`Self::rotate`] before this method will create a base matrix onto which each item translation is applied afterwards.
+    /// This allows you to easily draw thousands of sprites, perfect for particle effects.
+    ///
+    /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
+    ///
+    /// # Arguments
+    ///
+    /// * `translations` - Iterator of translation `(x, y)` tuple offsets, will draw each item as a sprite at the base position with the offset applied.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
+    ///
+    /// # Example
+    ///
+    /// This example runs on my PC with an average FPS of 35 when rendering 100000 sprites:
+    ///
+    /// ```no_run
+    /// # fn call(ctx: chuot::Context) {
+    /// ctx.sprite("some_asset")
+    ///     .draw_multiple_translated((0..10).map(|x| (x as f32, 0.0)));
+    /// # }
+    /// ```
+    ///
+    /// It's functionally the same as:
+    ///
+    /// ```no_run
+    /// # fn call(ctx: chuot::Context) {
+    /// for x in 0..10 {
+    ///     ctx.sprite("some_asset").translate_x(x as f32).draw();
+    /// }
+    /// # }
+    /// ```
+    ///
+    /// But the second example runs on my PC with an average FPS of 11 when rendering 100000 sprites.
+    #[inline]
+    pub fn draw_multiple_translated<I>(self, translations: impl Iterator<Item = I>)
+    where
+        I: Into<(f32, f32)>,
+    {
+        let rotation = self.rotation;
+        let scaling = self.scaling;
+
+        // TODO: optimize using affine matrix base
+        self.draw_multiple_translated_impl(
+            DrawArgs {
+                rotation,
+                scaling,
+                ..Default::default()
+            },
+            translations.map(Into::into),
+        );
+    }
+}
+
+/// Translation, rotation and scaling.
+impl<'path, 'ctx, C: IsUiCamera>
+    SpriteContext<'path, 'ctx, Translation, Empty, Rotation, Scaling, C>
+{
+    /// Draw the sprite rotated and scaled to the screen.
+    ///
+    /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
+    #[inline]
+    pub fn draw(self) {
+        let translation = self.translation;
+        let rotation = self.rotation;
+        let scaling = self.scaling;
+
+        // TODO: optimize using affine matrix base
+        self.draw_impl(DrawArgs {
+            translation,
+            rotation,
+            scaling,
+            ..Default::default()
+        });
+    }
+
+    /// Optimized way to draw the sprite multiple times with a translation added to each.
+    ///
+    /// Calling [`Self::translate`] and/or [`Self::rotate`] before this method will create a base matrix onto which each item translation is applied afterwards.
+    /// This allows you to easily draw thousands of sprites, perfect for particle effects.
+    ///
+    /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
+    ///
+    /// # Arguments
+    ///
+    /// * `translations` - Iterator of translation `(x, y)` tuple offsets, will draw each item as a sprite at the base position with the offset applied.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
+    ///
+    /// # Example
+    ///
+    /// This example runs on my PC with an average FPS of 35 when rendering 100000 sprites:
+    ///
+    /// ```no_run
+    /// # fn call(ctx: chuot::Context) {
+    /// ctx.sprite("some_asset")
+    ///     .draw_multiple_translated((0..10).map(|x| (x as f32, 0.0)));
+    /// # }
+    /// ```
+    ///
+    /// It's functionally the same as:
+    ///
+    /// ```no_run
+    /// # fn call(ctx: chuot::Context) {
+    /// for x in 0..10 {
+    ///     ctx.sprite("some_asset").translate_x(x as f32).draw();
+    /// }
+    /// # }
+    /// ```
+    ///
+    /// But the second example runs on my PC with an average FPS of 11 when rendering 100000 sprites.
+    #[inline]
+    pub fn draw_multiple_translated<I>(self, translations: impl Iterator<Item = I>)
+    where
+        I: Into<(f32, f32)>,
+    {
+        let translation = self.translation;
+        let rotation = self.rotation;
+        let scaling = self.scaling;
+
+        // TODO: optimize using affine matrix base
+        self.draw_multiple_translated_impl(
+            DrawArgs {
+                translation,
+                rotation,
+                scaling,
+                ..Default::default()
+            },
+            translations.map(Into::into),
+        );
+    }
+}
+
+/// Translation, previous translation, rotation and scaling.
+impl<'path, 'ctx, C: IsUiCamera>
+    SpriteContext<'path, 'ctx, Translation, PreviousTranslation, Rotation, Scaling, C>
+{
+    /// Draw the sprite rotated and scaled to the screen, interpolating the position in the render step.
+    ///
+    /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
+    #[inline]
+    pub fn draw(self) {
+        let translation = self.translation;
+        let previous_translation = self.previous_translation;
+        let rotation = self.rotation;
+        let scaling = self.scaling;
+
+        // TODO: optimize using affine matrix base
+        self.draw_impl(DrawArgs {
+            translation,
+            previous_translation,
+            rotation,
+            scaling,
+            blend: true,
+        });
+    }
+
+    /// Optimized way to draw the sprite multiple times with a translation added to each.
+    ///
+    /// Calling [`Self::translate`] and/or [`Self::rotate`] before this method will create a base matrix onto which each item translation is applied afterwards.
+    /// This allows you to easily draw thousands of sprites, perfect for particle effects.
+    ///
+    /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
+    ///
+    /// # Arguments
+    ///
+    /// * `translations` - Iterator of translation `(x, y)` tuple offsets, will draw each item as a sprite at the base position with the offset applied.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
+    ///
+    /// # Example
+    ///
+    /// This example runs on my PC with an average FPS of 35 when rendering 100000 sprites:
+    ///
+    /// ```no_run
+    /// # fn call(ctx: chuot::Context) {
+    /// ctx.sprite("some_asset")
+    ///     .draw_multiple_translated((0..10).map(|x| (x as f32, 0.0)));
+    /// # }
+    /// ```
+    ///
+    /// It's functionally the same as:
+    ///
+    /// ```no_run
+    /// # fn call(ctx: chuot::Context) {
+    /// for x in 0..10 {
+    ///     ctx.sprite("some_asset").translate_x(x as f32).draw();
+    /// }
+    /// # }
+    /// ```
+    ///
+    /// But the second example runs on my PC with an average FPS of 11 when rendering 100000 sprites.
+    #[inline]
+    pub fn draw_multiple_translated<I>(self, translations: impl Iterator<Item = I>)
+    where
+        I: Into<(f32, f32)>,
+    {
+        let translation = self.translation;
+        let previous_translation = self.previous_translation;
+        let rotation = self.rotation;
+        let scaling = self.scaling;
+
+        // TODO: optimize using affine matrix base
+        self.draw_multiple_translated_impl(
+            DrawArgs {
+                translation,
+                previous_translation,
+                rotation,
+                scaling,
+                blend: true,
+            },
+            translations.map(Into::into),
+        );
+    }
+}
 
 /// Arguments for drawing a single item.
 #[derive(Default)]
-struct DrawSingleArgs {
+struct DrawArgs {
     translation: Translation,
     previous_translation: PreviousTranslation,
     rotation: Rotation,
-    scale: Scaling,
+    scaling: Scaling,
     blend: bool,
 }
 
