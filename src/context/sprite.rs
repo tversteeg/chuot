@@ -380,98 +380,6 @@ impl<'path, 'ctx, T: Translate, P: TranslatePrevious, R: Rotate, S: Scale, C: Is
         self.ctx.write(|ctx| ctx.sprite(self.path).sub_rectangle.3)
     }
 
-    /// Draw a single item.
-    fn draw_impl(
-        self,
-        DrawArgs {
-            translation,
-            previous_translation,
-            rotation,
-            scaling,
-            blend,
-        }: DrawArgs,
-    ) {
-        self.ctx.write(|ctx| {
-            // Push the instance if the texture is already uploaded
-            let sprite = ctx.sprite(self.path);
-
-            // Get the camera to draw the sprite with
-            let camera = ctx.camera(C::is_ui_camera());
-            let offset_x = camera.offset_x();
-            let offset_y = camera.offset_y();
-
-            // Create the affine matrix
-            let affine_matrix = sprite.affine_matrix(
-                translation.x + offset_x,
-                translation.y + offset_y,
-                previous_translation.previous_x + offset_x,
-                previous_translation.previous_y + offset_y,
-                ctx.blending_factor,
-                blend,
-                rotation.0,
-                scaling.scale_x,
-                scaling.scale_y,
-            );
-
-            // Push the graphics
-            ctx.graphics
-                .instances
-                .push(affine_matrix, sprite.sub_rectangle, sprite.texture);
-        });
-    }
-
-    /// Draw multiple items.
-    fn draw_multiple_translated_impl(
-        self,
-        DrawArgs {
-            translation,
-            previous_translation,
-            rotation,
-            scaling,
-            blend,
-        }: DrawArgs,
-        translations: impl Iterator<Item = (f32, f32)>,
-    ) {
-        self.ctx.write(|ctx| {
-            // Push the instance if the texture is already uploaded
-            let sprite = ctx.sprite(self.path);
-
-            // Get the camera to draw the sprite with
-            let camera = ctx.camera(C::is_ui_camera());
-            let offset_x = camera.offset_x();
-            let offset_y = camera.offset_y();
-
-            // Create the affine matrix
-            let affine_matrix = sprite.affine_matrix(
-                translation.x + offset_x,
-                translation.y + offset_y,
-                previous_translation.previous_x + offset_x,
-                previous_translation.previous_y + offset_y,
-                ctx.blending_factor,
-                blend,
-                rotation.0,
-                scaling.scale_x,
-                scaling.scale_y,
-            );
-
-            // Push the graphics
-            ctx.graphics
-                .instances
-                .extend(translations.map(|(x_offset, y_offset)| {
-                    // Copy the matrix
-                    let mut affine_matrix_with_offset = affine_matrix;
-                    affine_matrix_with_offset.translation.x += x_offset;
-                    affine_matrix_with_offset.translation.y += y_offset;
-
-                    (
-                        affine_matrix_with_offset,
-                        sprite.sub_rectangle,
-                        sprite.texture,
-                    )
-                }));
-        });
-    }
-
     /// Perform the translation with the type.
     #[inline]
     #[must_use]
@@ -527,6 +435,46 @@ impl<'path, 'ctx, T: Translate, P: TranslatePrevious, R: Rotate, S: Scale, C: Is
             previous_translation: self.previous_translation,
             rotation: self.rotation,
             scaling,
+            phantom: PhantomData,
+        }
+    }
+
+    /// Convert a generic type to a fully formed type.
+    ///
+    /// This has sub-optimal performance for drawing since it crosses all paths.
+    #[inline]
+    #[must_use]
+    fn into_full_with_previous_translation(
+        self,
+    ) -> SpriteContext<'path, 'ctx, Translation, PreviousTranslation, Rotation, Scaling, C> {
+        SpriteContext {
+            path: self.path,
+            ctx: self.ctx,
+            translation: self.translation.inner_translate((0.0, 0.0)),
+            previous_translation: self
+                .previous_translation
+                .inner_translate_previous((0.0, 0.0)),
+            rotation: self.rotation.inner_rotate(0.0),
+            scaling: self.scaling.inner_scale((1.0, 1.0)),
+            phantom: PhantomData,
+        }
+    }
+
+    /// Convert a generic type to a fully formed type without a previous translation.
+    ///
+    /// This has sub-optimal performance for drawing since it crosses all paths.
+    #[inline]
+    #[must_use]
+    fn into_full_without_previous_translation(
+        self,
+    ) -> SpriteContext<'path, 'ctx, Translation, Empty, Rotation, Scaling, C> {
+        SpriteContext {
+            path: self.path,
+            ctx: self.ctx,
+            translation: self.translation.inner_translate((0.0, 0.0)),
+            previous_translation: Empty,
+            rotation: self.rotation.inner_rotate(0.0),
+            scaling: self.scaling.inner_scale((1.0, 1.0)),
             phantom: PhantomData,
         }
     }
@@ -597,7 +545,8 @@ impl<'path, 'ctx, C: IsUiCamera> SpriteContext<'path, 'ctx, Empty, Empty, Empty,
         I: Into<(f32, f32)>,
     {
         // TODO: optimize using affine matrix base
-        self.draw_multiple_translated_impl(DrawArgs::default(), translations.map(Into::into));
+        self.into_full_without_previous_translation()
+            .draw_multiple_translated(translations);
     }
 }
 
@@ -669,16 +618,9 @@ impl<'path, 'ctx, C: IsUiCamera> SpriteContext<'path, 'ctx, Translation, Empty, 
     where
         I: Into<(f32, f32)>,
     {
-        let translation = self.translation;
-
         // TODO: optimize using affine matrix base
-        self.draw_multiple_translated_impl(
-            DrawArgs {
-                translation,
-                ..Default::default()
-            },
-            translations.map(Into::into),
-        );
+        self.into_full_without_previous_translation()
+            .draw_multiple_translated(translations);
     }
 }
 
@@ -760,19 +702,9 @@ impl<'path, 'ctx, C: IsUiCamera>
     where
         I: Into<(f32, f32)>,
     {
-        let translation = self.translation;
-        let previous_translation = self.previous_translation;
-
         // TODO: optimize using affine matrix base
-        self.draw_multiple_translated_impl(
-            DrawArgs {
-                translation,
-                previous_translation,
-                blend: true,
-                ..Default::default()
-            },
-            translations.map(Into::into),
-        );
+        self.into_full_with_previous_translation()
+            .draw_multiple_translated(translations);
     }
 }
 
@@ -787,13 +719,8 @@ impl<'path, 'ctx, C: IsUiCamera> SpriteContext<'path, 'ctx, Empty, Empty, Rotati
     /// - When asset failed loading.
     #[inline]
     pub fn draw(self) {
-        let rotation = self.rotation;
-
         // TODO: optimize using affine matrix base
-        self.draw_impl(DrawArgs {
-            rotation,
-            ..Default::default()
-        });
+        self.into_full_without_previous_translation().draw();
     }
 
     /// Optimized way to draw the sprite multiple times with a translation added to each.
@@ -838,16 +765,9 @@ impl<'path, 'ctx, C: IsUiCamera> SpriteContext<'path, 'ctx, Empty, Empty, Rotati
     where
         I: Into<(f32, f32)>,
     {
-        let rotation = self.rotation;
-
         // TODO: optimize using affine matrix base
-        self.draw_multiple_translated_impl(
-            DrawArgs {
-                rotation,
-                ..Default::default()
-            },
-            translations.map(Into::into),
-        );
+        self.into_full_without_previous_translation()
+            .draw_multiple_translated(translations);
     }
 }
 
@@ -862,13 +782,8 @@ impl<'path, 'ctx, C: IsUiCamera> SpriteContext<'path, 'ctx, Empty, Empty, Empty,
     /// - When asset failed loading.
     #[inline]
     pub fn draw(self) {
-        let scaling = self.scaling;
-
         // TODO: optimize using affine matrix base
-        self.draw_impl(DrawArgs {
-            scaling,
-            ..Default::default()
-        });
+        self.into_full_without_previous_translation().draw();
     }
 
     /// Optimized way to draw the sprite multiple times with a translation added to each.
@@ -913,16 +828,9 @@ impl<'path, 'ctx, C: IsUiCamera> SpriteContext<'path, 'ctx, Empty, Empty, Empty,
     where
         I: Into<(f32, f32)>,
     {
-        let scaling = self.scaling;
-
         // TODO: optimize using affine matrix base
-        self.draw_multiple_translated_impl(
-            DrawArgs {
-                scaling,
-                ..Default::default()
-            },
-            translations.map(Into::into),
-        );
+        self.into_full_without_previous_translation()
+            .draw_multiple_translated(translations);
     }
 }
 
@@ -939,15 +847,8 @@ impl<'path, 'ctx, C: IsUiCamera>
     /// - When asset failed loading.
     #[inline]
     pub fn draw(self) {
-        let translation = self.translation;
-        let rotation = self.rotation;
-
         // TODO: optimize using affine matrix base
-        self.draw_impl(DrawArgs {
-            translation,
-            rotation,
-            ..Default::default()
-        });
+        self.into_full_without_previous_translation().draw();
     }
 
     /// Optimized way to draw the sprite multiple times with a translation added to each.
@@ -992,18 +893,9 @@ impl<'path, 'ctx, C: IsUiCamera>
     where
         I: Into<(f32, f32)>,
     {
-        let translation = self.translation;
-        let rotation = self.rotation;
-
         // TODO: optimize using affine matrix base
-        self.draw_multiple_translated_impl(
-            DrawArgs {
-                translation,
-                rotation,
-                ..Default::default()
-            },
-            translations.map(Into::into),
-        );
+        self.into_full_without_previous_translation()
+            .draw_multiple_translated(translations);
     }
 }
 
@@ -1020,18 +912,8 @@ impl<'path, 'ctx, C: IsUiCamera>
     /// - When asset failed loading.
     #[inline]
     pub fn draw(self) {
-        let translation = self.translation;
-        let previous_translation = self.previous_translation;
-        let rotation = self.rotation;
-
         // TODO: optimize using affine matrix base
-        self.draw_impl(DrawArgs {
-            translation,
-            previous_translation,
-            rotation,
-            blend: true,
-            ..Default::default()
-        });
+        self.into_full_with_previous_translation().draw();
     }
 
     /// Optimized way to draw the sprite multiple times with a translation added to each.
@@ -1076,21 +958,9 @@ impl<'path, 'ctx, C: IsUiCamera>
     where
         I: Into<(f32, f32)>,
     {
-        let translation = self.translation;
-        let previous_translation = self.previous_translation;
-        let rotation = self.rotation;
-
         // TODO: optimize using affine matrix base
-        self.draw_multiple_translated_impl(
-            DrawArgs {
-                translation,
-                previous_translation,
-                rotation,
-                blend: true,
-                ..Default::default()
-            },
-            translations.map(Into::into),
-        );
+        self.into_full_with_previous_translation()
+            .draw_multiple_translated(translations);
     }
 }
 
@@ -1105,15 +975,8 @@ impl<'path, 'ctx, C: IsUiCamera> SpriteContext<'path, 'ctx, Translation, Empty, 
     /// - When asset failed loading.
     #[inline]
     pub fn draw(self) {
-        let translation = self.translation;
-        let scaling = self.scaling;
-
         // TODO: optimize using affine matrix base
-        self.draw_impl(DrawArgs {
-            translation,
-            scaling,
-            ..Default::default()
-        });
+        self.into_full_without_previous_translation().draw();
     }
 
     /// Optimized way to draw the sprite multiple times with a translation added to each.
@@ -1158,18 +1021,9 @@ impl<'path, 'ctx, C: IsUiCamera> SpriteContext<'path, 'ctx, Translation, Empty, 
     where
         I: Into<(f32, f32)>,
     {
-        let translation = self.translation;
-        let scaling = self.scaling;
-
         // TODO: optimize using affine matrix base
-        self.draw_multiple_translated_impl(
-            DrawArgs {
-                translation,
-                scaling,
-                ..Default::default()
-            },
-            translations.map(Into::into),
-        );
+        self.into_full_without_previous_translation()
+            .draw_multiple_translated(translations);
     }
 }
 
@@ -1186,18 +1040,8 @@ impl<'path, 'ctx, C: IsUiCamera>
     /// - When asset failed loading.
     #[inline]
     pub fn draw(self) {
-        let translation = self.translation;
-        let previous_translation = self.previous_translation;
-        let scaling = self.scaling;
-
         // TODO: optimize using affine matrix base
-        self.draw_impl(DrawArgs {
-            translation,
-            previous_translation,
-            scaling,
-            blend: true,
-            ..Default::default()
-        });
+        self.into_full_with_previous_translation().draw();
     }
 
     /// Optimized way to draw the sprite multiple times with a translation added to each.
@@ -1242,21 +1086,9 @@ impl<'path, 'ctx, C: IsUiCamera>
     where
         I: Into<(f32, f32)>,
     {
-        let translation = self.translation;
-        let previous_translation = self.previous_translation;
-        let scaling = self.scaling;
-
         // TODO: optimize using affine matrix base
-        self.draw_multiple_translated_impl(
-            DrawArgs {
-                translation,
-                previous_translation,
-                scaling,
-                blend: true,
-                ..Default::default()
-            },
-            translations.map(Into::into),
-        );
+        self.into_full_with_previous_translation()
+            .draw_multiple_translated(translations);
     }
 }
 
@@ -1271,15 +1103,8 @@ impl<'path, 'ctx, C: IsUiCamera> SpriteContext<'path, 'ctx, Empty, Empty, Rotati
     /// - When asset failed loading.
     #[inline]
     pub fn draw(self) {
-        let rotation = self.rotation;
-        let scaling = self.scaling;
-
         // TODO: optimize using affine matrix base
-        self.draw_impl(DrawArgs {
-            rotation,
-            scaling,
-            ..Default::default()
-        });
+        self.into_full_without_previous_translation().draw();
     }
 
     /// Optimized way to draw the sprite multiple times with a translation added to each.
@@ -1324,18 +1149,9 @@ impl<'path, 'ctx, C: IsUiCamera> SpriteContext<'path, 'ctx, Empty, Empty, Rotati
     where
         I: Into<(f32, f32)>,
     {
-        let rotation = self.rotation;
-        let scaling = self.scaling;
-
         // TODO: optimize using affine matrix base
-        self.draw_multiple_translated_impl(
-            DrawArgs {
-                rotation,
-                scaling,
-                ..Default::default()
-            },
-            translations.map(Into::into),
-        );
+        self.into_full_without_previous_translation()
+            .draw_multiple_translated(translations);
     }
 }
 
@@ -1352,16 +1168,32 @@ impl<'path, 'ctx, C: IsUiCamera>
     /// - When asset failed loading.
     #[inline]
     pub fn draw(self) {
-        let translation = self.translation;
-        let rotation = self.rotation;
-        let scaling = self.scaling;
+        self.ctx.write(|ctx| {
+            // Push the instance if the texture is already uploaded
+            let sprite = ctx.sprite(self.path);
 
-        // TODO: optimize using affine matrix base
-        self.draw_impl(DrawArgs {
-            translation,
-            rotation,
-            scaling,
-            ..Default::default()
+            // Get the camera to draw the sprite with
+            let camera = ctx.camera(C::is_ui_camera());
+            let offset_x = camera.offset_x();
+            let offset_y = camera.offset_y();
+
+            // Create the affine matrix
+            let affine_matrix = sprite.affine_matrix(
+                self.translation.x + offset_x,
+                self.translation.y + offset_y,
+                0.0,
+                0.0,
+                0.0,
+                false,
+                self.rotation.value(),
+                self.scaling.scale_x,
+                self.scaling.scale_y,
+            );
+
+            // Push the graphics
+            ctx.graphics
+                .instances
+                .push(affine_matrix, sprite.sub_rectangle, sprite.texture);
         });
     }
 
@@ -1407,20 +1239,44 @@ impl<'path, 'ctx, C: IsUiCamera>
     where
         I: Into<(f32, f32)>,
     {
-        let translation = self.translation;
-        let rotation = self.rotation;
-        let scaling = self.scaling;
+        self.ctx.write(|ctx| {
+            // Push the instance if the texture is already uploaded
+            let sprite = ctx.sprite(self.path);
 
-        // TODO: optimize using affine matrix base
-        self.draw_multiple_translated_impl(
-            DrawArgs {
-                translation,
-                rotation,
-                scaling,
-                ..Default::default()
-            },
-            translations.map(Into::into),
-        );
+            // Get the camera to draw the sprite with
+            let camera = ctx.camera(C::is_ui_camera());
+            let offset_x = camera.offset_x();
+            let offset_y = camera.offset_y();
+
+            // Create the affine matrix
+            let affine_matrix = sprite.affine_matrix(
+                self.translation.x + offset_x,
+                self.translation.y + offset_y,
+                0.0,
+                0.0,
+                0.0,
+                false,
+                self.rotation.value(),
+                self.scaling.scale_x,
+                self.scaling.scale_y,
+            );
+
+            // Push the graphics
+            ctx.graphics
+                .instances
+                .extend(translations.map(Into::into).map(|(x_offset, y_offset)| {
+                    // Copy the matrix
+                    let mut affine_matrix_with_offset = affine_matrix;
+                    affine_matrix_with_offset.translation.x += x_offset;
+                    affine_matrix_with_offset.translation.y += y_offset;
+
+                    (
+                        affine_matrix_with_offset,
+                        sprite.sub_rectangle,
+                        sprite.texture,
+                    )
+                }));
+        });
     }
 }
 
@@ -1437,18 +1293,32 @@ impl<'path, 'ctx, C: IsUiCamera>
     /// - When asset failed loading.
     #[inline]
     pub fn draw(self) {
-        let translation = self.translation;
-        let previous_translation = self.previous_translation;
-        let rotation = self.rotation;
-        let scaling = self.scaling;
+        self.ctx.write(|ctx| {
+            // Push the instance if the texture is already uploaded
+            let sprite = ctx.sprite(self.path);
 
-        // TODO: optimize using affine matrix base
-        self.draw_impl(DrawArgs {
-            translation,
-            previous_translation,
-            rotation,
-            scaling,
-            blend: true,
+            // Get the camera to draw the sprite with
+            let camera = ctx.camera(C::is_ui_camera());
+            let offset_x = camera.offset_x();
+            let offset_y = camera.offset_y();
+
+            // Create the affine matrix
+            let affine_matrix = sprite.affine_matrix(
+                self.translation.x + offset_x,
+                self.translation.y + offset_y,
+                self.previous_translation.previous_x + offset_x,
+                self.previous_translation.previous_y + offset_y,
+                ctx.blending_factor,
+                true,
+                self.rotation.value(),
+                self.scaling.scale_x,
+                self.scaling.scale_y,
+            );
+
+            // Push the graphics
+            ctx.graphics
+                .instances
+                .push(affine_matrix, sprite.sub_rectangle, sprite.texture);
         });
     }
 
@@ -1494,33 +1364,45 @@ impl<'path, 'ctx, C: IsUiCamera>
     where
         I: Into<(f32, f32)>,
     {
-        let translation = self.translation;
-        let previous_translation = self.previous_translation;
-        let rotation = self.rotation;
-        let scaling = self.scaling;
+        self.ctx.write(|ctx| {
+            // Push the instance if the texture is already uploaded
+            let sprite = ctx.sprite(self.path);
 
-        // TODO: optimize using affine matrix base
-        self.draw_multiple_translated_impl(
-            DrawArgs {
-                translation,
-                previous_translation,
-                rotation,
-                scaling,
-                blend: true,
-            },
-            translations.map(Into::into),
-        );
+            // Get the camera to draw the sprite with
+            let camera = ctx.camera(C::is_ui_camera());
+            let offset_x = camera.offset_x();
+            let offset_y = camera.offset_y();
+
+            // Create the affine matrix
+            let affine_matrix = sprite.affine_matrix(
+                self.translation.x + offset_x,
+                self.translation.y + offset_y,
+                self.previous_translation.previous_x + offset_x,
+                self.previous_translation.previous_y + offset_y,
+                ctx.blending_factor,
+                true,
+                self.rotation.value(),
+                self.scaling.scale_x,
+                self.scaling.scale_y,
+            );
+
+            // Push the graphics
+            ctx.graphics
+                .instances
+                .extend(translations.map(Into::into).map(|(x_offset, y_offset)| {
+                    // Copy the matrix
+                    let mut affine_matrix_with_offset = affine_matrix;
+                    affine_matrix_with_offset.translation.x += x_offset;
+                    affine_matrix_with_offset.translation.y += y_offset;
+
+                    (
+                        affine_matrix_with_offset,
+                        sprite.sub_rectangle,
+                        sprite.texture,
+                    )
+                }));
+        });
     }
-}
-
-/// Arguments for drawing a single item.
-#[derive(Default)]
-struct DrawArgs {
-    translation: Translation,
-    previous_translation: PreviousTranslation,
-    rotation: Rotation,
-    scaling: Scaling,
-    blend: bool,
 }
 
 /// Render methods for sprites.

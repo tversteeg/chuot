@@ -11,12 +11,19 @@ pub trait Rotate: Sized {
 /// Rotation in radians.
 #[doc(hidden)]
 #[derive(Copy, Clone, Default)]
-pub struct Rotation(pub(crate) f32);
+pub struct Rotation(f32);
 
 impl Rotation {
     /// Create from tuple.
     pub(crate) const fn new(rotation: f32) -> Self {
         Self(rotation)
+    }
+
+    /// Rotation value.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn value(self) -> f32 {
+        self.0
     }
 }
 
