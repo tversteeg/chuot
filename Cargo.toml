@@ -83,7 +83,7 @@ wgpu = { version = "22.0.0", default-features = false, features = ["webgl", "wgs
 
 [build-dependencies]
 naga = { version = "22.0.0", default-features = false, features = ["wgsl-in", "wgsl-out"] }
-wgsl-minifier = "0.5.0"
+wgsl-minifier = "0.6.0"
 
 [workspace]
 members = ["crates/macros", "crates/packer", "run-wasm"]
