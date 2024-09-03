@@ -64,7 +64,7 @@ phf = "0.11.2"
 png = "0.17.13"
 rgb = { version = "0.8.45", features = ["bytemuck"], default-features = false }
 smallvec = { version = "1.13.2", features = ["const_new", "union"] }
-smol_str = "0.2.2"
+smol_str = "0.3.0"
 web-time = "1.1.0"
 winit = "0.30.4"
 
