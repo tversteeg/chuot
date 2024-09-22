@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # https://keats.github.io/tera/docs/#introduction
 body = """
 {%- macro remote_url() -%}
-  https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}
+  https://github.com/tversteeg/chuot
 {%- endmacro -%}
 
 {% if version -%}
@@ -30,9 +30,9 @@ body = """
           {% for commit in commits %}
           - {% if commit.breaking %}[**breaking**] {% endif -%}\
             {{ commit.message | upper_first | trim }}\
-            {% if commit.github.username %} by @{{ commit.github.username }}{%- endif -%}
-            {% if commit.github.pr_number %} in \
-              [#{{ commit.github.pr_number }}]({{ self::remote_url() }}/pull/{{ commit.github.pr_number }}) \
+            {% if commit.remote.username %} by @{{ commit.remote.username }}{%- endif -%}
+            {% if commit.remote.pr_number %} in \
+              [#{{ commit.remote.pr_number }}]({{ self::remote_url() }}/pull/{{ commit.remote.pr_number }}) \
             {%- endif -%}
         {% endfor %}
     {% endfor %}
@@ -41,7 +41,7 @@ body = """
 # template for the changelog footer
 footer = """
 {%- macro remote_url() -%}
-  https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}
+  https://github.com/tversteeg/chuot
 {%- endmacro -%}
 
 {% for release in releases -%}
