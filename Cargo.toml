@@ -50,39 +50,39 @@ read-texture = []
 chuot-macros = { path = "crates/macros", version = "0.2.1" }
 chuot-packer = { path = "crates/packer", version = "0.2.0" }
 
-bytemuck = { version = "1.16.1", features = ["derive"] }
+bytemuck = { version = "1.18.0", features = ["derive"] }
 downcast-rs = "1.2.1"
-fastrand = "2.1.0"
+fastrand = "2.1.1"
 gilrs = "0.11.0"
 glam = { version = "0.29.0", features = ["bytemuck", "fast-math"] }
 hashbrown = "0.14.5"
 imgref = { version = "1.10.1", default-features = false, optional = true }
-kira = { version = "0.9.3", default-features = false, features = ["cpal", "ogg"] }
+kira = { version = "0.9.5", default-features = false, features = ["cpal", "ogg"] }
 nanoserde = "0.1.37"
 num-integer = "0.1.46"
 phf = "0.11.2"
 png = "0.17.13"
-rgb = { version = "0.8.45", features = ["bytemuck"], default-features = false }
+rgb = { version = "0.8.50", features = ["bytemuck"], default-features = false }
 smallvec = { version = "1.13.2", features = ["const_new", "union"] }
-smol_str = "0.3.0"
+smol_str = "0.3.1"
 web-time = "1.1.0"
-winit = "0.30.4"
+winit = "0.30.5"
 
 # Dependencies specifically for non-web platforms
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 notify-debouncer-mini = "0.4.1"
 pollster = "0.3.0"
-wgpu = { version = "22.0.0", default-features = false, features = ["wgsl"] }
+wgpu = { version = "22.1.0", default-features = false, features = ["wgsl"] }
 
 # Dependencies specifically for the web platform
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1.7"
-wasm-bindgen-futures = "0.4.42"
-web-sys = { version = "0.3.69", features = ["Document", "Window", "Element"] }
-wgpu = { version = "22.0.0", default-features = false, features = ["webgl", "wgsl"] }
+wasm-bindgen-futures = "0.4.43"
+web-sys = { version = "0.3.70", features = ["Document", "Window", "Element"] }
+wgpu = { version = "22.1.0", default-features = false, features = ["webgl", "wgsl"] }
 
 [build-dependencies]
-naga = { version = "22.0.0", default-features = false, features = ["wgsl-in", "wgsl-out"] }
+naga = { version = "22.1.0", default-features = false, features = ["wgsl-in", "wgsl-out"] }
 wgsl-minifier = "0.6.0"
 
 [workspace]
