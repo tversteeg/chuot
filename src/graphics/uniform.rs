@@ -3,7 +3,7 @@
 use std::{marker::PhantomData, ops::Index};
 
 use bytemuck::NoUninit;
-use wgpu::util::DeviceExt;
+use wgpu::util::DeviceExt as _;
 
 /// State data collection for uniforms for a shader.
 ///

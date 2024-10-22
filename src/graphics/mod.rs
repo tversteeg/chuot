@@ -11,7 +11,7 @@ use std::{borrow::Cow, sync::Arc};
 #[cfg(feature = "embed-assets")]
 use imgref::ImgVec;
 use rgb::RGBA8;
-use wgpu::util::DeviceExt;
+use wgpu::util::DeviceExt as _;
 use winit::window::Window;
 
 use self::{
@@ -24,7 +24,7 @@ use self::{
 #[cfg(feature = "embed-assets")]
 use crate::assets::{
     Id,
-    loader::{Loader, png::PngLoader},
+    loader::{Loader as _, png::PngLoader},
 };
 use crate::{
     AssetSource,

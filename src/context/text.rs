@@ -213,7 +213,7 @@ impl<'font, 'text, 'ctx, T: Translate, P: TranslatePrevious, C: IsUiCamera>
 }
 
 /// Nothing.
-impl<'font, 'text, 'ctx, C: IsUiCamera> TextContext<'font, 'text, 'ctx, Empty, Empty, C> {
+impl<C: IsUiCamera> TextContext<'_, '_, '_, Empty, Empty, C> {
     /// Draw the text to the screen at the zero coordinate of the camera.
     ///
     /// Text glyphs and other sprites that are drawn last are always shown on top of sprites that are drawn earlier.
@@ -237,7 +237,7 @@ impl<'font, 'text, 'ctx, C: IsUiCamera> TextContext<'font, 'text, 'ctx, Empty, E
 }
 
 /// Only translation.
-impl<'font, 'text, 'ctx, C: IsUiCamera> TextContext<'font, 'text, 'ctx, Translation, Empty, C> {
+impl<C: IsUiCamera> TextContext<'_, '_, '_, Translation, Empty, C> {
     /// Draw the text to the screen.
     ///
     /// Text glyphs and other sprites that are drawn last are always shown on top of sprites that are drawn earlier.
@@ -306,9 +306,7 @@ impl<'font, 'text, 'ctx, C: IsUiCamera> TextContext<'font, 'text, 'ctx, Translat
 }
 
 /// Translation and previous translation.
-impl<'font, 'text, 'ctx, C: IsUiCamera>
-    TextContext<'font, 'text, 'ctx, Translation, PreviousTranslation, C>
-{
+impl<C: IsUiCamera> TextContext<'_, '_, '_, Translation, PreviousTranslation, C> {
     /// Draw the text smoothly to the screen, interpolating the position in the render step.
     ///
     /// Text glyphs and other sprites that are drawn last are always shown on top of sprites that are drawn earlier.

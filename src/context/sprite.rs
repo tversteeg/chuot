@@ -481,7 +481,7 @@ impl<'path, 'ctx, T: Translate, P: TranslatePrevious, R: Rotate, S: Scale, C: Is
 }
 
 /// Nothing.
-impl<'path, 'ctx, C: IsUiCamera> SpriteContext<'path, 'ctx, Empty, Empty, Empty, Empty, C> {
+impl<C: IsUiCamera> SpriteContext<'_, '_, Empty, Empty, Empty, Empty, C> {
     /// Draw the sprite to the screen at the zero coordinate of the camera.
     ///
     /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
@@ -551,7 +551,7 @@ impl<'path, 'ctx, C: IsUiCamera> SpriteContext<'path, 'ctx, Empty, Empty, Empty,
 }
 
 /// Only translation.
-impl<'path, 'ctx, C: IsUiCamera> SpriteContext<'path, 'ctx, Translation, Empty, Empty, Empty, C> {
+impl<C: IsUiCamera> SpriteContext<'_, '_, Translation, Empty, Empty, Empty, C> {
     /// Draw the sprite to the screen.
     ///
     /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
@@ -625,9 +625,7 @@ impl<'path, 'ctx, C: IsUiCamera> SpriteContext<'path, 'ctx, Translation, Empty, 
 }
 
 /// Translation and previous translation.
-impl<'path, 'ctx, C: IsUiCamera>
-    SpriteContext<'path, 'ctx, Translation, PreviousTranslation, Empty, Empty, C>
-{
+impl<C: IsUiCamera> SpriteContext<'_, '_, Translation, PreviousTranslation, Empty, Empty, C> {
     /// Draw the sprite to the screen, interpolating the position in the render step.
     ///
     /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
@@ -709,7 +707,7 @@ impl<'path, 'ctx, C: IsUiCamera>
 }
 
 /// Only rotation.
-impl<'path, 'ctx, C: IsUiCamera> SpriteContext<'path, 'ctx, Empty, Empty, Rotation, Empty, C> {
+impl<C: IsUiCamera> SpriteContext<'_, '_, Empty, Empty, Rotation, Empty, C> {
     /// Draw the sprite rotated to the screen at the zero coordinate of the camera.
     ///
     /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
@@ -772,7 +770,7 @@ impl<'path, 'ctx, C: IsUiCamera> SpriteContext<'path, 'ctx, Empty, Empty, Rotati
 }
 
 /// Only scaling.
-impl<'path, 'ctx, C: IsUiCamera> SpriteContext<'path, 'ctx, Empty, Empty, Empty, Scaling, C> {
+impl<C: IsUiCamera> SpriteContext<'_, '_, Empty, Empty, Empty, Scaling, C> {
     /// Draw the sprite scaled to the screen at the zero coordinate of the camera.
     ///
     /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
@@ -835,9 +833,7 @@ impl<'path, 'ctx, C: IsUiCamera> SpriteContext<'path, 'ctx, Empty, Empty, Empty,
 }
 
 /// Translation and rotation.
-impl<'path, 'ctx, C: IsUiCamera>
-    SpriteContext<'path, 'ctx, Translation, Empty, Rotation, Empty, C>
-{
+impl<C: IsUiCamera> SpriteContext<'_, '_, Translation, Empty, Rotation, Empty, C> {
     /// Draw the sprite rotated to the screen.
     ///
     /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
@@ -900,9 +896,7 @@ impl<'path, 'ctx, C: IsUiCamera>
 }
 
 /// Translation, previous translation and rotation.
-impl<'path, 'ctx, C: IsUiCamera>
-    SpriteContext<'path, 'ctx, Translation, PreviousTranslation, Rotation, Empty, C>
-{
+impl<C: IsUiCamera> SpriteContext<'_, '_, Translation, PreviousTranslation, Rotation, Empty, C> {
     /// Draw the sprite rotated to the screen, interpolating in the render step.
     ///
     /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
@@ -965,7 +959,7 @@ impl<'path, 'ctx, C: IsUiCamera>
 }
 
 /// Translation and scaling.
-impl<'path, 'ctx, C: IsUiCamera> SpriteContext<'path, 'ctx, Translation, Empty, Empty, Scaling, C> {
+impl<C: IsUiCamera> SpriteContext<'_, '_, Translation, Empty, Empty, Scaling, C> {
     /// Draw the sprite scaled to the screen.
     ///
     /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
@@ -1028,9 +1022,7 @@ impl<'path, 'ctx, C: IsUiCamera> SpriteContext<'path, 'ctx, Translation, Empty, 
 }
 
 /// Translation, previous translation and scaling.
-impl<'path, 'ctx, C: IsUiCamera>
-    SpriteContext<'path, 'ctx, Translation, PreviousTranslation, Empty, Scaling, C>
-{
+impl<C: IsUiCamera> SpriteContext<'_, '_, Translation, PreviousTranslation, Empty, Scaling, C> {
     /// Draw the sprite scaled to the screen, interpolating in the render step.
     ///
     /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
@@ -1093,7 +1085,7 @@ impl<'path, 'ctx, C: IsUiCamera>
 }
 
 /// Rotation and scaling.
-impl<'path, 'ctx, C: IsUiCamera> SpriteContext<'path, 'ctx, Empty, Empty, Rotation, Scaling, C> {
+impl<C: IsUiCamera> SpriteContext<'_, '_, Empty, Empty, Rotation, Scaling, C> {
     /// Draw the sprite rotated and scaled to the screen at the zero coordinate of the camera.
     ///
     /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
@@ -1156,9 +1148,7 @@ impl<'path, 'ctx, C: IsUiCamera> SpriteContext<'path, 'ctx, Empty, Empty, Rotati
 }
 
 /// Translation, rotation and scaling.
-impl<'path, 'ctx, C: IsUiCamera>
-    SpriteContext<'path, 'ctx, Translation, Empty, Rotation, Scaling, C>
-{
+impl<C: IsUiCamera> SpriteContext<'_, '_, Translation, Empty, Rotation, Scaling, C> {
     /// Draw the sprite rotated and scaled to the screen.
     ///
     /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
@@ -1281,9 +1271,7 @@ impl<'path, 'ctx, C: IsUiCamera>
 }
 
 /// Translation, previous translation, rotation and scaling.
-impl<'path, 'ctx, C: IsUiCamera>
-    SpriteContext<'path, 'ctx, Translation, PreviousTranslation, Rotation, Scaling, C>
-{
+impl<C: IsUiCamera> SpriteContext<'_, '_, Translation, PreviousTranslation, Rotation, Scaling, C> {
     /// Draw the sprite rotated and scaled to the screen, interpolating the position in the render step.
     ///
     /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.

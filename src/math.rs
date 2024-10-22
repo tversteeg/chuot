@@ -27,7 +27,7 @@ pub fn lerp(lhs: f32, rhs: f32, factor: f32) -> f32 {
 
 #[cfg(test)]
 mod tests {
-    use glam::FloatExt;
+    use glam::FloatExt as _;
 
     #[test]
     fn lerp() {
