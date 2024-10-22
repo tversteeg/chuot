@@ -2,7 +2,7 @@
 
 use std::{
     path::{MAIN_SEPARATOR, PathBuf},
-    str::FromStr,
+    str::FromStr as _,
 };
 
 use phf::Map;

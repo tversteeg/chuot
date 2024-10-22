@@ -24,7 +24,7 @@ pub struct AudioContext<'path, 'ctx> {
     pub(crate) playback_region: Option<Region>,
 }
 
-impl<'path, 'ctx> AudioContext<'path, 'ctx> {
+impl AudioContext<'_, '_> {
     /// Set the volume of the sound.
     ///
     /// # Arguments

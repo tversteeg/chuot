@@ -12,7 +12,7 @@ pub struct CameraContext<'ctx> {
     pub(crate) is_ui_camera: bool,
 }
 
-impl<'ctx> CameraContext<'ctx> {
+impl CameraContext<'_> {
     /// Apply a basic omni-directional screenshake effect with a linear decay.
     ///
     /// Based on: <https://jonny.morrill.me/en/blog/gamedev-how-to-implement-a-camera-shake-effect/>
