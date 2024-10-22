@@ -9,9 +9,9 @@
 //! ```
 
 use chuot::{
-    assets::{loadable::Loadable, loader::Loader, Id},
-    context::ContextInner,
     Config, Context, Game,
+    assets::{Id, loadable::Loadable, loader::Loader},
+    context::ContextInner,
 };
 
 /// A custom asset loader for loading '.txt' files.

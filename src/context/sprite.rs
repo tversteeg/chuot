@@ -6,18 +6,18 @@ use glam::Affine2;
 use rgb::RGBA8;
 
 use super::{
+    ContextInner,
     extensions::{
+        Empty,
         camera::{IsUiCamera, MainCamera, UiCamera},
         rotate::{Rotate, Rotation},
         scale::{Scale, Scaling},
         translate::{PreviousTranslation, Translate, TranslatePrevious, Translation},
-        Empty,
     },
-    ContextInner,
 };
 use crate::{
-    assets::{loadable::sprite::Sprite, Id},
     Context,
+    assets::{Id, loadable::sprite::Sprite},
 };
 
 /// Specify how a sprite should be drawn.

@@ -23,12 +23,12 @@ use self::{
 };
 #[cfg(feature = "embed-assets")]
 use crate::assets::{
-    loader::{png::PngLoader, Loader},
     Id,
+    loader::{Loader, png::PngLoader},
 };
 use crate::{
-    config::{Config, RotationAlgorithm},
     AssetSource,
+    config::{Config, RotationAlgorithm},
 };
 
 /// Texture format we prefer to use for everything.
@@ -222,15 +222,12 @@ impl Graphics {
         }
 
         // Create the uniforms
-        let screen_info = UniformState::new(
-            &device,
-            &ScreenInfo {
-                width: buffer_width,
-                height: buffer_height,
-                half_width: buffer_width / 2.0,
-                half_height: buffer_height / 2.0,
-            },
-        );
+        let screen_info = UniformState::new(&device, &ScreenInfo {
+            width: buffer_width,
+            height: buffer_height,
+            half_width: buffer_width / 2.0,
+            half_height: buffer_height / 2.0,
+        });
 
         // Create a new render pipeline first
         let render_pipeline_layout =

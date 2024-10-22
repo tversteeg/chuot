@@ -14,16 +14,16 @@ use smallvec::SmallVec;
 use winit::window::{Fullscreen, Window};
 
 use crate::{
+    GamepadAxis, GamepadButton, KeyCode, MouseButton,
     assets::{
-        loadable::{audio::Audio, font::Font, sprite::Sprite, Loadable},
-        source::AssetSource,
         AssetManager, CustomAssetManager, Id,
+        loadable::{Loadable, audio::Audio, font::Font, sprite::Sprite},
+        source::AssetSource,
     },
     camera::Camera,
     config::Config,
     graphics::Graphics,
     input::Input,
-    GamepadAxis, GamepadButton, KeyCode, MouseButton,
 };
 
 /// Context containing most functionality for interfacing with the game engine.

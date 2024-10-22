@@ -5,7 +5,7 @@ use std::borrow::Cow;
 use chuot_packer::Packer;
 use rgb::RGBA8;
 
-use super::{uniform::UniformArrayState, PREFERRED_TEXTURE_FORMAT};
+use super::{PREFERRED_TEXTURE_FORMAT, uniform::UniformArrayState};
 
 /// Virtual packed texture size in pixels for both width and height.
 pub(crate) const ATLAS_TEXTURE_SIZE: u32 = 4096;
@@ -222,10 +222,10 @@ impl Atlas {
 
         // Keep the pixels in memory
         #[cfg(feature = "read-texture")]
-        self.textures.insert(
-            texture_ref,
-            vec![RGBA8::default(); (width * height) as usize],
-        );
+        self.textures.insert(texture_ref, vec![
+            RGBA8::default();
+            (width * height) as usize
+        ]);
     }
 
     /// Update a region of pixels of the texture in the atlas.

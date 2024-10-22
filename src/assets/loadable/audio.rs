@@ -4,7 +4,7 @@ use kira::sound::static_sound::StaticSoundData;
 
 use super::Loadable;
 use crate::{
-    assets::{loader::ogg::OggLoader, Id},
+    assets::{Id, loader::ogg::OggLoader},
     context::ContextInner,
 };
 

@@ -90,14 +90,11 @@ impl Packer {
                     // Old skyline is inside the new one
 
                     // Insert the slice after
-                    self.skylines.insert(
-                        index + 1,
-                        Skyline {
-                            x: new_skyline.right(),
-                            y: skyline.y,
-                            width: skyline.right() - new_skyline.right(),
-                        },
-                    );
+                    self.skylines.insert(index + 1, Skyline {
+                        x: new_skyline.right(),
+                        y: skyline.y,
+                        width: skyline.right() - new_skyline.right(),
+                    });
 
                     // Cut the right part of the old skyline
                     self.skylines[index].width = new_skyline.left() - skyline.left();

@@ -191,22 +191,19 @@ fn encode_png(texture: &Texture) -> Vec<u8> {
     }
 
     // Optimize the PNG
-    oxipng::optimize_from_memory(
-        &bytes,
-        &Options {
-            // Always write to output
-            force: true,
-            // Also simplify the alpha channel, removes color info for transparent pixels
-            optimize_alpha: true,
-            // Never make it grayscale
-            grayscale_reduction: false,
-            // Reducing the color type makes the PNG loader not work for some reason
-            color_type_reduction: false,
-            // Don't optimize for more than a minute
-            timeout: Some(Duration::from_secs(60)),
-            ..Default::default()
-        },
-    )
+    oxipng::optimize_from_memory(&bytes, &Options {
+        // Always write to output
+        force: true,
+        // Also simplify the alpha channel, removes color info for transparent pixels
+        optimize_alpha: true,
+        // Never make it grayscale
+        grayscale_reduction: false,
+        // Reducing the color type makes the PNG loader not work for some reason
+        color_type_reduction: false,
+        // Don't optimize for more than a minute
+        timeout: Some(Duration::from_secs(60)),
+        ..Default::default()
+    })
     .expect("Error optimizing PNG")
 }
 

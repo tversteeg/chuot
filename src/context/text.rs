@@ -5,9 +5,9 @@ use std::marker::PhantomData;
 use glam::Affine2;
 
 use super::extensions::{
+    Empty,
     camera::{IsUiCamera, MainCamera, UiCamera},
     translate::{PreviousTranslation, Translate, TranslatePrevious, Translation},
-    Empty,
 };
 use crate::Context;
 

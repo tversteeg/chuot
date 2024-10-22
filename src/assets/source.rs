@@ -1,13 +1,13 @@
 //! How and where assets are loaded.
 
 use std::{
-    path::{PathBuf, MAIN_SEPARATOR},
+    path::{MAIN_SEPARATOR, PathBuf},
     str::FromStr,
 };
 
 use phf::Map;
 
-use super::{loader::Loader, Id};
+use super::{Id, loader::Loader};
 use crate::graphics::atlas::TextureRef;
 
 /// Empty array when embedding nothing.

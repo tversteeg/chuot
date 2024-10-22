@@ -7,8 +7,8 @@ use rgb::RGBA8;
 use super::Loadable;
 use crate::{
     assets::{
-        loader::{png::PngLoader, ron::RonLoader},
         Id,
+        loader::{png::PngLoader, ron::RonLoader},
     },
     context::ContextInner,
     graphics::atlas::TextureRef,

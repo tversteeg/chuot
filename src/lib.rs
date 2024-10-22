@@ -434,7 +434,7 @@ impl<G: Game> ApplicationHandler<Context> for State<G> {
 
             #[cfg(target_arch = "wasm32")]
             {
-                use web_sys::{wasm_bindgen::JsCast, HtmlCanvasElement};
+                use web_sys::{HtmlCanvasElement, wasm_bindgen::JsCast};
                 use winit::platform::web::WindowAttributesExtWebSys;
 
                 // Create or find a canvas the winit window can be attached to

@@ -1,4 +1,4 @@
-edition = "2021"
+style_edition = "2024"
 use_field_init_shorthand = true
 use_try_shorthand = true
 group_imports = "StdExternalCrate"
@@ -11,4 +11,3 @@ normalize_comments = true
 normalize_doc_attributes = true
 reorder_impl_items = true
 unstable_features = true
-version = "Two"

@@ -15,7 +15,7 @@ use crate::context::ContextInner;
 ///
 /// ```
 /// use chuot::{
-///     assets::{loadable::Loadable, loader::ron::RonLoader, Id},
+///     assets::{Id, loadable::Loadable, loader::ron::RonLoader},
 ///     context::ContextInner,
 /// };
 /// use nanoserde::DeRon;
