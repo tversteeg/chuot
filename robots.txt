@@ -1,0 +1,5 @@
+
+Sitemap: https://tversteeg.nl/chuot/sitemap.xml
+User-Agent: *
+Allow: /
+Host: https://tversteeg.nl/chuot
