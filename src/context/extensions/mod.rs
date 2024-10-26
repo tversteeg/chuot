@@ -1,6 +1,7 @@
 //! Different traits for extending context structs.
 
 pub(crate) mod camera;
+pub(crate) mod pivot;
 pub(crate) mod rotate;
 pub(crate) mod scale;
 pub(crate) mod translate;

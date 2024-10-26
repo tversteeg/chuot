@@ -4,10 +4,10 @@
 //! {{ img(src="/assets/threeforms.png" alt="Sprite") }}
 //! With the following `threeforms.ron` RON configuration file for positioning the center of the sprite:
 //! ```ron
-//! (offset: Middle)
+//! (pivot: Middle)
 //! ```
 
-use chuot::{Config, Context, Game, config::RotationAlgorithm};
+use chuot::{config::RotationAlgorithm, Config, Context, Game};
 
 /// How much we will scale with the mouse.
 const SCALE_FACTOR: f32 = 50.0;

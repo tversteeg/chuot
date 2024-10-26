@@ -1,13 +1,13 @@
-//! Show how simple it is to rotate a sprite.
+//! Show how to pivot a sprite.
 //!
 //! The `threeforms.png` sprite image for this example is:
 //! {{ img(src="/assets/threeforms.png" alt="Sprite") }}
-//! With the following `threeforms.ron` RON configuration file for positioning the center of the sprite:
+//! With the following `threeforms.ron` RON configuration file where pivot is the default pivot:
 //! ```ron
 //! (pivot: Middle)
 //! ```
 
-use chuot::{config::RotationAlgorithm, Config, Context, Game};
+use chuot::{config::RotationAlgorithm, Config, Context, Game, Pivot};
 
 /// Define a game state for our example.
 #[derive(Default)]
@@ -25,10 +25,24 @@ impl Game for GameState {
 
     /// Render the game.
     fn render(&mut self, ctx: Context) {
-        // Draw the rotated sprite
+        // Draw a sprite at the left top
         ctx.sprite("threeforms")
-            // Rotate it
+            // Use the UI coordinate system so it's placed at the left top of the screen
+            .use_ui_camera()
+            // Override the default pivot
+            .pivot(Pivot::LeftTop)
+            .draw();
+
+        // Draw a rotated sprite at the center with a slight pivot offset
+        ctx.sprite("threeforms")
             .rotate(self.rotation)
+            // Override the default pivot
+            .pivot(Pivot::Custom {
+                // Horizontal pivot is the center of the sprite
+                x: ctx.sprite("threeforms").width() / 2.0,
+                // Vertical pivot is a quarter of the sprite
+                y: ctx.sprite("threeforms").height() / 4.0,
+            })
             .draw();
     }
 }
