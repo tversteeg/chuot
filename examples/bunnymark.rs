@@ -4,7 +4,7 @@
 //! {{ img(src="/assets/bunnymark.png" alt="Sprite") }}
 //! With the following `bunnymark.ron` RON configuration file for positioning the center of the sprite:
 //! ```ron
-//! (offset: Middle)
+//! (pivot: Middle)
 //! ```
 
 use chuot::{Config, Context, Game, MouseButton, config::RotationAlgorithm};

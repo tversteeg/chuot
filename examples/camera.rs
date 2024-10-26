@@ -6,14 +6,14 @@
 //! {{ img(src="/assets/threeforms.png" alt="Sprite") }}
 //! With the following `threeforms.ron` RON configuration file for positioning the center of the sprite:
 //! ```ron
-//! (offset: Middle)
+//! (pivot: Middle)
 //! ```
 //!
 //! The `bunnymark.png` sprite image for this example is:
 //! {{ img(src="/assets/bunnymark.png" alt="Sprite") }}
 //! With the following `bunnymark.ron` RON configuration file for positioning the center of the sprite:
 //! ```ron
-//! (offset: Middle)
+//! (pivot: Middle)
 //! ```
 
 use chuot::{Config, Context, Game, KeyCode, MouseButton};

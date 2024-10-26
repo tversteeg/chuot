@@ -12,6 +12,7 @@ use crate::{
     },
     context::ContextInner,
     graphics::atlas::TextureRef,
+    pivot::Pivot,
 };
 
 /// Sprite asset that can be loaded with metadata.
@@ -77,16 +78,23 @@ impl Sprite {
             .collect()
     }
 
+    /// Get the sprite offset.
+    #[inline]
+    #[must_use]
+    pub(crate) fn offset_custom_pivot(&self, pivot: Pivot) -> (f32, f32) {
+        pivot.pivot(self.sub_rectangle.2, self.sub_rectangle.3)
+    }
+
     /// Get the sprite offset based on the metadata.
     #[inline]
+    #[must_use]
     pub(crate) fn offset(&self) -> (f32, f32) {
-        self.metadata
-            .offset
-            .offset(self.sub_rectangle.2, self.sub_rectangle.3)
+        self.offset_custom_pivot(self.metadata.pivot)
     }
 
     /// Calculate the transformation matrix.
     #[inline]
+    #[must_use]
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn affine_matrix(
         &self,
@@ -100,11 +108,40 @@ impl Sprite {
         scale_x: f32,
         scale_y: f32,
     ) -> Affine2 {
+        self.affine_matrix_custom_pivot(
+            x,
+            y,
+            previous_x,
+            previous_y,
+            blending_factor,
+            blend,
+            rotation,
+            scale_x,
+            scale_y,
+            self.metadata.pivot,
+        )
+    }
+
+    /// Calculate the transformation using a custom pivot.
+    #[inline]
+    #[must_use]
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn affine_matrix_custom_pivot(
+        &self,
+        x: f32,
+        y: f32,
+        previous_x: f32,
+        previous_y: f32,
+        blending_factor: f32,
+        blend: bool,
+        rotation: f32,
+        scale_x: f32,
+        scale_y: f32,
+        pivot: Pivot,
+    ) -> Affine2 {
         // Adjust by the sprite offset
-        let (sprite_offset_x, sprite_offset_y) = self
-            .metadata
-            .offset
-            .offset(self.sub_rectangle.2, self.sub_rectangle.3);
+        let (sprite_offset_x, sprite_offset_y) =
+            pivot.pivot(self.sub_rectangle.2, self.sub_rectangle.3);
 
         // Apply the blending factor if applicable
         let (x, y) = if blend {
@@ -184,43 +221,11 @@ impl Loadable for Sprite {
     }
 }
 
-/// Center of the sprite.
-#[derive(Debug, Clone, Copy, PartialEq, Default, DeRon)]
-pub enum SpriteOffset {
-    /// Middle of the sprite will be rendered at `(0, 0)`.
-    Middle,
-    /// Horizontal middle and vertical top will be rendered at `(0, 0)`.
-    MiddleTop,
-    /// Left top of the sprite will be rendered at `(0, 0)`.
-    #[default]
-    LeftTop,
-    /// Sprite will be offset with the custom coordinates counting from the left top.
-    Custom {
-        /// X offset from the left.
-        x: f32,
-        /// Y offset from the top.
-        y: f32,
-    },
-}
-
-impl SpriteOffset {
-    /// Get the offset based on the sprite size.
-    #[inline]
-    pub(crate) fn offset(&self, sprite_width: f32, sprite_height: f32) -> (f32, f32) {
-        match self {
-            Self::Middle => (-sprite_width / 2.0, -sprite_height / 2.0),
-            Self::MiddleTop => (-sprite_width / 2.0, 0.0),
-            Self::LeftTop => (0.0, 0.0),
-            Self::Custom { x, y } => (-x, -y),
-        }
-    }
-}
-
 /// Sprite metadata to load from data formats.
 #[derive(Debug, Clone, Copy, Default, DeRon)]
 pub struct SpriteMetadata {
     /// Pixel offset to render at.
-    pub(crate) offset: SpriteOffset,
+    pub(crate) pivot: Pivot,
 }
 
 impl Loadable for SpriteMetadata {

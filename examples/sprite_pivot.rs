@@ -1,50 +1,48 @@
-//! Show how to scale a sprite horizontally and vertically.
+//! Show how to pivot a sprite.
 //!
 //! The `threeforms.png` sprite image for this example is:
 //! {{ img(src="/assets/threeforms.png" alt="Sprite") }}
-//! With the following `threeforms.ron` RON configuration file for positioning the center of the sprite:
+//! With the following `threeforms.ron` RON configuration file where pivot is the default pivot:
 //! ```ron
 //! (pivot: Middle)
 //! ```
 
-use chuot::{Config, Context, Game, config::RotationAlgorithm};
-
-/// How much we will scale with the mouse.
-const SCALE_FACTOR: f32 = 50.0;
+use chuot::{Config, Context, Game, Pivot, config::RotationAlgorithm};
 
 /// Define a game state for our example.
 #[derive(Default)]
 struct GameState {
-    /// Current horizontal scaling.
-    scale_x: f32,
-    /// Current vertical scaling.
-    scale_y: f32,
+    /// Current rotation.
+    rotation: f32,
 }
 
 impl Game for GameState {
     /// Update the game.
     fn update(&mut self, ctx: Context) {
-        // Scale based on the mouse cursor
-        if let Some((mouse_x, mouse_y)) = ctx.mouse() {
-            // Only scale when the mouse is hovering over the buffer
-
-            // Take the distance from the center of the screen to the mouse, and multiply it with the scale factor
-            self.scale_x = (mouse_x - ctx.width() / 2.0) / SCALE_FACTOR;
-            self.scale_y = (mouse_y - ctx.height() / 2.0) / SCALE_FACTOR;
-        } else {
-            // Flip horizontally when mouse is outside of screen
-            self.scale_x = -1.0;
-            self.scale_y = 1.0;
-        }
+        // Increment the rotation with with the timestep so it rotates smoothly
+        self.rotation += ctx.delta_time();
     }
 
     /// Render the game.
     fn render(&mut self, ctx: Context) {
-        // Draw the rotated sprite
+        // Draw a sprite at the left top
         ctx.sprite("threeforms")
-            // Scale it
-            .scale_x(self.scale_x)
-            .scale_y(self.scale_y)
+            // Use the UI coordinate system so it's placed at the left top of the screen
+            .use_ui_camera()
+            // Override the default pivot
+            .pivot(Pivot::LeftTop)
+            .draw();
+
+        // Draw a rotated sprite at the center with a slight pivot offset
+        ctx.sprite("threeforms")
+            .rotate(self.rotation)
+            // Override the default pivot
+            .pivot(Pivot::Custom {
+                // Horizontal pivot is the center of the sprite
+                x: ctx.sprite("threeforms").width() / 2.0,
+                // Vertical pivot is a quarter of the sprite
+                y: ctx.sprite("threeforms").height() / 4.0,
+            })
             .draw();
     }
 }
