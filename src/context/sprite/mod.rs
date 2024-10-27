@@ -282,6 +282,7 @@ impl<'path, 'ctx, T: Translate, P: TranslatePrevious, R: Rotate, S: Scale, O: Pi
     /// # Arguments
     ///
     /// * `(width, height)` - Size tuple of the new sprite in pixels.
+    /// * `pivot` - Pivot point of the sprite, see [`crate::Pivot`].
     /// * `pixels` - Array of RGBA `u32` pixels to use as the texture of the sprite.
     ///
     /// # Panics
@@ -289,13 +290,18 @@ impl<'path, 'ctx, T: Translate, P: TranslatePrevious, R: Rotate, S: Scale, O: Pi
     /// - When a sprite with the same ID already exists.
     /// - When `width * height != pixels.len()`.
     #[inline]
-    pub fn create(self, size: impl Into<(f32, f32)>, pixels: impl AsRef<[RGBA8]>) {
+    pub fn create(
+        self,
+        size: impl Into<(f32, f32)>,
+        pivot: SpritePivot,
+        pixels: impl AsRef<[RGBA8]>,
+    ) {
         let (width, height) = size.into();
         let pixels = pixels.as_ref();
 
         self.ctx.write(|ctx| {
             // Create the sprite
-            let asset = Sprite::new_and_upload(width, height, pixels, ctx);
+            let asset = Sprite::new_and_upload(width, height, pivot, pixels, ctx);
 
             // Register the sprite
             ctx.sprites.insert(Id::new(self.path), asset);

@@ -1,6 +1,6 @@
 //! Create a sprite without loading any assets from disk or memory.
 
-use chuot::{AssetSource, Config, Context, Game, RGBA8};
+use chuot::{AssetSource, Config, Context, Game, Pivot, RGBA8};
 
 /// Define an empty game state for our example.
 struct GameState;
@@ -24,7 +24,8 @@ impl Game for GameState {
             .collect::<Vec<_>>();
 
         // Create a new sprite with the size of the screen
-        ctx.sprite("pattern").create((width, height), pixels);
+        ctx.sprite("pattern")
+            .create((width, height), Pivot::LeftTop, pixels);
     }
 
     /// Render the game.

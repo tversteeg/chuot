@@ -31,6 +31,7 @@ impl Sprite {
     pub(crate) fn new_and_upload(
         width: f32,
         height: f32,
+        pivot: Pivot,
         pixels: &[RGBA8],
         ctx: &mut ContextInner,
     ) -> Self {
@@ -42,8 +43,8 @@ impl Sprite {
         // Draw the full sprite
         let sub_rectangle = (0.0, 0.0, width, height);
 
-        // Use default metadata
-        let metadata = SpriteMetadata::default();
+        // Set metadata
+        let metadata = SpriteMetadata { pivot };
 
         Self {
             texture,
