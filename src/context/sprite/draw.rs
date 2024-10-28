@@ -1,17 +1,22 @@
 //! Different implementations for drawing a sprite.
 
 use super::SpriteContext;
-use crate::context::extensions::{
-    camera::IsUiCamera,
-    pivot::Pivot,
-    rotate::Rotation,
-    scale::Scaling,
-    translate::{PreviousTranslation, Translation},
-    Empty,
+use crate::context::{
+    extensions::{
+        Empty,
+        camera::IsUiCamera,
+        pivot::Pivot,
+        rotate::Rotation,
+        scale::Scaling,
+        translate::{PreviousTranslation, Translation},
+    },
+    load::LoadMethod,
 };
 
 /// Nothing.
-impl<O: Pivot, C: IsUiCamera> SpriteContext<'_, '_, Empty, Empty, Empty, Empty, O, C> {
+impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
+    SpriteContext<'_, L, Empty, Empty, Empty, Empty, O, C>
+{
     /// Draw the sprite to the screen at the zero coordinate of the camera.
     ///
     /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
@@ -23,7 +28,7 @@ impl<O: Pivot, C: IsUiCamera> SpriteContext<'_, '_, Empty, Empty, Empty, Empty, 
     pub fn draw(self) {
         self.ctx.write(|ctx| {
             let (sprite, affine_matrix) =
-                ctx.sprite_with_base_affine_matrix(self.path, C::is_ui_camera(), self.pivot);
+                ctx.sprite_with_base_affine_matrix(&self.load, C::is_ui_camera(), self.pivot);
 
             // Push the graphics
             ctx.graphics
@@ -81,7 +86,9 @@ impl<O: Pivot, C: IsUiCamera> SpriteContext<'_, '_, Empty, Empty, Empty, Empty, 
 }
 
 /// Only translation.
-impl<O: Pivot, C: IsUiCamera> SpriteContext<'_, '_, Translation, Empty, Empty, Empty, O, C> {
+impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
+    SpriteContext<'_, L, Translation, Empty, Empty, Empty, O, C>
+{
     /// Draw the sprite to the screen.
     ///
     /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
@@ -93,7 +100,7 @@ impl<O: Pivot, C: IsUiCamera> SpriteContext<'_, '_, Translation, Empty, Empty, E
     pub fn draw(self) {
         self.ctx.write(|ctx| {
             let (sprite, mut affine_matrix) =
-                ctx.sprite_with_base_affine_matrix(self.path, C::is_ui_camera(), self.pivot);
+                ctx.sprite_with_base_affine_matrix(&self.load, C::is_ui_camera(), self.pivot);
 
             // Translate the coordinates
             affine_matrix.translation.x += self.translation.x;
@@ -155,8 +162,8 @@ impl<O: Pivot, C: IsUiCamera> SpriteContext<'_, '_, Translation, Empty, Empty, E
 }
 
 /// Translation and previous translation.
-impl<O: Pivot, C: IsUiCamera>
-    SpriteContext<'_, '_, Translation, PreviousTranslation, Empty, Empty, O, C>
+impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
+    SpriteContext<'_, L, Translation, PreviousTranslation, Empty, Empty, O, C>
 {
     /// Draw the sprite to the screen, interpolating the position in the render step.
     ///
@@ -169,7 +176,7 @@ impl<O: Pivot, C: IsUiCamera>
     pub fn draw(self) {
         self.ctx.write(|ctx| {
             let (sprite, mut affine_matrix) =
-                ctx.sprite_with_base_affine_matrix(self.path, C::is_ui_camera(), self.pivot);
+                ctx.sprite_with_base_affine_matrix(&self.load, C::is_ui_camera(), self.pivot);
 
             // Translate the coordinates
             affine_matrix.translation.x += crate::math::lerp(
@@ -239,7 +246,9 @@ impl<O: Pivot, C: IsUiCamera>
 }
 
 /// Only rotation.
-impl<O: Pivot, C: IsUiCamera> SpriteContext<'_, '_, Empty, Empty, Rotation, Empty, O, C> {
+impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
+    SpriteContext<'_, L, Empty, Empty, Rotation, Empty, O, C>
+{
     /// Draw the sprite rotated to the screen at the zero coordinate of the camera.
     ///
     /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
@@ -302,7 +311,9 @@ impl<O: Pivot, C: IsUiCamera> SpriteContext<'_, '_, Empty, Empty, Rotation, Empt
 }
 
 /// Only scaling.
-impl<O: Pivot, C: IsUiCamera> SpriteContext<'_, '_, Empty, Empty, Empty, Scaling, O, C> {
+impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
+    SpriteContext<'_, L, Empty, Empty, Empty, Scaling, O, C>
+{
     /// Draw the sprite scaled to the screen at the zero coordinate of the camera.
     ///
     /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
@@ -365,7 +376,9 @@ impl<O: Pivot, C: IsUiCamera> SpriteContext<'_, '_, Empty, Empty, Empty, Scaling
 }
 
 /// Translation and rotation.
-impl<O: Pivot, C: IsUiCamera> SpriteContext<'_, '_, Translation, Empty, Rotation, Empty, O, C> {
+impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
+    SpriteContext<'_, L, Translation, Empty, Rotation, Empty, O, C>
+{
     /// Draw the sprite rotated to the screen.
     ///
     /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
@@ -428,8 +441,8 @@ impl<O: Pivot, C: IsUiCamera> SpriteContext<'_, '_, Translation, Empty, Rotation
 }
 
 /// Translation, previous translation and rotation.
-impl<O: Pivot, C: IsUiCamera>
-    SpriteContext<'_, '_, Translation, PreviousTranslation, Rotation, Empty, O, C>
+impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
+    SpriteContext<'_, L, Translation, PreviousTranslation, Rotation, Empty, O, C>
 {
     /// Draw the sprite rotated to the screen, interpolating in the render step.
     ///
@@ -493,7 +506,9 @@ impl<O: Pivot, C: IsUiCamera>
 }
 
 /// Translation and scaling.
-impl<O: Pivot, C: IsUiCamera> SpriteContext<'_, '_, Translation, Empty, Empty, Scaling, O, C> {
+impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
+    SpriteContext<'_, L, Translation, Empty, Empty, Scaling, O, C>
+{
     /// Draw the sprite scaled to the screen.
     ///
     /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
@@ -556,8 +571,8 @@ impl<O: Pivot, C: IsUiCamera> SpriteContext<'_, '_, Translation, Empty, Empty, S
 }
 
 /// Translation, previous translation and scaling.
-impl<O: Pivot, C: IsUiCamera>
-    SpriteContext<'_, '_, Translation, PreviousTranslation, Empty, Scaling, O, C>
+impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
+    SpriteContext<'_, L, Translation, PreviousTranslation, Empty, Scaling, O, C>
 {
     /// Draw the sprite scaled to the screen, interpolating in the render step.
     ///
@@ -621,7 +636,9 @@ impl<O: Pivot, C: IsUiCamera>
 }
 
 /// Rotation and scaling.
-impl<O: Pivot, C: IsUiCamera> SpriteContext<'_, '_, Empty, Empty, Rotation, Scaling, O, C> {
+impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
+    SpriteContext<'_, L, Empty, Empty, Rotation, Scaling, O, C>
+{
     /// Draw the sprite rotated and scaled to the screen at the zero coordinate of the camera.
     ///
     /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
@@ -684,7 +701,9 @@ impl<O: Pivot, C: IsUiCamera> SpriteContext<'_, '_, Empty, Empty, Rotation, Scal
 }
 
 /// Translation, rotation and scaling.
-impl<O: Pivot, C: IsUiCamera> SpriteContext<'_, '_, Translation, Empty, Rotation, Scaling, O, C> {
+impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
+    SpriteContext<'_, L, Translation, Empty, Rotation, Scaling, O, C>
+{
     /// Draw the sprite rotated and scaled to the screen.
     ///
     /// Sprites that are drawn last are always shown on top of sprites that are drawn earlier.
@@ -696,7 +715,7 @@ impl<O: Pivot, C: IsUiCamera> SpriteContext<'_, '_, Translation, Empty, Rotation
     pub fn draw(self) {
         self.ctx.write(|ctx| {
             // Push the instance if the texture is already uploaded
-            let sprite = ctx.sprite(self.path);
+            let sprite = &self.load.sprite(ctx);
 
             // Get the camera to draw the sprite with
             let camera = ctx.camera(C::is_ui_camera());
@@ -768,7 +787,7 @@ impl<O: Pivot, C: IsUiCamera> SpriteContext<'_, '_, Translation, Empty, Rotation
     {
         self.ctx.write(|ctx| {
             // Push the instance if the texture is already uploaded
-            let sprite = ctx.sprite(self.path);
+            let sprite = &self.load.sprite(ctx);
 
             // Get the camera to draw the sprite with
             let camera = ctx.camera(C::is_ui_camera());
@@ -809,8 +828,8 @@ impl<O: Pivot, C: IsUiCamera> SpriteContext<'_, '_, Translation, Empty, Rotation
 }
 
 /// Translation, previous translation, rotation and scaling.
-impl<O: Pivot, C: IsUiCamera>
-    SpriteContext<'_, '_, Translation, PreviousTranslation, Rotation, Scaling, O, C>
+impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
+    SpriteContext<'_, L, Translation, PreviousTranslation, Rotation, Scaling, O, C>
 {
     /// Draw the sprite rotated and scaled to the screen, interpolating the position in the render step.
     ///
@@ -823,7 +842,7 @@ impl<O: Pivot, C: IsUiCamera>
     pub fn draw(self) {
         self.ctx.write(|ctx| {
             // Push the instance if the texture is already uploaded
-            let sprite = ctx.sprite(self.path);
+            let sprite = &self.load.sprite(ctx);
 
             // Get the camera to draw the sprite with
             let camera = ctx.camera(C::is_ui_camera());
@@ -895,7 +914,7 @@ impl<O: Pivot, C: IsUiCamera>
     {
         self.ctx.write(|ctx| {
             // Push the instance if the texture is already uploaded
-            let sprite = ctx.sprite(self.path);
+            let sprite = &self.load.sprite(ctx);
 
             // Get the camera to draw the sprite with
             let camera = ctx.camera(C::is_ui_camera());

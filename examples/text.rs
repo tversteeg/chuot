@@ -21,9 +21,14 @@ impl Game for GameState {
         ctx.text("Beachball", "Hello world!")
             // Use the UI camera which draws the center in the top left
             .use_ui_camera()
-            // Draw at the middle of the screen
-            .translate((1.0, 40.0))
+            // Draw at the top of the screen
+            .translate((1.0, 1.0))
             // Draw the text on the screen
+            .draw();
+
+        // We can also load a glyph from a font as a sprite asset and use it like a sprite would be used
+        ctx.font_glyph("Beachball", '@')
+            // Draw the sprite on the screen, it is centered because by default it uses the main camera
             .draw();
     }
 
