@@ -71,7 +71,7 @@ winit = "0.30.5"
 # Dependencies specifically for non-web platforms
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 notify-debouncer-mini = "0.5.0"
-pollster = "0.3.0"
+pollster = "0.4.0"
 wgpu = { version = "22.1.0", default-features = false, features = ["wgsl"] }
 
 # Dependencies specifically for the web platform
