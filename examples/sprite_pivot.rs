@@ -7,7 +7,7 @@
 //! (pivot: Middle)
 //! ```
 
-use chuot::{config::RotationAlgorithm, Config, Context, Game, Pivot};
+use chuot::{Config, Context, Game, Pivot, config::RotationAlgorithm};
 
 /// Define a game state for our example.
 #[derive(Default)]

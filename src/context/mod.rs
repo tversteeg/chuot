@@ -3,6 +3,8 @@
 pub mod audio;
 pub mod camera;
 pub(crate) mod extensions;
+#[doc(hidden)]
+pub mod load;
 pub mod sprite;
 pub mod text;
 

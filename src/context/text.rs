@@ -4,12 +4,17 @@ use std::marker::PhantomData;
 
 use glam::Affine2;
 
-use super::extensions::{
-    Empty,
-    camera::{IsUiCamera, MainCamera, UiCamera},
-    translate::{PreviousTranslation, Translate, TranslatePrevious, Translation},
+use super::{
+    extensions::{
+        camera::{IsUiCamera, MainCamera, UiCamera},
+        pivot::Pivoting,
+        translate::{PreviousTranslation, Translate, TranslatePrevious, Translation},
+        Empty,
+    },
+    load::FromMemory,
+    sprite::SpriteContext,
 };
-use crate::Context;
+use crate::{Context, Pivot};
 
 /// Specify how the text should be drawn.
 ///
@@ -287,7 +292,7 @@ impl<C: IsUiCamera> TextContext<'_, '_, '_, Translation, Empty, C> {
                 let sprite = font.sprites[char_offset];
 
                 // Get the sprite offset
-                let (mut sprite_x, mut sprite_y) = sprite.offset();
+                let (mut sprite_x, mut sprite_y) = sprite.pivot_offset(sprite.pivot());
 
                 // Offset the sprite with the camera and the local position
                 sprite_x += offset_x + x;
@@ -368,7 +373,7 @@ impl<C: IsUiCamera> TextContext<'_, '_, '_, Translation, PreviousTranslation, C>
                 let sprite = font.sprites[char_offset];
 
                 // Get the sprite offset
-                let (mut sprite_x, mut sprite_y) = sprite.offset();
+                let (mut sprite_x, mut sprite_y) = sprite.pivot_offset(sprite.pivot());
 
                 // Offset the sprite with the camera and the local position
                 sprite_x += offset_x + x;
@@ -417,6 +422,48 @@ impl Context {
             text,
             translation: Empty,
             previous_translation: Empty,
+            phantom: PhantomData,
+        }
+    }
+
+    /// Get the sprite for a single glyph in a font.
+    ///
+    /// The sprite will be pivoted in the middle and displayed using the main camera.
+    ///
+    /// # Arguments
+    ///
+    /// * `font` - Asset path of the font, see [`Self`] for more information about asset loading and storing.
+    /// * `glyph` - character that would normally be drawn to get the sprite of.
+    ///
+    /// # Panics
+    ///
+    /// - When asset failed loading.
+    /// - When character is out of range.
+    #[inline]
+    #[must_use]
+    pub fn font_glyph(
+        &self,
+        font: &str,
+        glyph: char,
+    ) -> SpriteContext<'_, FromMemory, Empty, Empty, Empty, Empty, Pivoting, MainCamera> {
+        let sprite = self.write(|ctx| {
+            // Push the instance if the texture is already uploaded
+            let font = ctx.font(font);
+
+            // Get the character
+            let char_offset = glyph as usize - font.metadata.first_char;
+            font.sprites[char_offset]
+        });
+
+        // Create the sprite context to continue with
+        SpriteContext {
+            load: FromMemory::new(sprite),
+            ctx: self,
+            translation: Empty,
+            previous_translation: Empty,
+            rotation: Empty,
+            scaling: Empty,
+            pivot: Pivoting::new(Pivot::Middle),
             phantom: PhantomData,
         }
     }
