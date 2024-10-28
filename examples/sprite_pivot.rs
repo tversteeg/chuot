@@ -7,7 +7,7 @@
 //! (pivot: Middle)
 //! ```
 
-use chuot::{Config, Context, Game, Pivot, config::RotationAlgorithm};
+use chuot::{config::RotationAlgorithm, Config, Context, Game, Pivot};
 
 /// Define a game state for our example.
 #[derive(Default)]
@@ -27,10 +27,10 @@ impl Game for GameState {
     fn render(&mut self, ctx: Context) {
         // Draw a sprite at the left top
         ctx.sprite("threeforms")
-            // Use the UI coordinate system so it's placed at the left top of the screen
-            .use_ui_camera()
             // Override the default pivot
             .pivot(Pivot::LeftTop)
+            // Use the UI coordinate system so it's placed at the left top of the screen
+            .use_ui_camera()
             .draw();
 
         // Draw a rotated sprite at the center with a slight pivot offset

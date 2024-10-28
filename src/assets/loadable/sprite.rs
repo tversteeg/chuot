@@ -7,8 +7,8 @@ use rgb::RGBA8;
 use super::Loadable;
 use crate::{
     assets::{
-        Id,
         loader::{png::PngLoader, ron::RonLoader},
+        Id,
     },
     context::ContextInner,
     graphics::atlas::TextureRef,
@@ -23,7 +23,7 @@ pub(crate) struct Sprite {
     /// Sub rectangle of the sprite to draw, can be used to split a sprite sheet.
     pub(crate) sub_rectangle: (f32, f32, f32, f32),
     /// Sprite metadata.
-    pub(crate) metadata: SpriteMetadata,
+    metadata: SpriteMetadata,
 }
 
 impl Sprite {
@@ -79,21 +79,14 @@ impl Sprite {
             .collect()
     }
 
-    /// Get the sprite offset.
+    /// Calculate the pivot value.
     #[inline]
     #[must_use]
-    pub(crate) fn offset_custom_pivot(&self, pivot: Pivot) -> (f32, f32) {
+    pub(crate) fn pivot_offset(&self, pivot: Pivot) -> (f32, f32) {
         pivot.pivot(self.sub_rectangle.2, self.sub_rectangle.3)
     }
 
-    /// Get the sprite offset based on the metadata.
-    #[inline]
-    #[must_use]
-    pub(crate) fn offset(&self) -> (f32, f32) {
-        self.offset_custom_pivot(self.metadata.pivot)
-    }
-
-    /// Calculate the transformation matrix.
+    /// Calculate the transformation using a custom pivot.
     #[inline]
     #[must_use]
     #[allow(clippy::too_many_arguments)]
@@ -108,41 +101,10 @@ impl Sprite {
         rotation: f32,
         scale_x: f32,
         scale_y: f32,
-    ) -> Affine2 {
-        self.affine_matrix_custom_pivot(
-            x,
-            y,
-            previous_x,
-            previous_y,
-            blending_factor,
-            blend,
-            rotation,
-            scale_x,
-            scale_y,
-            self.metadata.pivot,
-        )
-    }
-
-    /// Calculate the transformation using a custom pivot.
-    #[inline]
-    #[must_use]
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn affine_matrix_custom_pivot(
-        &self,
-        x: f32,
-        y: f32,
-        previous_x: f32,
-        previous_y: f32,
-        blending_factor: f32,
-        blend: bool,
-        rotation: f32,
-        scale_x: f32,
-        scale_y: f32,
         pivot: Pivot,
     ) -> Affine2 {
         // Adjust by the sprite offset
-        let (sprite_offset_x, sprite_offset_y) =
-            pivot.pivot(self.sub_rectangle.2, self.sub_rectangle.3);
+        let (sprite_offset_x, sprite_offset_y) = self.pivot_offset(pivot);
 
         // Apply the blending factor if applicable
         let (x, y) = if blend {
@@ -204,6 +166,11 @@ impl Sprite {
             sub_rectangle,
             metadata,
         })
+    }
+
+    /// Get the pivot value from the metadata.
+    pub(crate) const fn pivot(&self) -> Pivot {
+        self.metadata.pivot
     }
 }
 

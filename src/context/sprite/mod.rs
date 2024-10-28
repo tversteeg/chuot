@@ -8,18 +8,18 @@ use glam::Affine2;
 use rgb::RGBA8;
 
 use super::{
-    Context, ContextInner,
     extensions::{
-        Empty,
         camera::{IsUiCamera, MainCamera, UiCamera},
         pivot::{Pivot, Pivoting},
         rotate::{Rotate, Rotation},
         scale::{Scale, Scaling},
         translate::{PreviousTranslation, Translate, TranslatePrevious, Translation},
+        Empty,
     },
+    Context, ContextInner,
 };
 use crate::{
-    assets::{Id, loadable::sprite::Sprite},
+    assets::{loadable::sprite::Sprite, Id},
     pivot::Pivot as SpritePivot,
 };
 
@@ -47,8 +47,16 @@ pub struct SpriteContext<'path, 'ctx, T, P, R, S, O, C> {
     pub(crate) phantom: PhantomData<C>,
 }
 
-impl<'path, 'ctx, T: Translate, P: TranslatePrevious, R: Rotate, S: Scale, O: Pivot, C: IsUiCamera>
-    SpriteContext<'path, 'ctx, T, P, R, S, O, C>
+impl<
+        'path,
+        'ctx,
+        T: Translate,
+        P: TranslatePrevious,
+        R: Rotate,
+        S: Scale,
+        O: Pivot,
+        C: IsUiCamera,
+    > SpriteContext<'path, 'ctx, T, P, R, S, O, C>
 {
     /// Only move the horizontal position.
     ///
@@ -489,8 +497,7 @@ impl<'path, 'ctx, T: Translate, P: TranslatePrevious, R: Rotate, S: Scale, O: Pi
     #[must_use]
     fn into_full_with_previous_translation(
         self,
-    ) -> SpriteContext<'path, 'ctx, Translation, PreviousTranslation, Rotation, Scaling, Empty, C>
-    {
+    ) -> SpriteContext<'path, 'ctx, Translation, PreviousTranslation, Rotation, Scaling, O, C> {
         SpriteContext {
             path: self.path,
             ctx: self.ctx,
@@ -500,30 +507,7 @@ impl<'path, 'ctx, T: Translate, P: TranslatePrevious, R: Rotate, S: Scale, O: Pi
                 .inner_translate_previous((0.0, 0.0)),
             rotation: self.rotation.inner_rotate(0.0),
             scaling: self.scaling.inner_scale((1.0, 1.0)),
-            pivot: Empty,
-            phantom: PhantomData,
-        }
-    }
-
-    /// Convert a generic type to a fully formed type with a pivot.
-    ///
-    /// This has sub-optimal performance for drawing since it crosses all paths.
-    #[inline]
-    #[must_use]
-    fn into_full_with_previous_translation_and_pivot(
-        self,
-    ) -> SpriteContext<'path, 'ctx, Translation, PreviousTranslation, Rotation, Scaling, Pivoting, C>
-    {
-        SpriteContext {
-            path: self.path,
-            ctx: self.ctx,
-            translation: self.translation.inner_translate((0.0, 0.0)),
-            previous_translation: self
-                .previous_translation
-                .inner_translate_previous((0.0, 0.0)),
-            rotation: self.rotation.inner_rotate(0.0),
-            scaling: self.scaling.inner_scale((1.0, 1.0)),
-            pivot: self.pivot.default_or_value(),
+            pivot: self.pivot,
             phantom: PhantomData,
         }
     }
@@ -535,7 +519,7 @@ impl<'path, 'ctx, T: Translate, P: TranslatePrevious, R: Rotate, S: Scale, O: Pi
     #[must_use]
     fn into_full_without_previous_translation(
         self,
-    ) -> SpriteContext<'path, 'ctx, Translation, Empty, Rotation, Scaling, Empty, C> {
+    ) -> SpriteContext<'path, 'ctx, Translation, Empty, Rotation, Scaling, O, C> {
         SpriteContext {
             path: self.path,
             ctx: self.ctx,
@@ -543,27 +527,7 @@ impl<'path, 'ctx, T: Translate, P: TranslatePrevious, R: Rotate, S: Scale, O: Pi
             previous_translation: Empty,
             rotation: self.rotation.inner_rotate(0.0),
             scaling: self.scaling.inner_scale((1.0, 1.0)),
-            pivot: Empty,
-            phantom: PhantomData,
-        }
-    }
-
-    /// Convert a generic type to a fully formed type without a previous translation, but a custom pivot.
-    ///
-    /// This has sub-optimal performance for drawing since it crosses all paths.
-    #[inline]
-    #[must_use]
-    fn into_full_without_previous_translation_and_pivot(
-        self,
-    ) -> SpriteContext<'path, 'ctx, Translation, Empty, Rotation, Scaling, Pivoting, C> {
-        SpriteContext {
-            path: self.path,
-            ctx: self.ctx,
-            translation: self.translation.inner_translate((0.0, 0.0)),
-            previous_translation: Empty,
-            rotation: self.rotation.inner_rotate(0.0),
-            scaling: self.scaling.inner_scale((1.0, 1.0)),
-            pivot: self.pivot.default_or_value(),
+            pivot: self.pivot,
             phantom: PhantomData,
         }
     }
@@ -610,39 +574,19 @@ impl Context {
 impl ContextInner {
     /// Get the sprite with it's base offset calculated from the camera and its internal offset.
     #[inline]
-    fn sprite_with_base_affine_matrix(
+    fn sprite_with_base_affine_matrix<P>(
         &mut self,
         path: &str,
         is_ui_camera: bool,
-    ) -> (Rc<Sprite>, Affine2) {
+        pivot: P,
+    ) -> (Rc<Sprite>, Affine2)
+    where
+        P: Pivot,
+    {
         let sprite = self.sprite(path);
 
         // Get the sprite offset
-        let (mut sprite_x, mut sprite_y) = sprite.offset();
-
-        // Offset the sprite with the camera
-        let camera = self.camera(is_ui_camera);
-        sprite_x += camera.offset_x();
-        sprite_y += camera.offset_y();
-
-        // Create the affine matrix
-        let affine_matrix = Affine2::from_translation((sprite_x, sprite_y).into());
-
-        (sprite, affine_matrix)
-    }
-
-    /// Get the sprite with it's base offset calculated from the camera and its internal offset.
-    #[inline]
-    fn sprite_with_base_affine_matrix_custom_pivot(
-        &mut self,
-        path: &str,
-        is_ui_camera: bool,
-        pivot: SpritePivot,
-    ) -> (Rc<Sprite>, Affine2) {
-        let sprite = self.sprite(path);
-
-        // Get the sprite offset
-        let (mut sprite_x, mut sprite_y) = sprite.offset_custom_pivot(pivot);
+        let (mut sprite_x, mut sprite_y) = sprite.pivot_offset(pivot.pivot_value(sprite.pivot()));
 
         // Offset the sprite with the camera
         let camera = self.camera(is_ui_camera);

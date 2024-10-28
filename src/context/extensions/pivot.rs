@@ -5,8 +5,11 @@ use crate::pivot::Pivot as SpritePivot;
 
 /// Allow modifying pivot.
 pub trait Pivot: Sized {
-    /// Implentented by crate.
+    /// Get the result struct that can be used to obtain a value.
     fn default_or_value(self) -> Pivoting;
+
+    /// Get the pivot value used for offsetting.
+    fn pivot_value(self, source: SpritePivot) -> SpritePivot;
 }
 
 /// Pivoting.
@@ -19,13 +22,6 @@ impl Pivoting {
     pub(crate) const fn new(pivot: SpritePivot) -> Self {
         Self(pivot)
     }
-
-    /// Pivoting value.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn value(self) -> SpritePivot {
-        self.0
-    }
 }
 
 impl Pivot for Pivoting {
@@ -33,11 +29,21 @@ impl Pivot for Pivoting {
     fn default_or_value(self) -> Self {
         self
     }
+
+    #[inline]
+    fn pivot_value(self, _source: SpritePivot) -> SpritePivot {
+        self.0
+    }
 }
 
 impl Pivot for Empty {
     #[inline]
     fn default_or_value(self) -> Pivoting {
         Pivoting::new(SpritePivot::default())
+    }
+
+    #[inline]
+    fn pivot_value(self, source: SpritePivot) -> SpritePivot {
+        source
     }
 }
