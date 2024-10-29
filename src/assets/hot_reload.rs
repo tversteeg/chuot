@@ -1,15 +1,15 @@
 //! Hot-reloading watcher thread and mechanism.
 
 use std::{
-    path::{Path, PathBuf},
+    path::Path,
     sync::{Mutex, OnceLock},
     time::Duration,
 };
 
 use hashbrown::HashSet;
 use notify_debouncer_mini::{
-    DebounceEventResult, DebouncedEventKind, Debouncer,
     notify::{RecommendedWatcher, RecursiveMode},
+    DebounceEventResult, DebouncedEventKind, Debouncer,
 };
 
 use super::Id;
@@ -35,49 +35,52 @@ pub(crate) fn handle_changed_asset_files(ctx: &mut ContextInner) {
 ///
 /// Will stay alive as long as the handle is kept.
 #[must_use]
-pub(crate) fn watch_assets_folder(assets_dir: impl Into<PathBuf>) -> Debouncer<RecommendedWatcher> {
-    let assets_dir = assets_dir.into();
+pub(crate) fn watch_assets_folder(assets_dir: impl AsRef<Path>) -> Debouncer<RecommendedWatcher> {
+    // Reduce compilation times
+    fn inner(assets_dir: &Path) -> Debouncer<RecommendedWatcher> {
+        // Setup what must happen when an event is received
+        let mut debouncer = {
+            let assets_dir = assets_dir.to_owned();
 
-    // Setup what must happen when an event is received
-    let mut debouncer = {
-        let assets_dir = assets_dir.clone();
+            notify_debouncer_mini::new_debouncer(DEBOUNCE_DELAY, move |res: DebounceEventResult| {
+                match res {
+                    Ok(events) => {
+                        for event in events {
+                            // Only check for events that are triggered once
+                            if event.kind != DebouncedEventKind::AnyContinuous {
+                                continue;
+                            }
 
-        notify_debouncer_mini::new_debouncer(DEBOUNCE_DELAY, move |res: DebounceEventResult| {
-            match res {
-                Ok(events) => {
-                    for event in events {
-                        // Only check for events that are triggered once
-                        if event.kind != DebouncedEventKind::AnyContinuous {
-                            continue;
+                            // Convert the changed file's path to ID
+                            let Some(id) = path_to_id(&event.path, &assets_dir) else {
+                                eprintln!(
+                                    "Error converting changed file asset path {} to ID",
+                                    event.path.display()
+                                );
+
+                                continue;
+                            };
+
+                            // Store in the global map of updated items
+                            global_assets_updated().lock().unwrap().insert(id);
                         }
-
-                        // Convert the changed file's path to ID
-                        let Some(id) = path_to_id(&event.path, &assets_dir) else {
-                            eprintln!(
-                                "Error converting changed file asset path {} to ID",
-                                event.path.display()
-                            );
-
-                            continue;
-                        };
-
-                        // Store in the global map of updated items
-                        global_assets_updated().lock().unwrap().insert(id);
                     }
+                    Err(err) => eprintln!("Error while watching assets folder: {err}"),
                 }
-                Err(err) => eprintln!("Error while watching assets folder: {err}"),
-            }
-        })
-        .unwrap()
-    };
+            })
+            .unwrap()
+        };
 
-    // Watch the assets folder
-    debouncer
-        .watcher()
-        .watch(&assets_dir, RecursiveMode::Recursive)
-        .unwrap();
+        // Watch the assets folder
+        debouncer
+            .watcher()
+            .watch(assets_dir, RecursiveMode::Recursive)
+            .unwrap();
 
-    debouncer
+        debouncer
+    }
+
+    inner(assets_dir.as_ref())
 }
 
 /// Convert a path to an ID.

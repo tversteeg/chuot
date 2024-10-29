@@ -61,13 +61,16 @@ impl CameraContext<'_> {
     /// * `(x, y)` - Tuple of the target position in world space to follow.
     #[inline]
     pub fn follow(&self, target: impl Into<(f32, f32)>) {
-        let (x, y) = target.into();
+        // Reduce compilation times
+        fn inner(this: &CameraContext, (x, y): (f32, f32)) {
+            this.ctx.write(|ctx| {
+                let camera = ctx.camera_mut(this.is_ui_camera);
+                camera.set_target_x(x);
+                camera.set_target_y(y);
+            });
+        }
 
-        self.ctx.write(|ctx| {
-            let camera = ctx.camera_mut(self.is_ui_camera);
-            camera.set_target_x(x);
-            camera.set_target_y(y);
-        });
+        inner(self, target.into());
     }
 
     /// Get the relative position if the mouse is inside the viewport frame.

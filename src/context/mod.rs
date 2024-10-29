@@ -16,16 +16,16 @@ use smallvec::SmallVec;
 use winit::window::{Fullscreen, Window};
 
 use crate::{
-    GamepadAxis, GamepadButton, KeyCode, MouseButton,
     assets::{
-        AssetManager, CustomAssetManager, Id,
-        loadable::{Loadable, audio::Audio, font::Font, sprite::Sprite},
+        loadable::{audio::Audio, font::Font, sprite::Sprite, Loadable},
         source::AssetSource,
+        AssetManager, CustomAssetManager, Id,
     },
     camera::Camera,
     config::Config,
     graphics::Graphics,
     input::Input,
+    GamepadAxis, GamepadButton, KeyCode, MouseButton,
 };
 
 /// Context containing most functionality for interfacing with the game engine.
@@ -596,7 +596,15 @@ impl Context {
     where
         T: Loadable,
     {
-        self.write(|ctx| ctx.custom(path.as_ref()))
+        // Reduce compilation times
+        fn inner<T>(this: &Context, path: &str) -> Rc<T>
+        where
+            T: Loadable,
+        {
+            this.write(|ctx| ctx.custom(path))
+        }
+
+        inner(self, path.as_ref())
     }
 
     /// Load a clone of a custom defined asset.
@@ -614,7 +622,15 @@ impl Context {
     where
         T: Loadable + Clone,
     {
-        self.write(|ctx| ctx.custom_owned(path.as_ref()))
+        // Reduce compilation times
+        fn inner<T>(this: &Context, path: &str) -> T
+        where
+            T: Loadable + Clone,
+        {
+            this.write(|ctx| ctx.custom_owned(path))
+        }
+
+        inner(self, path.as_ref())
     }
 }
 

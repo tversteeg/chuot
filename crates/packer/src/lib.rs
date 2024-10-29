@@ -24,21 +24,24 @@ impl Packer {
     #[inline]
     #[must_use]
     pub fn new(max_size: impl Into<(u16, u16)>) -> Self {
-        let (max_width, max_height) = max_size.into();
+        // Reduce compilation times
+        fn inner((max_width, max_height): (u16, u16)) -> Packer {
+            // Start with a single skyline of the full width
+            let skyline = Skyline {
+                x: 0,
+                y: 0,
+                width: max_width,
+            };
+            let skylines = vec![skyline];
 
-        // Start with a single skyline of the full width
-        let skyline = Skyline {
-            x: 0,
-            y: 0,
-            width: max_width,
-        };
-        let skylines = vec![skyline];
-
-        Self {
-            max_width,
-            max_height,
-            skylines,
+            Packer {
+                max_width,
+                max_height,
+                skylines,
+            }
         }
+
+        inner(max_size.into())
     }
 
     /// Fill the packer with already existing rectangles.
@@ -61,9 +64,8 @@ impl Packer {
     where
         R: Into<(u16, u16, u16, u16)>,
     {
-        for rect in existing_rectangles {
-            let (x, y, width, height) = rect.into();
-
+        // Reduce compilation speed
+        fn inner(this: &mut Packer, (x, y, width, height): (u16, u16, u16, u16)) {
             let y = y + height;
 
             // Construct the new skyline to check for overlaps and inserts
@@ -72,8 +74,8 @@ impl Packer {
             // Split overlapping skylines
             let mut index = 0;
             let mut index_to_insert = 0;
-            while index < self.skylines.len() {
-                let skyline = self.skylines[index];
+            while index < this.skylines.len() {
+                let skyline = this.skylines[index];
 
                 if skyline.y > new_skyline.y || !skyline.overlaps(new_skyline) {
                     // Only take higher skylines that also overlap
@@ -82,7 +84,7 @@ impl Packer {
 
                 if skyline.left() >= new_skyline.left() && skyline.right() <= new_skyline.right() {
                     // Skyline is inside the new one
-                    self.skylines.remove(index);
+                    this.skylines.remove(index);
                     continue;
                 }
 
@@ -90,14 +92,17 @@ impl Packer {
                     // Old skyline is inside the new one
 
                     // Insert the slice after
-                    self.skylines.insert(index + 1, Skyline {
-                        x: new_skyline.right(),
-                        y: skyline.y,
-                        width: skyline.right() - new_skyline.right(),
-                    });
+                    this.skylines.insert(
+                        index + 1,
+                        Skyline {
+                            x: new_skyline.right(),
+                            y: skyline.y,
+                            width: skyline.right() - new_skyline.right(),
+                        },
+                    );
 
                     // Cut the right part of the old skyline
-                    self.skylines[index].width = new_skyline.left() - skyline.left();
+                    this.skylines[index].width = new_skyline.left() - skyline.left();
 
                     // Insert between the recently split one
                     index_to_insert = index + 1;
@@ -106,7 +111,7 @@ impl Packer {
 
                 if skyline.left() < new_skyline.left() {
                     // Cut the right part of the old skyline
-                    self.skylines[index].width = new_skyline.left() - skyline.left();
+                    this.skylines[index].width = new_skyline.left() - skyline.left();
 
                     // Insert after this skyline
                     index_to_insert = index + 1;
@@ -114,8 +119,8 @@ impl Packer {
 
                 if skyline.right() > new_skyline.right() {
                     // Cut the left part of the old skyline
-                    self.skylines[index].width = skyline.right() - new_skyline.right();
-                    self.skylines[index].x = new_skyline.right();
+                    this.skylines[index].width = skyline.right() - new_skyline.right();
+                    this.skylines[index].x = new_skyline.right();
 
                     // Insert before this skyline
                     index_to_insert = index;
@@ -125,10 +130,14 @@ impl Packer {
                 index += 1;
             }
             // Insert the skyline here
-            self.skylines.insert(index_to_insert, new_skyline);
+            this.skylines.insert(index_to_insert, new_skyline);
 
             // Merge the skylines on the same height
-            self.merge();
+            this.merge();
+        }
+
+        for rect in existing_rectangles {
+            inner(&mut self, rect.into());
         }
 
         self
@@ -146,37 +155,43 @@ impl Packer {
     /// - Offset tuple `(width, height)` inside the atlas when the rectangle fits.
     #[inline]
     pub fn insert(&mut self, rectangle_size: impl Into<(u16, u16)>) -> Option<(u16, u16)> {
-        let (rectangle_width, rectangle_height) = rectangle_size.into();
+        // Reduce compilation times
+        fn inner(
+            this: &mut Packer,
+            (rectangle_width, rectangle_height): (u16, u16),
+        ) -> Option<(u16, u16)> {
+            // Find the rectangle with the skyline, keep the bottom and width as small as possible
+            let mut bottom = u16::MAX;
+            let mut width = u16::MAX;
+            let mut result = None;
 
-        // Find the rectangle with the skyline, keep the bottom and width as small as possible
-        let mut bottom = u16::MAX;
-        let mut width = u16::MAX;
-        let mut result = None;
-
-        // Try to find the skyline gap with the smallest Y
-        for (index, skyline) in self.skylines.iter().enumerate() {
-            if let Some((offset_x, offset_y)) =
-                self.can_put(index, rectangle_width, rectangle_height)
-            {
-                let rect_bottom = offset_y + rectangle_height;
-                if rect_bottom < bottom || (rect_bottom == bottom && skyline.width < width) {
-                    bottom = rect_bottom;
-                    width = skyline.width;
-                    result = Some((offset_x, offset_y, index));
+            // Try to find the skyline gap with the smallest Y
+            for (index, skyline) in this.skylines.iter().enumerate() {
+                if let Some((offset_x, offset_y)) =
+                    this.can_put(index, rectangle_width, rectangle_height)
+                {
+                    let rect_bottom = offset_y + rectangle_height;
+                    if rect_bottom < bottom || (rect_bottom == bottom && skyline.width < width) {
+                        bottom = rect_bottom;
+                        width = skyline.width;
+                        result = Some((offset_x, offset_y, index));
+                    }
                 }
             }
+
+            // If no rect is found do nothing
+            let (x, y, index) = result?;
+
+            // Insert the skyline
+            this.split(index, x, y, rectangle_width, rectangle_height);
+
+            // Merge the skylines on the same height
+            this.merge();
+
+            Some((x, y))
         }
 
-        // If no rect is found do nothing
-        let (x, y, index) = result?;
-
-        // Insert the skyline
-        self.split(index, x, y, rectangle_width, rectangle_height);
-
-        // Merge the skylines on the same height
-        self.merge();
-
-        Some((x, y))
+        inner(self, rectangle_size.into())
     }
 
     /// Return the rect fitting in a skyline if possible.

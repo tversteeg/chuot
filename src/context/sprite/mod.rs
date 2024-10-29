@@ -8,19 +8,19 @@ use glam::Affine2;
 use rgb::RGBA8;
 
 use super::{
-    Context, ContextInner,
     extensions::{
-        Empty,
         camera::{IsUiCamera, MainCamera, UiCamera},
         pivot::{Pivot, Pivoting},
         rotate::{Rotate, Rotation},
         scale::{Scale, Scaling},
         translate::{PreviousTranslation, Translate, TranslatePrevious, Translation},
+        Empty,
     },
     load::{ByPath, LoadMethod},
+    Context, ContextInner,
 };
 use crate::{
-    assets::{Id, loadable::sprite::Sprite},
+    assets::{loadable::sprite::Sprite, Id},
     pivot::Pivot as SpritePivot,
 };
 /// Specify how a sprite should be drawn.
@@ -48,15 +48,15 @@ pub struct SpriteContext<'ctx, L, T, P, R, S, O, C> {
 }
 
 impl<
-    'ctx,
-    L: LoadMethod,
-    T: Translate,
-    P: TranslatePrevious,
-    R: Rotate,
-    S: Scale,
-    O: Pivot,
-    C: IsUiCamera,
-> SpriteContext<'ctx, L, T, P, R, S, O, C>
+        'ctx,
+        L: LoadMethod,
+        T: Translate,
+        P: TranslatePrevious,
+        R: Rotate,
+        S: Scale,
+        O: Pivot,
+        C: IsUiCamera,
+    > SpriteContext<'ctx, L, T, P, R, S, O, C>
 {
     /// Only move the horizontal position.
     ///
@@ -303,21 +303,29 @@ impl<
         sub_rectangle: impl Into<(f32, f32, f32, f32)>,
         pixels: impl AsRef<[RGBA8]>,
     ) {
-        let sub_rectangle = sub_rectangle.into();
-        let pixels = pixels.as_ref();
+        // Reduce compilation times
+        fn inner<L, T, P, R, S, O, C>(
+            this: &SpriteContext<L, T, P, R, S, O, C>,
+            sub_rectangle: (f32, f32, f32, f32),
+            pixels: &[RGBA8],
+        ) where
+            L: LoadMethod,
+        {
+            this.ctx.write(|ctx| {
+                // Get the sprite
+                let sprite = this.load.sprite(ctx);
 
-        self.ctx.write(|ctx| {
-            // Get the sprite
-            let sprite = self.load.sprite(ctx);
+                // Push the sprite pixels to the GPU
+                ctx.graphics.atlas.update_pixels(
+                    sprite.texture,
+                    sub_rectangle,
+                    pixels,
+                    &ctx.graphics.queue,
+                );
+            });
+        }
 
-            // Push the sprite pixels to the GPU
-            ctx.graphics.atlas.update_pixels(
-                sprite.texture,
-                sub_rectangle,
-                pixels,
-                &ctx.graphics.queue,
-            );
-        });
+        inner(&self, sub_rectangle.into(), pixels.as_ref());
     }
 
     /// Read the pixels of a portion of the sprite.
@@ -524,16 +532,23 @@ impl<T: Translate, P: TranslatePrevious, R: Rotate, S: Scale, O: Pivot, C: IsUiC
         pivot: SpritePivot,
         pixels: impl AsRef<[RGBA8]>,
     ) {
-        let (width, height) = size.into();
-        let pixels = pixels.as_ref();
+        // Reduce compilation times
+        fn inner<T, P, R, S, O, C>(
+            this: &SpriteContext<ByPath, T, P, R, S, O, C>,
+            (width, height): (f32, f32),
+            pivot: SpritePivot,
+            pixels: &[RGBA8],
+        ) {
+            this.ctx.write(|ctx| {
+                // Create the sprite
+                let asset = Sprite::new_and_upload(width, height, pivot, pixels, ctx);
 
-        self.ctx.write(|ctx| {
-            // Create the sprite
-            let asset = Sprite::new_and_upload(width, height, pivot, pixels, ctx);
+                // Register the sprite
+                ctx.sprites.insert(Id::new(this.load.path()), asset);
+            });
+        }
 
-            // Register the sprite
-            ctx.sprites.insert(Id::new(self.load.path()), asset);
-        });
+        inner(&self, size.into(), pivot, pixels.as_ref());
     }
 }
 
