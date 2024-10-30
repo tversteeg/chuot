@@ -8,8 +8,8 @@ use std::{
 
 use hashbrown::HashSet;
 use notify_debouncer_mini::{
-    notify::{RecommendedWatcher, RecursiveMode},
     DebounceEventResult, DebouncedEventKind, Debouncer,
+    notify::{RecommendedWatcher, RecursiveMode},
 };
 
 use super::Id;

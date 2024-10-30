@@ -111,12 +111,12 @@ impl PostProcessingState {
             vertex: wgpu::VertexState {
                 buffers: &[],
                 module: &shader,
-                entry_point: "vs_main",
+                entry_point: None,
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
             },
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
-                entry_point: "fs_main",
+                entry_point: None,
                 targets: &[Some(wgpu::ColorTargetState {
                     format: PREFERRED_TEXTURE_FORMAT,
                     blend: Some(wgpu::BlendState {

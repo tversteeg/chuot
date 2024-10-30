@@ -8,19 +8,19 @@ use glam::Affine2;
 use rgb::RGBA8;
 
 use super::{
+    Context, ContextInner,
     extensions::{
+        Empty,
         camera::{IsUiCamera, MainCamera, UiCamera},
         pivot::{Pivot, Pivoting},
         rotate::{Rotate, Rotation},
         scale::{Scale, Scaling},
         translate::{PreviousTranslation, Translate, TranslatePrevious, Translation},
-        Empty,
     },
     load::{ByPath, LoadMethod},
-    Context, ContextInner,
 };
 use crate::{
-    assets::{loadable::sprite::Sprite, Id},
+    assets::{Id, loadable::sprite::Sprite},
     pivot::Pivot as SpritePivot,
 };
 /// Specify how a sprite should be drawn.
@@ -48,15 +48,15 @@ pub struct SpriteContext<'ctx, L, T, P, R, S, O, C> {
 }
 
 impl<
-        'ctx,
-        L: LoadMethod,
-        T: Translate,
-        P: TranslatePrevious,
-        R: Rotate,
-        S: Scale,
-        O: Pivot,
-        C: IsUiCamera,
-    > SpriteContext<'ctx, L, T, P, R, S, O, C>
+    'ctx,
+    L: LoadMethod,
+    T: Translate,
+    P: TranslatePrevious,
+    R: Rotate,
+    S: Scale,
+    O: Pivot,
+    C: IsUiCamera,
+> SpriteContext<'ctx, L, T, P, R, S, O, C>
 {
     /// Only move the horizontal position.
     ///

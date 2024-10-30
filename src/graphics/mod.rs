@@ -264,18 +264,18 @@ impl Graphics {
             vertex: wgpu::VertexState {
                 buffers: &[TexturedVertex::descriptor(), Instances::descriptor()],
                 module: &shader,
-                entry_point: "vs_main",
+                entry_point: None,
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
             },
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
-                entry_point: match rotation_algorithm {
+                entry_point: Some(match rotation_algorithm {
                     RotationAlgorithm::CleanEdge => "fs_main_clean_edge",
                     RotationAlgorithm::Scale3x => "fs_main_scale3x",
                     RotationAlgorithm::Scale2x => "fs_main_scale2x",
                     RotationAlgorithm::Diag2x => "fs_main_diag2x",
                     RotationAlgorithm::NearestNeighbor => "fs_main_nearest_neighbor",
-                },
+                }),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: PREFERRED_TEXTURE_FORMAT,
                     blend: Some(wgpu::BlendState::ALPHA_BLENDING),
