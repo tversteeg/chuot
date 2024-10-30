@@ -23,12 +23,12 @@ use self::{
 };
 #[cfg(feature = "embed-assets")]
 use crate::assets::{
+    loader::{png::PngLoader, Loader as _},
     Id,
-    loader::{Loader as _, png::PngLoader},
 };
 use crate::{
-    AssetSource,
     config::{Config, RotationAlgorithm},
+    AssetSource,
 };
 
 /// Texture format we prefer to use for everything.
@@ -222,12 +222,15 @@ impl Graphics {
         }
 
         // Create the uniforms
-        let screen_info = UniformState::new(&device, &ScreenInfo {
-            width: buffer_width,
-            height: buffer_height,
-            half_width: buffer_width / 2.0,
-            half_height: buffer_height / 2.0,
-        });
+        let screen_info = UniformState::new(
+            &device,
+            &ScreenInfo {
+                width: buffer_width,
+                height: buffer_height,
+                half_width: buffer_width / 2.0,
+                half_height: buffer_height / 2.0,
+            },
+        );
 
         // Create a new render pipeline first
         let render_pipeline_layout =
@@ -264,18 +267,18 @@ impl Graphics {
             vertex: wgpu::VertexState {
                 buffers: &[TexturedVertex::descriptor(), Instances::descriptor()],
                 module: &shader,
-                entry_point: "vs_main",
+                entry_point: None,
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
             },
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
-                entry_point: match rotation_algorithm {
+                entry_point: Some(match rotation_algorithm {
                     RotationAlgorithm::CleanEdge => "fs_main_clean_edge",
                     RotationAlgorithm::Scale3x => "fs_main_scale3x",
                     RotationAlgorithm::Scale2x => "fs_main_scale2x",
                     RotationAlgorithm::Diag2x => "fs_main_diag2x",
                     RotationAlgorithm::NearestNeighbor => "fs_main_nearest_neighbor",
-                },
+                }),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: PREFERRED_TEXTURE_FORMAT,
                     blend: Some(wgpu::BlendState::ALPHA_BLENDING),
