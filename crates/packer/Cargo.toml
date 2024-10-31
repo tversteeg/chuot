@@ -1,6 +1,6 @@
 [package]
 name = "chuot-packer"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 authors = ["Thomas Versteeg <t@versteeg.email>"]
 license = "AGPL-3.0"
