@@ -3,6 +3,7 @@
 pub mod audio;
 pub mod camera;
 pub(crate) mod extensions;
+pub mod font;
 #[doc(hidden)]
 pub mod load;
 pub mod sprite;
@@ -41,6 +42,7 @@ use crate::{
 /// | `ctx.sprite("player")` | `assets/player.png` & `assets/player.toml` (optional) |
 /// | `ctx.sprite("gui.widgets.button")` | `assets/gui/widgets/button.png` & `assets/gui/widgets/button.toml` (optional) |
 /// | `ctx.audio("song")` | `assets/song.ogg` |
+/// | `ctx.font("font")` | `assets/font.png` & `assets/font.ron` |
 ///
 /// It's assumed for this table that [`crate::load_assets`] in [`crate::Game`] is called without any arguments or with `chuot::load_assets!("assets/")`.
 #[derive(Clone)]

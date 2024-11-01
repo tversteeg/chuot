@@ -17,8 +17,10 @@ struct GameState;
 impl Game for GameState {
     /// Render the game.
     fn render(&mut self, ctx: Context) {
-        // Load a text asset and draw it
-        ctx.text("Beachball", "Hello world!")
+        // Load a graphical font
+        ctx.font("Beachball")
+            // Draw a string with it
+            .text("Hello world!")
             // Use the UI camera which draws the center in the top left
             .use_ui_camera()
             // Draw at the top of the screen
@@ -27,7 +29,8 @@ impl Game for GameState {
             .draw();
 
         // We can also load a glyph from a font as a sprite asset and use it like a sprite would be used
-        ctx.font_glyph("Beachball", '@')
+        ctx.font("Beachball")
+            .glyph('@')
             // Draw the sprite on the screen, it is centered because by default it uses the main camera
             .draw();
     }
