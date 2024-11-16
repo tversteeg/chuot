@@ -30,7 +30,7 @@ impl Game for GameState {
 
         // We can also load a glyph from a font as a sprite asset and use it like a sprite would be used
         ctx.font("Beachball")
-            .glyph('@')
+            .glyph('@' as usize)
             // Draw the sprite on the screen, it is centered because by default it uses the main camera
             .draw();
     }
