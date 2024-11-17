@@ -5,9 +5,9 @@ use std::marker::PhantomData;
 use glam::Affine2;
 
 use super::extensions::{
-    Empty,
     camera::{IsUiCamera, MainCamera, UiCamera},
     translate::{PreviousTranslation, Translate, TranslatePrevious, Translation},
+    Empty,
 };
 use crate::Context;
 
@@ -287,7 +287,8 @@ impl<C: IsUiCamera> TextContext<'_, '_, '_, Translation, Empty, C> {
                 let sprite = font.sprites[char_offset];
 
                 // Get the sprite offset
-                let (mut sprite_x, mut sprite_y) = sprite.pivot_offset(sprite.pivot());
+                let (mut sprite_x, mut sprite_y) =
+                    sprite.pivot_offset(sprite.pivot_x(), sprite.pivot_y());
 
                 // Offset the sprite with the camera and the local position
                 sprite_x += offset_x + x;
@@ -368,7 +369,8 @@ impl<C: IsUiCamera> TextContext<'_, '_, '_, Translation, PreviousTranslation, C>
                 let sprite = font.sprites[char_offset];
 
                 // Get the sprite offset
-                let (mut sprite_x, mut sprite_y) = sprite.pivot_offset(sprite.pivot());
+                let (mut sprite_x, mut sprite_y) =
+                    sprite.pivot_offset(sprite.pivot_x(), sprite.pivot_y());
 
                 // Offset the sprite with the camera and the local position
                 sprite_x += offset_x + x;

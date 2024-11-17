@@ -2,14 +2,15 @@
 
 use std::marker::PhantomData;
 
+use crate::assets::loadable::sprite::SpritePivot;
+
 use super::{
-    Context,
-    extensions::{Empty, camera::MainCamera, pivot::Pivoting},
+    extensions::{camera::MainCamera, pivot::Pivoting, Empty},
     load::FromMemory,
     sprite::SpriteContext,
     text::TextContext,
+    Context,
 };
-use crate::Pivot;
 
 /// Handle loaded fonts.
 ///
@@ -63,7 +64,7 @@ impl<'font, 'ctx> FontContext<'font, 'ctx> {
                 previous_translation: Empty,
                 rotation: Empty,
                 scaling: Empty,
-                pivot: Pivoting::new(Pivot::Middle),
+                pivot: Pivoting::new(SpritePivot::Center, SpritePivot::Center),
                 phantom: PhantomData,
             }
         }

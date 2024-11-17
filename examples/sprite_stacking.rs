@@ -8,7 +8,7 @@
 //! (glyph_width: 23,  glyph_height: 74, first_char: 1, last_char: 18)
 //! ```
 
-use chuot::{Config, Context, Game, Pivot, config::RotationAlgorithm};
+use chuot::{config::RotationAlgorithm, Config, Context, Game};
 
 /// Define a game state for our example.
 #[derive(Default)]
@@ -36,12 +36,12 @@ impl Game for GameState {
                 // Draw each layer a slight bit higher than the previous to give the illusion of a 3D image
                 .translate_y(-(layer as f32))
                 // Changing the center of rotation also works when applied to every layer
-                .pivot(Pivot::Fraction {
+                .pivot(
                     // Rotate around the horizontal center
-                    x: 0.5,
+                    0.5,
                     // Rotate at a bit lower than the center so the body of the lizard is centered
-                    y: 0.7,
-                })
+                    0.7,
+                )
                 // Rotate it
                 .rotate(self.rotation)
                 .draw();
