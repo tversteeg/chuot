@@ -1,6 +1,6 @@
 //! A simple falling sand game.
 
-use chuot::{Config, Context, Game, KeyCode, MouseButton, Pivot, RGBA8};
+use chuot::{Config, Context, Game, KeyCode, MouseButton, RGBA8};
 
 /// Width of the screen but also width of the sandbox simulation.
 const WIDTH: f32 = 240.0;
@@ -226,9 +226,9 @@ impl GameState {
 impl Game for GameState {
     /// Create the texture once at startup.
     fn init(&mut self, ctx: Context) {
-        // Create a new sprite with the size of the screen
+        // Create a new sprite with the size of the screen, pivoting at the top left
         ctx.sprite("sandbox")
-            .create((WIDTH, HEIGHT), Pivot::LeftTop, self.pixels());
+            .create((WIDTH, HEIGHT), (0.0, 0.0), self.pixels());
     }
 
     /// Update the sandbox and handle input in the update loop.

@@ -722,6 +722,9 @@ impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
             let offset_x = camera.offset_x();
             let offset_y = camera.offset_y();
 
+            // Get the generic pivot position
+            let (pivot_x, pivot_y) = self.pivot.pivot_value(sprite.pivot_x(), sprite.pivot_y());
+
             // Create the affine matrix
             let affine_matrix = sprite.affine_matrix(
                 self.translation.x + offset_x,
@@ -733,7 +736,8 @@ impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
                 self.rotation.value(),
                 self.scaling.scale_x,
                 self.scaling.scale_y,
-                self.pivot.pivot_value(sprite.pivot()),
+                pivot_x,
+                pivot_y,
             );
 
             // Push the graphics
@@ -794,6 +798,9 @@ impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
             let offset_x = camera.offset_x();
             let offset_y = camera.offset_y();
 
+            // Get the generic pivot position
+            let (pivot_x, pivot_y) = self.pivot.pivot_value(sprite.pivot_x(), sprite.pivot_y());
+
             // Create the affine matrix
             let affine_matrix = sprite.affine_matrix(
                 self.translation.x + offset_x,
@@ -805,7 +812,8 @@ impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
                 self.rotation.value(),
                 self.scaling.scale_x,
                 self.scaling.scale_y,
-                self.pivot.pivot_value(sprite.pivot()),
+                pivot_x,
+                pivot_y,
             );
 
             // Push the graphics
@@ -849,6 +857,9 @@ impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
             let offset_x = camera.offset_x();
             let offset_y = camera.offset_y();
 
+            // Get the generic pivot position
+            let (pivot_x, pivot_y) = self.pivot.pivot_value(sprite.pivot_x(), sprite.pivot_y());
+
             // Create the affine matrix
             let affine_matrix = sprite.affine_matrix(
                 self.translation.x + offset_x,
@@ -860,7 +871,8 @@ impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
                 self.rotation.value(),
                 self.scaling.scale_x,
                 self.scaling.scale_y,
-                self.pivot.pivot_value(sprite.pivot()),
+                pivot_x,
+                pivot_y,
             );
 
             // Push the graphics
@@ -921,6 +933,9 @@ impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
             let offset_x = camera.offset_x();
             let offset_y = camera.offset_y();
 
+            // Get the generic pivot position
+            let (pivot_x, pivot_y) = self.pivot.pivot_value(sprite.pivot_x(), sprite.pivot_y());
+
             // Create the affine matrix
             let affine_matrix = sprite.affine_matrix(
                 self.translation.x + offset_x,
@@ -932,7 +947,8 @@ impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
                 self.rotation.value(),
                 self.scaling.scale_x,
                 self.scaling.scale_y,
-                self.pivot.pivot_value(sprite.pivot()),
+                pivot_x,
+                pivot_y,
             );
 
             // Push the graphics

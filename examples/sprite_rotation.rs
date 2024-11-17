@@ -4,7 +4,7 @@
 //! {{ img(src="/assets/threeforms.png" alt="Sprite") }}
 //! With the following `threeforms.ron` RON configuration file for positioning the center of the sprite:
 //! ```ron
-//! (pivot: Middle)
+//! (pivot_x: Center, pivot_y: Center)
 //! ```
 
 use chuot::{Config, Context, Game, config::RotationAlgorithm};

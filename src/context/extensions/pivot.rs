@@ -1,7 +1,7 @@
 //! Pivoting.
 
 use super::Empty;
-use crate::pivot::Pivot as SpritePivot;
+use crate::assets::loadable::sprite::SpritePivot;
 
 /// Allow modifying pivot.
 pub trait Pivot: Sized {
@@ -9,18 +9,27 @@ pub trait Pivot: Sized {
     fn default_or_value(self) -> Pivoting;
 
     /// Get the pivot value used for offsetting.
-    fn pivot_value(self, source: SpritePivot) -> SpritePivot;
+    fn pivot_value(
+        self,
+        source_x: SpritePivot,
+        source_y: SpritePivot,
+    ) -> (SpritePivot, SpritePivot);
 }
 
 /// Pivoting.
 #[doc(hidden)]
 #[derive(Copy, Clone, Default)]
-pub struct Pivoting(SpritePivot);
+pub struct Pivoting {
+    /// X axis.
+    x: SpritePivot,
+    /// Y axis.
+    y: SpritePivot,
+}
 
 impl Pivoting {
     /// Create from tuple.
-    pub(crate) const fn new(pivot: SpritePivot) -> Self {
-        Self(pivot)
+    pub(crate) const fn new(x: SpritePivot, y: SpritePivot) -> Self {
+        Self { x, y }
     }
 }
 
@@ -30,20 +39,28 @@ impl Pivot for Pivoting {
         self
     }
 
-    #[inline]
-    fn pivot_value(self, _source: SpritePivot) -> SpritePivot {
-        self.0
+    #[inline(always)]
+    fn pivot_value(
+        self,
+        _source_x: SpritePivot,
+        _source_y: SpritePivot,
+    ) -> (SpritePivot, SpritePivot) {
+        (self.x, self.y)
     }
 }
 
 impl Pivot for Empty {
     #[inline]
     fn default_or_value(self) -> Pivoting {
-        Pivoting::new(SpritePivot::default())
+        Pivoting::new(SpritePivot::default(), SpritePivot::default())
     }
 
     #[inline]
-    fn pivot_value(self, source: SpritePivot) -> SpritePivot {
-        source
+    fn pivot_value(
+        self,
+        source_x: SpritePivot,
+        source_y: SpritePivot,
+    ) -> (SpritePivot, SpritePivot) {
+        (source_x, source_y)
     }
 }

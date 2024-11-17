@@ -142,7 +142,6 @@ pub mod context;
 mod graphics;
 mod input;
 mod math;
-mod pivot;
 mod random;
 
 pub use assets::source::AssetSource;
@@ -169,7 +168,6 @@ pub use context::Context;
 /// Re-exported [`gilrs`](https://docs.rs/gilrs) type.
 pub use gilrs::ev::{Axis as GamepadAxis, Button as GamepadButton};
 pub use math::lerp;
-pub use pivot::Pivot;
 pub use random::random;
 /// Re-exported [`rgb`](https://docs.rs/rgb) type.
 pub use rgb::RGBA8;

@@ -4,10 +4,10 @@
 //! {{ img(src="/assets/threeforms.png" alt="Sprite") }}
 //! With the following `threeforms.ron` RON configuration file where pivot is the default pivot:
 //! ```ron
-//! (pivot: Middle)
+//! (pivot_x: Center, pivot_y: Center)
 //! ```
 
-use chuot::{Config, Context, Game, Pivot, config::RotationAlgorithm};
+use chuot::{Config, Context, Game, config::RotationAlgorithm};
 
 /// Define a game state for our example.
 #[derive(Default)]
@@ -28,7 +28,7 @@ impl Game for GameState {
         // Draw a sprite at the left top
         ctx.sprite("threeforms")
             // Override the default pivot
-            .pivot(Pivot::LeftTop)
+            .pivot_top_left()
             // Use the UI coordinate system so it's placed at the left top of the screen
             .use_ui_camera()
             .draw();
@@ -36,13 +36,8 @@ impl Game for GameState {
         // Draw a rotated sprite at the center with a slight pivot offset
         ctx.sprite("threeforms")
             .rotate(self.rotation)
-            // Override the default pivot
-            .pivot(Pivot::Custom {
-                // Horizontal pivot is the center of the sprite
-                x: ctx.sprite("threeforms").width() / 2.0,
-                // Vertical pivot is a quarter of the sprite
-                y: ctx.sprite("threeforms").height() / 4.0,
-            })
+            // Override the default pivot to rotate around the center of the sprite
+            .pivot_center()
             .draw();
     }
 }

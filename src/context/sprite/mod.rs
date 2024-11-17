@@ -19,10 +19,11 @@ use super::{
     },
     load::{ByPath, LoadMethod},
 };
-use crate::{
-    assets::{Id, loadable::sprite::Sprite},
-    pivot::Pivot as SpritePivot,
+use crate::assets::{
+    Id,
+    loadable::sprite::{Sprite, SpritePivot},
 };
+
 /// Specify how a sprite should be drawn.
 ///
 /// Must call [`Self::draw`] to finish drawing.
@@ -227,19 +228,110 @@ impl<
         }
     }
 
-    /// Change the sprite pivot point.
+    /// Change the sprite pivot point to the top left of the image.
+    ///
+    /// The pivot point is the relative point to which the sprite is centered.
+    /// When rotating a sprite the pivot point will be the center of rotation.
+    ///
+    /// This will always be applied before scaling or rotating the image.
+    ///
+    /// This is equivalent to `.pivot_fraction(0.0, 0.0)`.
+    #[inline]
+    #[must_use]
+    pub fn pivot_top_left(self) -> SpriteContext<'ctx, L, T, P, R, S, Pivoting, C> {
+        let pivot = Pivoting::new(SpritePivot::Start, SpritePivot::Start);
+
+        SpriteContext {
+            load: self.load,
+            ctx: self.ctx,
+            translation: self.translation,
+            rotation: self.rotation,
+            scaling: self.scaling,
+            previous_translation: self.previous_translation,
+            pivot,
+            phantom: PhantomData,
+        }
+    }
+
+    /// Change the sprite pivot point to the center of the image for both axes.
+    ///
+    /// The pivot point is the relative point to which the sprite is centered.
+    /// When rotating a sprite the pivot point will be the center of rotation.
+    ///
+    /// This will always be applied before scaling or rotating the image.
+    ///
+    /// This is equivalent to `.pivot_fraction(0.5, 0.5)`.
+    #[inline]
+    #[must_use]
+    pub fn pivot_center(self) -> SpriteContext<'ctx, L, T, P, R, S, Pivoting, C> {
+        let pivot = Pivoting::new(SpritePivot::Center, SpritePivot::Center);
+
+        SpriteContext {
+            load: self.load,
+            ctx: self.ctx,
+            translation: self.translation,
+            rotation: self.rotation,
+            scaling: self.scaling,
+            previous_translation: self.previous_translation,
+            pivot,
+            phantom: PhantomData,
+        }
+    }
+
+    /// Change the sprite pivot point to an absolute offset of pixels from the top left.
+    ///
+    /// The pivot point is the relative point to which the sprite is centered.
+    /// When rotating a sprite the pivot point will be the center of rotation.
+    ///
+    /// This will always be applied before scaling or rotating the image.
     ///
     /// # Arguments
     ///
-    /// * `pivot` - Pivot data type for determining where the sprite should be centered.
-    ///
-    /// # Panics
-    ///
-    /// - When asset failed loading.
+    /// * `offset_x` - Absolute horizontal offset in pixels from the left of the sprite.
+    /// * `offset_y` - Absolute vertical offset in pixels from the top of the sprite.
     #[inline]
     #[must_use]
-    pub fn pivot(self, pivot: SpritePivot) -> SpriteContext<'ctx, L, T, P, R, S, Pivoting, C> {
-        let pivot = Pivoting::new(pivot);
+    pub fn pivot_pixels(
+        self,
+        offset_x: f32,
+        offset_y: f32,
+    ) -> SpriteContext<'ctx, L, T, P, R, S, Pivoting, C> {
+        let pivot = Pivoting::new(SpritePivot::Pixels(offset_x), SpritePivot::Pixels(offset_y));
+
+        SpriteContext {
+            load: self.load,
+            ctx: self.ctx,
+            translation: self.translation,
+            rotation: self.rotation,
+            scaling: self.scaling,
+            previous_translation: self.previous_translation,
+            pivot,
+            phantom: PhantomData,
+        }
+    }
+
+    /// Change the sprite pivot point to a absolute fraction of the sprite size from the top left.
+    ///
+    /// The pivot point is the relative point to which the sprite is centered.
+    /// When rotating a sprite the pivot point will be the center of rotation.
+    ///
+    /// This will always be applied before scaling or rotating the image.
+    ///
+    /// # Arguments
+    ///
+    /// * `fraction_x` - Fraction `(0.0 .. 1.0)` relative to the width from the left of the sprite.
+    /// * `fraction_y` - Fraction `(0.0 .. 1.0)` relative to the height from the top of the sprite.
+    #[inline]
+    #[must_use]
+    pub fn pivot(
+        self,
+        fraction_x: f32,
+        fraction_y: f32,
+    ) -> SpriteContext<'ctx, L, T, P, R, S, Pivoting, C> {
+        let pivot = Pivoting::new(
+            SpritePivot::Fraction(fraction_x),
+            SpritePivot::Fraction(fraction_y),
+        );
 
         SpriteContext {
             load: self.load,
@@ -518,7 +610,7 @@ impl<T: Translate, P: TranslatePrevious, R: Rotate, S: Scale, O: Pivot, C: IsUiC
     /// # Arguments
     ///
     /// * `(width, height)` - Size tuple of the new sprite in pixels.
-    /// * `pivot` - Pivot point of the sprite, see [`crate::Pivot`].
+    /// * `(pivot_x, pivot_y)` - Absolute pivot point in pixels from the left for horizontal and the top for vertical.
     /// * `pixels` - Array of RGBA `u32` pixels to use as the texture of the sprite.
     ///
     /// # Panics
@@ -529,26 +621,26 @@ impl<T: Translate, P: TranslatePrevious, R: Rotate, S: Scale, O: Pivot, C: IsUiC
     pub fn create(
         self,
         size: impl Into<(f32, f32)>,
-        pivot: SpritePivot,
+        pivot: impl Into<(f32, f32)>,
         pixels: impl AsRef<[RGBA8]>,
     ) {
         // Reduce compilation times
         fn inner<T, P, R, S, O, C>(
             this: &SpriteContext<ByPath, T, P, R, S, O, C>,
             (width, height): (f32, f32),
-            pivot: SpritePivot,
+            (pivot_x, pivot_y): (f32, f32),
             pixels: &[RGBA8],
         ) {
             this.ctx.write(|ctx| {
                 // Create the sprite
-                let asset = Sprite::new_and_upload(width, height, pivot, pixels, ctx);
+                let asset = Sprite::new_and_upload(width, height, pivot_x, pivot_y, pixels, ctx);
 
                 // Register the sprite
                 ctx.sprites.insert(Id::new(this.load.path()), asset);
             });
         }
 
-        inner(&self, size.into(), pivot, pixels.as_ref());
+        inner(&self, size.into(), pivot.into(), pixels.as_ref());
     }
 }
 
@@ -605,8 +697,11 @@ impl ContextInner {
     {
         let sprite = load.sprite(self);
 
+        // Get the generic pivot values
+        let (pivot_x, pivot_y) = pivot.pivot_value(sprite.pivot_x(), sprite.pivot_y());
+
         // Get the sprite offset
-        let (mut sprite_x, mut sprite_y) = sprite.pivot_offset(pivot.pivot_value(sprite.pivot()));
+        let (mut sprite_x, mut sprite_y) = sprite.pivot_offset(pivot_x, pivot_y);
 
         // Offset the sprite with the camera
         let camera = self.camera(is_ui_camera);

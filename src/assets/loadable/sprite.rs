@@ -12,7 +12,6 @@ use crate::{
     },
     context::ContextInner,
     graphics::atlas::TextureRef,
-    pivot::Pivot,
 };
 
 /// Sprite asset that can be loaded with metadata.
@@ -31,7 +30,8 @@ impl Sprite {
     pub(crate) fn new_and_upload(
         width: f32,
         height: f32,
-        pivot: Pivot,
+        pivot_x: f32,
+        pivot_y: f32,
         pixels: &[RGBA8],
         ctx: &mut ContextInner,
     ) -> Self {
@@ -44,7 +44,10 @@ impl Sprite {
         let sub_rectangle = (0.0, 0.0, width, height);
 
         // Set metadata
-        let metadata = SpriteMetadata { pivot };
+        let metadata = SpriteMetadata {
+            pivot_x: SpritePivot::Pixels(pivot_x),
+            pivot_y: SpritePivot::Pixels(pivot_y),
+        };
 
         Self {
             texture,
@@ -82,8 +85,11 @@ impl Sprite {
     /// Calculate the pivot value.
     #[inline]
     #[must_use]
-    pub(crate) fn pivot_offset(&self, pivot: Pivot) -> (f32, f32) {
-        pivot.pivot(self.sub_rectangle.2, self.sub_rectangle.3)
+    pub(crate) fn pivot_offset(&self, pivot_x: SpritePivot, pivot_y: SpritePivot) -> (f32, f32) {
+        (
+            pivot_x.pivot(self.sub_rectangle.2),
+            pivot_y.pivot(self.sub_rectangle.3),
+        )
     }
 
     /// Calculate the transformation using a custom pivot.
@@ -101,10 +107,11 @@ impl Sprite {
         rotation: f32,
         scale_x: f32,
         scale_y: f32,
-        pivot: Pivot,
+        pivot_x: SpritePivot,
+        pivot_y: SpritePivot,
     ) -> Affine2 {
         // Adjust by the sprite offset
-        let (sprite_offset_x, sprite_offset_y) = self.pivot_offset(pivot);
+        let (sprite_offset_x, sprite_offset_y) = self.pivot_offset(pivot_x, pivot_y);
 
         // Apply the blending factor if applicable
         let (x, y) = if blend {
@@ -168,9 +175,14 @@ impl Sprite {
         })
     }
 
-    /// Get the pivot value from the metadata.
-    pub(crate) const fn pivot(&self) -> Pivot {
-        self.metadata.pivot
+    /// Get the pivot value for the X axis from the metadata.
+    pub(crate) const fn pivot_x(&self) -> SpritePivot {
+        self.metadata.pivot_x
+    }
+
+    /// Get the pivot value for the Y axis from the metadata.
+    pub(crate) const fn pivot_y(&self) -> SpritePivot {
+        self.metadata.pivot_y
     }
 }
 
@@ -192,8 +204,14 @@ impl Loadable for Sprite {
 /// Sprite metadata to load from data formats.
 #[derive(Debug, Clone, Copy, Default, DeRon)]
 pub struct SpriteMetadata {
-    /// Pixel offset to render at.
-    pub(crate) pivot: Pivot,
+    /// Horizontal pixel offset to render at.
+    ///
+    /// This defines the center of the sprite for rotation and translation.
+    pub(crate) pivot_x: SpritePivot,
+    /// Vertical pixel offset to render at.
+    ///
+    /// This defines the center of the sprite for rotation and translation.
+    pub(crate) pivot_y: SpritePivot,
 }
 
 impl Loadable for SpriteMetadata {
@@ -203,5 +221,35 @@ impl Loadable for SpriteMetadata {
         Self: Sized,
     {
         ctx.asset_source.load_if_exists::<RonLoader, _>(id)
+    }
+}
+
+/// Sprite pivot position for a single dimension.
+#[derive(Debug, Clone, Copy, PartialEq, Default, DeRon)]
+pub enum SpritePivot {
+    /// Left for horizontal, top for vertical.
+    #[default]
+    Start,
+    /// Middle for both axes.
+    Center,
+    /// Right for horizontal, bottom for vertical.
+    End,
+    /// Custom absolute position in pixels.
+    Pixels(f32),
+    /// Custom relative position as a fraction from either the left or top.
+    Fraction(f32),
+}
+
+impl SpritePivot {
+    /// Pivot an axis.
+    #[inline]
+    pub(crate) fn pivot(self, axis_size: f32) -> f32 {
+        match self {
+            Self::Start => 0.0,
+            Self::Center => -axis_size / 2.0,
+            Self::End => -axis_size,
+            Self::Pixels(pixels) => -pixels,
+            Self::Fraction(fraction) => -axis_size * fraction,
+        }
     }
 }

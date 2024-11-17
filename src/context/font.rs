@@ -9,7 +9,7 @@ use super::{
     sprite::SpriteContext,
     text::TextContext,
 };
-use crate::Pivot;
+use crate::assets::loadable::sprite::SpritePivot;
 
 /// Handle loaded fonts.
 ///
@@ -63,7 +63,7 @@ impl<'font, 'ctx> FontContext<'font, 'ctx> {
                 previous_translation: Empty,
                 rotation: Empty,
                 scaling: Empty,
-                pivot: Pivoting::new(Pivot::Middle),
+                pivot: Pivoting::new(SpritePivot::Center, SpritePivot::Center),
                 phantom: PhantomData,
             }
         }
