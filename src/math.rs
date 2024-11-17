@@ -18,7 +18,7 @@
 ///
 /// # Returns
 ///
-/// - A random number between `min` and `max`.
+/// - The linear interpolated value between `lhs` and `rhs`.
 #[inline]
 #[must_use]
 pub fn lerp(lhs: f32, rhs: f32, factor: f32) -> f32 {
