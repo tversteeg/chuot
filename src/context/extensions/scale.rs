@@ -29,8 +29,8 @@ impl Scaling {
 impl Scale for Scaling {
     #[inline]
     fn inner_scale(mut self, (scale_x, scale_y): (f32, f32)) -> Scaling {
-        self.scale_x += scale_x;
-        self.scale_y += scale_y;
+        self.scale_x *= scale_x;
+        self.scale_y *= scale_y;
 
         self
     }

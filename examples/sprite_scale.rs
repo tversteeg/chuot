@@ -7,7 +7,7 @@
 //! (pivot_x: Center, pivot_y: Center)
 //! ```
 
-use chuot::{Config, Context, Game, config::RotationAlgorithm};
+use chuot::{config::RotationAlgorithm, Config, Context, Game};
 
 /// How much we will scale with the mouse.
 const SCALE_FACTOR: f32 = 50.0;
@@ -45,6 +45,13 @@ impl Game for GameState {
             // Scale it
             .scale_x(self.scale_x)
             .scale_y(self.scale_y)
+            .draw();
+
+        // Load a text asset and draw the scale
+        ctx.text("Beachball", &format!("Scale X: {:.1}\nScale Y: {:.1}", self.scale_x, self.scale_y))
+            // Use the UI camera which draws the center in the top left
+            .use_ui_camera()
+            // Draw the text on the screen
             .draw();
     }
 }

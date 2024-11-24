@@ -8,20 +8,20 @@ use glam::Affine2;
 use rgb::RGBA8;
 
 use super::{
-    Context, ContextInner,
     extensions::{
-        Empty,
         camera::{IsUiCamera, MainCamera, UiCamera},
         pivot::{Pivot, Pivoting},
         rotate::{Rotate, Rotation},
         scale::{Scale, Scaling},
         translate::{PreviousTranslation, Translate, TranslatePrevious, Translation},
+        Empty,
     },
     load::{ByPath, LoadMethod},
+    Context, ContextInner,
 };
 use crate::assets::{
-    Id,
     loadable::sprite::{Sprite, SpritePivot},
+    Id,
 };
 
 /// Specify how a sprite should be drawn.
@@ -49,15 +49,15 @@ pub struct SpriteContext<'ctx, L, T, P, R, S, O, C> {
 }
 
 impl<
-    'ctx,
-    L: LoadMethod,
-    T: Translate,
-    P: TranslatePrevious,
-    R: Rotate,
-    S: Scale,
-    O: Pivot,
-    C: IsUiCamera,
-> SpriteContext<'ctx, L, T, P, R, S, O, C>
+        'ctx,
+        L: LoadMethod,
+        T: Translate,
+        P: TranslatePrevious,
+        R: Rotate,
+        S: Scale,
+        O: Pivot,
+        C: IsUiCamera,
+    > SpriteContext<'ctx, L, T, P, R, S, O, C>
 {
     /// Only move the horizontal position.
     ///
@@ -176,7 +176,7 @@ impl<
     #[inline(always)]
     #[must_use]
     pub fn scale_x(self, scale_x: f32) -> SpriteContext<'ctx, L, T, P, R, Scaling, O, C> {
-        self.scale_impl((scale_x, 0.0))
+        self.scale_impl((scale_x, 1.0))
     }
 
     /// Only move the vertical position.
@@ -187,7 +187,7 @@ impl<
     #[inline(always)]
     #[must_use]
     pub fn scale_y(self, scale_y: f32) -> SpriteContext<'ctx, L, T, P, R, Scaling, O, C> {
-        self.scale_impl((0.0, scale_y))
+        self.scale_impl((1.0, scale_y))
     }
 
     /// Move the position.
