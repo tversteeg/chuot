@@ -2,14 +2,12 @@
 
 use std::marker::PhantomData;
 
-use glam::Affine2;
-
 use super::extensions::{
     Empty,
     camera::{IsUiCamera, MainCamera, UiCamera},
     translate::{PreviousTranslation, Translate, TranslatePrevious, Translation},
 };
-use crate::Context;
+use crate::{Context, assets::loadable::sprite::SpritePivot};
 
 /// Specify how the text should be drawn.
 ///
@@ -258,9 +256,9 @@ impl<C: IsUiCamera> TextContext<'_, '_, '_, Translation, Empty, C> {
             let offset_y = camera.offset_y();
 
             // Put the start position back 1 glyph since the first action is to move the cursor
-            let start_x = self.translation.x + offset_x - font.metadata.glyph_width;
+            let start_x = self.translation.x - font.metadata.glyph_width;
             let mut x = start_x;
-            let mut y = self.translation.y + offset_y;
+            let mut y = self.translation.y;
 
             // Draw each character from the string
             self.text.chars().for_each(|ch| {
@@ -286,16 +284,20 @@ impl<C: IsUiCamera> TextContext<'_, '_, '_, Translation, Empty, C> {
                 // Setup the sprite for the glyph
                 let sprite = font.sprites[char_offset];
 
-                // Get the sprite offset
-                let (mut sprite_x, mut sprite_y) =
-                    sprite.pivot_offset(sprite.pivot_x(), sprite.pivot_y());
-
-                // Offset the sprite with the camera and the local position
-                sprite_x += offset_x + x;
-                sprite_y += offset_y + y;
-
                 // Create the affine matrix
-                let affine_matrix = Affine2::from_translation((sprite_x, sprite_y).into());
+                let affine_matrix = sprite.affine_matrix(
+                    x + offset_x,
+                    y + offset_y,
+                    0.0,
+                    0.0,
+                    0.0,
+                    false,
+                    0.0,
+                    1.0,
+                    1.0,
+                    SpritePivot::Start,
+                    SpritePivot::Start,
+                );
 
                 // Push the graphics
                 ctx.graphics
@@ -340,9 +342,8 @@ impl<C: IsUiCamera> TextContext<'_, '_, '_, Translation, PreviousTranslation, C>
             );
 
             // Put the start position back 1 glyph since the first action is to move the cursor
-            let start_x = x + offset_x - font.metadata.glyph_width;
+            let start_x = x - font.metadata.glyph_width;
             x = start_x;
-            y += offset_y;
 
             // Draw each character from the string
             self.text.chars().for_each(|ch| {
@@ -368,16 +369,20 @@ impl<C: IsUiCamera> TextContext<'_, '_, '_, Translation, PreviousTranslation, C>
                 // Setup the sprite for the glyph
                 let sprite = font.sprites[char_offset];
 
-                // Get the sprite offset
-                let (mut sprite_x, mut sprite_y) =
-                    sprite.pivot_offset(sprite.pivot_x(), sprite.pivot_y());
-
-                // Offset the sprite with the camera and the local position
-                sprite_x += offset_x + x;
-                sprite_y += offset_y + y;
-
                 // Create the affine matrix
-                let affine_matrix = Affine2::from_translation((sprite_x, sprite_y).into());
+                let affine_matrix = sprite.affine_matrix(
+                    x + offset_x,
+                    y + offset_y,
+                    0.0,
+                    0.0,
+                    0.0,
+                    false,
+                    0.0,
+                    1.0,
+                    1.0,
+                    SpritePivot::Start,
+                    SpritePivot::Start,
+                );
 
                 // Push the graphics
                 ctx.graphics

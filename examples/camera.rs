@@ -82,6 +82,15 @@ impl Game for GameState {
                     .translate_y(y as f32 * 150.0)
                     // Draw the sprite on the screen
                     .draw();
+
+                // Draw the text on the same position as the sprite
+                ctx.text("Beachball", &format!("{x},{y}"))
+                    // Draw it at the same position every frame
+                    .translate_x(x as f32 * 150.0)
+                    .translate_y(y as f32 * 150.0)
+                    // Text uses the UI camera by default, so use the main camera
+                    .use_main_camera()
+                    .draw();
             }
         }
 
