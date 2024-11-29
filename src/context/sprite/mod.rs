@@ -8,20 +8,21 @@ use glam::Affine2;
 use rgb::RGBA8;
 
 use super::{
+    Context, ContextInner,
     extensions::{
+        Empty,
         camera::{IsUiCamera, MainCamera, UiCamera},
         pivot::{Pivot, Pivoting},
         rotate::{Rotate, Rotation},
         scale::{Scale, Scaling},
+        shader::{ApplyShader, Shader},
         translate::{PreviousTranslation, Translate, TranslatePrevious, Translation},
-        Empty,
     },
     load::{ByPath, LoadMethod},
-    Context, ContextInner,
 };
 use crate::assets::{
-    loadable::sprite::{Sprite, SpritePivot},
     Id,
+    loadable::sprite::{Sprite, SpritePivot},
 };
 
 /// Specify how a sprite should be drawn.
@@ -29,7 +30,17 @@ use crate::assets::{
 /// Must call [`Self::draw`] to finish drawing.
 ///
 /// Used by [`crate::Context::sprite`].
-pub struct SpriteContext<'ctx, L, T, P, R, S, O, C> {
+pub struct SpriteContext<
+    'ctx,
+    L,
+    T = Empty,
+    P = Empty,
+    R = Empty,
+    S = Empty,
+    O = Empty,
+    D = Empty,
+    C = Empty,
+> {
     /// How to retrieve the sprite to draw.
     pub(crate) load: L,
     /// Reference to the context the sprite will draw in when finished.
@@ -44,20 +55,24 @@ pub struct SpriteContext<'ctx, L, T, P, R, S, O, C> {
     pub(crate) scaling: S,
     /// Possible pivot/offset implementation, determined by type.
     pub(crate) pivot: O,
+    /// Possible custom shader, determined by type.
+    pub(crate) shader: D,
     /// Generic types without any concrete fields.
     pub(crate) phantom: PhantomData<C>,
 }
 
 impl<
-        'ctx,
-        L: LoadMethod,
-        T: Translate,
-        P: TranslatePrevious,
-        R: Rotate,
-        S: Scale,
-        O: Pivot,
-        C: IsUiCamera,
-    > SpriteContext<'ctx, L, T, P, R, S, O, C>
+    'ctx,
+    'shader,
+    L: LoadMethod,
+    T: Translate,
+    P: TranslatePrevious,
+    R: Rotate,
+    S: Scale,
+    O: Pivot,
+    D: Shader<'shader>,
+    C: IsUiCamera,
+> SpriteContext<'ctx, L, T, P, R, S, O, D, C>
 {
     /// Only move the horizontal position.
     ///
@@ -66,7 +81,7 @@ impl<
     /// * `x` - Horizontal position on the buffer in pixels.
     #[inline(always)]
     #[must_use]
-    pub fn translate_x(self, x: f32) -> SpriteContext<'ctx, L, Translation, P, R, S, O, C> {
+    pub fn translate_x(self, x: f32) -> SpriteContext<'ctx, L, Translation, P, R, S, O, D, C> {
         self.translate_impl((x, 0.0))
     }
 
@@ -77,7 +92,7 @@ impl<
     /// * `y` - Vertical position on the buffer in pixels.
     #[inline(always)]
     #[must_use]
-    pub fn translate_y(self, y: f32) -> SpriteContext<'ctx, L, Translation, P, R, S, O, C> {
+    pub fn translate_y(self, y: f32) -> SpriteContext<'ctx, L, Translation, P, R, S, O, D, C> {
         self.translate_impl((0.0, y))
     }
 
@@ -91,7 +106,7 @@ impl<
     pub fn translate(
         self,
         position: impl Into<(f32, f32)>,
-    ) -> SpriteContext<'ctx, L, Translation, P, R, S, O, C> {
+    ) -> SpriteContext<'ctx, L, Translation, P, R, S, O, D, C> {
         self.translate_impl(position.into())
     }
 
@@ -115,7 +130,7 @@ impl<
     pub fn translate_previous_x(
         self,
         previous_x: f32,
-    ) -> SpriteContext<'ctx, L, T, PreviousTranslation, R, S, O, C> {
+    ) -> SpriteContext<'ctx, L, T, PreviousTranslation, R, S, O, D, C> {
         self.translate_previous_impl((previous_x, 0.0))
     }
 
@@ -139,7 +154,7 @@ impl<
     pub fn translate_previous_y(
         self,
         previous_y: f32,
-    ) -> SpriteContext<'ctx, L, T, PreviousTranslation, R, S, O, C> {
+    ) -> SpriteContext<'ctx, L, T, PreviousTranslation, R, S, O, D, C> {
         self.translate_previous_impl((0.0, previous_y))
     }
 
@@ -164,7 +179,7 @@ impl<
     pub fn translate_previous(
         self,
         previous_position: impl Into<(f32, f32)>,
-    ) -> SpriteContext<'ctx, L, T, PreviousTranslation, R, S, O, C> {
+    ) -> SpriteContext<'ctx, L, T, PreviousTranslation, R, S, O, D, C> {
         self.translate_previous_impl(previous_position.into())
     }
 
@@ -175,7 +190,7 @@ impl<
     /// * `scale_x` - Horizontal scale on the buffer. `-1.0` to flip.
     #[inline(always)]
     #[must_use]
-    pub fn scale_x(self, scale_x: f32) -> SpriteContext<'ctx, L, T, P, R, Scaling, O, C> {
+    pub fn scale_x(self, scale_x: f32) -> SpriteContext<'ctx, L, T, P, R, Scaling, O, D, C> {
         self.scale_impl((scale_x, 1.0))
     }
 
@@ -186,7 +201,7 @@ impl<
     /// * `scale_y` - Vertical scale on the buffer. `-1.0` to flip.
     #[inline(always)]
     #[must_use]
-    pub fn scale_y(self, scale_y: f32) -> SpriteContext<'ctx, L, T, P, R, Scaling, O, C> {
+    pub fn scale_y(self, scale_y: f32) -> SpriteContext<'ctx, L, T, P, R, Scaling, O, D, C> {
         self.scale_impl((1.0, scale_y))
     }
 
@@ -200,7 +215,7 @@ impl<
     pub fn scale(
         self,
         scale: impl Into<(f32, f32)>,
-    ) -> SpriteContext<'ctx, L, T, P, R, Scaling, O, C> {
+    ) -> SpriteContext<'ctx, L, T, P, R, Scaling, O, D, C> {
         self.scale_impl(scale.into())
     }
 
@@ -213,7 +228,7 @@ impl<
     /// * `rotation` - Rotation in radians, will be applied using the algorithm passed in [`crate::config::Config::with_rotation_algorithm`].
     #[inline]
     #[must_use]
-    pub fn rotate(self, rotation: f32) -> SpriteContext<'ctx, L, T, P, Rotation, S, O, C> {
+    pub fn rotate(self, rotation: f32) -> SpriteContext<'ctx, L, T, P, Rotation, S, O, D, C> {
         let rotation = self.rotation.inner_rotate(rotation);
 
         SpriteContext {
@@ -223,6 +238,7 @@ impl<
             scaling: self.scaling,
             pivot: self.pivot,
             previous_translation: self.previous_translation,
+            shader: self.shader,
             rotation,
             phantom: PhantomData,
         }
@@ -238,7 +254,7 @@ impl<
     /// This is equivalent to `.pivot_fraction(0.0, 0.0)`.
     #[inline]
     #[must_use]
-    pub fn pivot_top_left(self) -> SpriteContext<'ctx, L, T, P, R, S, Pivoting, C> {
+    pub fn pivot_top_left(self) -> SpriteContext<'ctx, L, T, P, R, S, Pivoting, D, C> {
         let pivot = Pivoting::new(SpritePivot::Start, SpritePivot::Start);
 
         SpriteContext {
@@ -248,6 +264,7 @@ impl<
             rotation: self.rotation,
             scaling: self.scaling,
             previous_translation: self.previous_translation,
+            shader: self.shader,
             pivot,
             phantom: PhantomData,
         }
@@ -263,7 +280,7 @@ impl<
     /// This is equivalent to `.pivot_fraction(0.5, 0.5)`.
     #[inline]
     #[must_use]
-    pub fn pivot_center(self) -> SpriteContext<'ctx, L, T, P, R, S, Pivoting, C> {
+    pub fn pivot_center(self) -> SpriteContext<'ctx, L, T, P, R, S, Pivoting, D, C> {
         let pivot = Pivoting::new(SpritePivot::Center, SpritePivot::Center);
 
         SpriteContext {
@@ -273,6 +290,7 @@ impl<
             rotation: self.rotation,
             scaling: self.scaling,
             previous_translation: self.previous_translation,
+            shader: self.shader,
             pivot,
             phantom: PhantomData,
         }
@@ -295,7 +313,7 @@ impl<
         self,
         offset_x: f32,
         offset_y: f32,
-    ) -> SpriteContext<'ctx, L, T, P, R, S, Pivoting, C> {
+    ) -> SpriteContext<'ctx, L, T, P, R, S, Pivoting, D, C> {
         let pivot = Pivoting::new(SpritePivot::Pixels(offset_x), SpritePivot::Pixels(offset_y));
 
         SpriteContext {
@@ -305,6 +323,7 @@ impl<
             rotation: self.rotation,
             scaling: self.scaling,
             previous_translation: self.previous_translation,
+            shader: self.shader,
             pivot,
             phantom: PhantomData,
         }
@@ -327,7 +346,7 @@ impl<
         self,
         fraction_x: f32,
         fraction_y: f32,
-    ) -> SpriteContext<'ctx, L, T, P, R, S, Pivoting, C> {
+    ) -> SpriteContext<'ctx, L, T, P, R, S, Pivoting, D, C> {
         let pivot = Pivoting::new(
             SpritePivot::Fraction(fraction_x),
             SpritePivot::Fraction(fraction_y),
@@ -340,6 +359,7 @@ impl<
             rotation: self.rotation,
             scaling: self.scaling,
             previous_translation: self.previous_translation,
+            shader: self.shader,
             pivot,
             phantom: PhantomData,
         }
@@ -348,7 +368,7 @@ impl<
     /// Use the UI camera instead of the regular game camera for transforming the drawable object.
     #[inline]
     #[must_use]
-    pub fn use_ui_camera(self) -> SpriteContext<'ctx, L, T, P, R, S, O, UiCamera> {
+    pub fn use_ui_camera(self) -> SpriteContext<'ctx, L, T, P, R, S, O, D, UiCamera> {
         SpriteContext {
             load: self.load,
             ctx: self.ctx,
@@ -357,6 +377,7 @@ impl<
             rotation: self.rotation,
             scaling: self.scaling,
             pivot: self.pivot,
+            shader: self.shader,
             phantom: PhantomData,
         }
     }
@@ -364,7 +385,7 @@ impl<
     /// Use the regular game camera instead of the UI camera for transforming the drawable object.
     #[inline]
     #[must_use]
-    pub fn use_main_camera(self) -> SpriteContext<'ctx, L, T, P, R, S, O, MainCamera> {
+    pub fn use_main_camera(self) -> SpriteContext<'ctx, L, T, P, R, S, O, D, MainCamera> {
         SpriteContext {
             load: self.load,
             ctx: self.ctx,
@@ -373,6 +394,35 @@ impl<
             rotation: self.rotation,
             scaling: self.scaling,
             pivot: self.pivot,
+            shader: self.shader,
+            phantom: PhantomData,
+        }
+    }
+
+    /// Choose a custom shader to draw the sprite with.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - Asset path of the custom shader asset, will be initialized when not loaded yet.
+    ///
+    /// # Panics
+    ///
+    /// - When shader asset failed loading.
+    #[inline]
+    #[must_use]
+    pub fn shader<'path>(
+        self,
+        path: &'path str,
+    ) -> SpriteContext<'ctx, L, T, P, R, S, O, ApplyShader<'path>, C> {
+        SpriteContext {
+            load: self.load,
+            ctx: self.ctx,
+            translation: self.translation,
+            previous_translation: self.previous_translation,
+            rotation: self.rotation,
+            scaling: self.scaling,
+            pivot: self.pivot,
+            shader: ApplyShader::new(path),
             phantom: PhantomData,
         }
     }
@@ -396,8 +446,8 @@ impl<
         pixels: impl AsRef<[RGBA8]>,
     ) {
         // Reduce compilation times
-        fn inner<L, T, P, R, S, O, C>(
-            this: &SpriteContext<L, T, P, R, S, O, C>,
+        fn inner<L, T, P, R, S, O, D, C>(
+            this: &SpriteContext<L, T, P, R, S, O, D, C>,
             sub_rectangle: (f32, f32, f32, f32),
             pixels: &[RGBA8],
         ) where
@@ -503,7 +553,7 @@ impl<
     fn translate_impl(
         self,
         position: (f32, f32),
-    ) -> SpriteContext<'ctx, L, Translation, P, R, S, O, C> {
+    ) -> SpriteContext<'ctx, L, Translation, P, R, S, O, D, C> {
         let translation = self.translation.inner_translate(position);
 
         SpriteContext {
@@ -514,6 +564,7 @@ impl<
             rotation: self.rotation,
             scaling: self.scaling,
             pivot: self.pivot,
+            shader: self.shader,
             phantom: PhantomData,
         }
     }
@@ -524,7 +575,7 @@ impl<
     fn translate_previous_impl(
         self,
         previous_position: (f32, f32),
-    ) -> SpriteContext<'ctx, L, T, PreviousTranslation, R, S, O, C> {
+    ) -> SpriteContext<'ctx, L, T, PreviousTranslation, R, S, O, D, C> {
         let previous_translation = self
             .previous_translation
             .inner_translate_previous(previous_position);
@@ -536,6 +587,7 @@ impl<
             rotation: self.rotation,
             scaling: self.scaling,
             pivot: self.pivot,
+            shader: self.shader,
             previous_translation,
             phantom: PhantomData,
         }
@@ -544,7 +596,7 @@ impl<
     /// Perform the translation with the type.
     #[inline]
     #[must_use]
-    fn scale_impl(self, scale: (f32, f32)) -> SpriteContext<'ctx, L, T, P, R, Scaling, O, C> {
+    fn scale_impl(self, scale: (f32, f32)) -> SpriteContext<'ctx, L, T, P, R, Scaling, O, D, C> {
         let scaling = self.scaling.inner_scale(scale);
 
         SpriteContext {
@@ -554,6 +606,7 @@ impl<
             previous_translation: self.previous_translation,
             rotation: self.rotation,
             pivot: self.pivot,
+            shader: self.shader,
             scaling,
             phantom: PhantomData,
         }
@@ -566,7 +619,17 @@ impl<
     #[must_use]
     fn into_full_with_previous_translation(
         self,
-    ) -> SpriteContext<'ctx, L, Translation, PreviousTranslation, Rotation, Scaling, O, C> {
+    ) -> SpriteContext<
+        'ctx,
+        L,
+        Translation,
+        PreviousTranslation,
+        Rotation,
+        Scaling,
+        O,
+        ApplyShader<'shader>,
+        C,
+    > {
         SpriteContext {
             load: self.load,
             ctx: self.ctx,
@@ -577,6 +640,7 @@ impl<
             rotation: self.rotation.inner_rotate(0.0),
             scaling: self.scaling.inner_scale((1.0, 1.0)),
             pivot: self.pivot,
+            shader: self.shader.default_or_id(),
             phantom: PhantomData,
         }
     }
@@ -588,7 +652,8 @@ impl<
     #[must_use]
     fn into_full_without_previous_translation(
         self,
-    ) -> SpriteContext<'ctx, L, Translation, Empty, Rotation, Scaling, O, C> {
+    ) -> SpriteContext<'ctx, L, Translation, Empty, Rotation, Scaling, O, ApplyShader<'shader>, C>
+    {
         SpriteContext {
             load: self.load,
             ctx: self.ctx,
@@ -597,13 +662,22 @@ impl<
             rotation: self.rotation.inner_rotate(0.0),
             scaling: self.scaling.inner_scale((1.0, 1.0)),
             pivot: self.pivot,
+            shader: self.shader.default_or_id(),
             phantom: PhantomData,
         }
     }
 }
 
-impl<T: Translate, P: TranslatePrevious, R: Rotate, S: Scale, O: Pivot, C: IsUiCamera>
-    SpriteContext<'_, ByPath<'_>, T, P, R, S, O, C>
+impl<
+    'shader,
+    T: Translate,
+    P: TranslatePrevious,
+    R: Rotate,
+    S: Scale,
+    O: Pivot,
+    D: Shader<'shader>,
+    C: IsUiCamera,
+> SpriteContext<'_, ByPath<'_>, T, P, R, S, O, D, C>
 {
     /// Create a new empty sprite at runtime.
     ///
@@ -625,8 +699,8 @@ impl<T: Translate, P: TranslatePrevious, R: Rotate, S: Scale, O: Pivot, C: IsUiC
         pixels: impl AsRef<[RGBA8]>,
     ) {
         // Reduce compilation times
-        fn inner<T, P, R, S, O, C>(
-            this: &SpriteContext<ByPath, T, P, R, S, O, C>,
+        fn inner<T, P, R, S, O, D, C>(
+            this: &SpriteContext<ByPath, T, P, R, S, O, D, C>,
             (width, height): (f32, f32),
             (pivot_x, pivot_y): (f32, f32),
             pixels: &[RGBA8],
@@ -667,7 +741,8 @@ impl Context {
     pub const fn sprite<'path>(
         &self,
         path: &'path str,
-    ) -> SpriteContext<'_, ByPath<'path>, Empty, Empty, Empty, Empty, Empty, MainCamera> {
+    ) -> SpriteContext<'_, ByPath<'path>, Empty, Empty, Empty, Empty, Empty, Empty, MainCamera>
+    {
         SpriteContext {
             load: ByPath::new(path),
             ctx: self,
@@ -676,6 +751,7 @@ impl Context {
             rotation: Empty,
             scaling: Empty,
             pivot: Empty,
+            shader: Empty,
             phantom: PhantomData,
         }
     }
@@ -712,5 +788,19 @@ impl ContextInner {
         let affine_matrix = Affine2::from_translation((sprite_x, sprite_y).into());
 
         (sprite, affine_matrix)
+    }
+
+    /// Load the shader.
+    #[inline]
+    fn sprite_load_shader_if_not_exists<'shader, S>(&mut self, shader: S) -> Option<&'shader str>
+    where
+        S: Shader<'shader>,
+    {
+        // Ignore the default shader
+        let shader = shader.default_or_id().path?;
+
+        self.load_shader(shader);
+
+        Some(shader)
     }
 }

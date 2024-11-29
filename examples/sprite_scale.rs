@@ -7,7 +7,7 @@
 //! (pivot_x: Center, pivot_y: Center)
 //! ```
 
-use chuot::{config::RotationAlgorithm, Config, Context, Game};
+use chuot::{Config, Context, Game, config::RotationAlgorithm};
 
 /// How much we will scale with the mouse.
 const SCALE_FACTOR: f32 = 50.0;

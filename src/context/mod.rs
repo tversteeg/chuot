@@ -20,7 +20,7 @@ use crate::{
     GamepadAxis, GamepadButton, KeyCode, MouseButton,
     assets::{
         AssetManager, CustomAssetManager, Id,
-        loadable::{Loadable, audio::Audio, font::Font, sprite::Sprite},
+        loadable::{Loadable, audio::Audio, font::Font, shader::Shader, sprite::Sprite},
         source::AssetSource,
     },
     camera::Camera,
@@ -707,6 +707,8 @@ pub struct ContextInner {
     pub(crate) fonts: AssetManager<Font>,
     /// Audio assets.
     pub(crate) audio: AssetManager<Audio>,
+    /// Shader assets.
+    pub(crate) shaders: AssetManager<Shader>,
     /// Custom type erased assets.
     pub(crate) custom: CustomAssetManager,
     /// Whether to exit.
@@ -740,6 +742,7 @@ impl ContextInner {
         let sprites = AssetManager::default();
         let fonts = AssetManager::default();
         let audio = AssetManager::default();
+        let shaders = AssetManager::default();
         let custom = CustomAssetManager::default();
 
         // Define default values for the timing functions
@@ -764,6 +767,7 @@ impl ContextInner {
             sprites,
             fonts,
             audio,
+            shaders,
             custom,
             exit,
         }
@@ -866,6 +870,26 @@ impl ContextInner {
     {
         // Create a clone of the asset
         Rc::<T>::unwrap_or_clone(self.custom(id))
+    }
+
+    /// Load a shader if it does not exist.
+    ///
+    /// # Panics
+    ///
+    /// - When shader could not be loaded.
+    #[inline]
+    pub(crate) fn load_shader(&mut self, id: &str) {
+        // Create the ID
+        let id = Id::new(id);
+
+        // Check if it already exists
+        if self.shaders.contains(&id) {
+            return;
+        }
+
+        // Asset not found, load it
+        let asset = Shader::load(&id, self);
+        self.shaders.insert(id, asset);
     }
 
     /// Remove all assets with the specified ID if they exist.

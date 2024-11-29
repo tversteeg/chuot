@@ -300,9 +300,12 @@ impl<C: IsUiCamera> TextContext<'_, '_, '_, Translation, Empty, C> {
                 );
 
                 // Push the graphics
-                ctx.graphics
-                    .instances
-                    .push(affine_matrix, sprite.sub_rectangle, sprite.texture);
+                ctx.graphics.push_instance(
+                    None,
+                    affine_matrix,
+                    sprite.sub_rectangle,
+                    sprite.texture,
+                );
             });
         });
     }
@@ -385,9 +388,12 @@ impl<C: IsUiCamera> TextContext<'_, '_, '_, Translation, PreviousTranslation, C>
                 );
 
                 // Push the graphics
-                ctx.graphics
-                    .instances
-                    .push(affine_matrix, sprite.sub_rectangle, sprite.texture);
+                ctx.graphics.push_instance(
+                    None,
+                    affine_matrix,
+                    sprite.sub_rectangle,
+                    sprite.texture,
+                );
             });
         });
     }

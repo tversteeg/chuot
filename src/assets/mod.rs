@@ -36,6 +36,12 @@ impl<T: Loadable> AssetManager<T> {
         self.assets.get(id).cloned()
     }
 
+    /// Check if an asset exists.
+    #[inline]
+    pub(crate) fn contains(&self, id: &Id) -> bool {
+        self.assets.contains_key(id)
+    }
+
     /// Insert the loaded asset so it can be accessed.
     #[inline]
     pub(crate) fn insert(&mut self, id: Id, asset: T) -> Rc<T> {

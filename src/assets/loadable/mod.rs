@@ -2,6 +2,7 @@
 
 pub(crate) mod audio;
 pub(crate) mod font;
+pub(crate) mod shader;
 pub(crate) mod sprite;
 
 use downcast_rs::Downcast;
