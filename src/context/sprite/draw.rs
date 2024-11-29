@@ -8,14 +8,15 @@ use crate::context::{
         pivot::Pivot,
         rotate::Rotation,
         scale::Scaling,
+        shader::{ApplyShader, Shader},
         translate::{PreviousTranslation, Translation},
     },
     load::LoadMethod,
 };
 
 /// Nothing.
-impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
-    SpriteContext<'_, L, Empty, Empty, Empty, Empty, O, C>
+impl<'shader, L: LoadMethod, O: Pivot, D: Shader<'shader>, C: IsUiCamera>
+    SpriteContext<'_, L, Empty, Empty, Empty, Empty, O, D, C>
 {
     /// Draw the sprite to the screen at the zero coordinate of the camera.
     ///
@@ -30,10 +31,12 @@ impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
             let (sprite, affine_matrix) =
                 ctx.sprite_with_base_affine_matrix(&self.load, C::is_ui_camera(), self.pivot);
 
+            // Ensure the shader is loaded before using it
+            let shader = ctx.sprite_load_shader_if_not_exists(self.shader);
+
             // Push the graphics
             ctx.graphics
-                .instances
-                .push(affine_matrix, sprite.sub_rectangle, sprite.texture);
+                .push_instance(shader, affine_matrix, sprite.sub_rectangle, sprite.texture);
         });
     }
 
@@ -86,8 +89,8 @@ impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
 }
 
 /// Only translation.
-impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
-    SpriteContext<'_, L, Translation, Empty, Empty, Empty, O, C>
+impl<'shader, L: LoadMethod, O: Pivot, D: Shader<'shader>, C: IsUiCamera>
+    SpriteContext<'_, L, Translation, Empty, Empty, Empty, O, D, C>
 {
     /// Draw the sprite to the screen.
     ///
@@ -106,10 +109,12 @@ impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
             affine_matrix.translation.x += self.translation.x;
             affine_matrix.translation.y += self.translation.y;
 
+            // Ensure the shader is loaded before using it
+            let shader = ctx.sprite_load_shader_if_not_exists(self.shader);
+
             // Push the graphics
             ctx.graphics
-                .instances
-                .push(affine_matrix, sprite.sub_rectangle, sprite.texture);
+                .push_instance(shader, affine_matrix, sprite.sub_rectangle, sprite.texture);
         });
     }
 
@@ -162,8 +167,8 @@ impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
 }
 
 /// Translation and previous translation.
-impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
-    SpriteContext<'_, L, Translation, PreviousTranslation, Empty, Empty, O, C>
+impl<'shader, L: LoadMethod, O: Pivot, D: Shader<'shader>, C: IsUiCamera>
+    SpriteContext<'_, L, Translation, PreviousTranslation, Empty, Empty, O, D, C>
 {
     /// Draw the sprite to the screen, interpolating the position in the render step.
     ///
@@ -190,10 +195,12 @@ impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
                 ctx.blending_factor,
             );
 
+            // Ensure the shader is loaded before using it
+            let shader = ctx.sprite_load_shader_if_not_exists(self.shader);
+
             // Push the graphics
             ctx.graphics
-                .instances
-                .push(affine_matrix, sprite.sub_rectangle, sprite.texture);
+                .push_instance(shader, affine_matrix, sprite.sub_rectangle, sprite.texture);
         });
     }
 
@@ -246,8 +253,8 @@ impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
 }
 
 /// Only rotation.
-impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
-    SpriteContext<'_, L, Empty, Empty, Rotation, Empty, O, C>
+impl<'shader, L: LoadMethod, O: Pivot, D: Shader<'shader>, C: IsUiCamera>
+    SpriteContext<'_, L, Empty, Empty, Rotation, Empty, O, D, C>
 {
     /// Draw the sprite rotated to the screen at the zero coordinate of the camera.
     ///
@@ -311,8 +318,8 @@ impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
 }
 
 /// Only scaling.
-impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
-    SpriteContext<'_, L, Empty, Empty, Empty, Scaling, O, C>
+impl<'shader, L: LoadMethod, O: Pivot, D: Shader<'shader>, C: IsUiCamera>
+    SpriteContext<'_, L, Empty, Empty, Empty, Scaling, O, D, C>
 {
     /// Draw the sprite scaled to the screen at the zero coordinate of the camera.
     ///
@@ -376,8 +383,8 @@ impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
 }
 
 /// Translation and rotation.
-impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
-    SpriteContext<'_, L, Translation, Empty, Rotation, Empty, O, C>
+impl<'shader, L: LoadMethod, O: Pivot, D: Shader<'shader>, C: IsUiCamera>
+    SpriteContext<'_, L, Translation, Empty, Rotation, Empty, O, D, C>
 {
     /// Draw the sprite rotated to the screen.
     ///
@@ -441,8 +448,8 @@ impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
 }
 
 /// Translation, previous translation and rotation.
-impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
-    SpriteContext<'_, L, Translation, PreviousTranslation, Rotation, Empty, O, C>
+impl<'shader, L: LoadMethod, O: Pivot, D: Shader<'shader>, C: IsUiCamera>
+    SpriteContext<'_, L, Translation, PreviousTranslation, Rotation, Empty, O, D, C>
 {
     /// Draw the sprite rotated to the screen, interpolating in the render step.
     ///
@@ -506,8 +513,8 @@ impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
 }
 
 /// Translation and scaling.
-impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
-    SpriteContext<'_, L, Translation, Empty, Empty, Scaling, O, C>
+impl<'shader, L: LoadMethod, O: Pivot, D: Shader<'shader>, C: IsUiCamera>
+    SpriteContext<'_, L, Translation, Empty, Empty, Scaling, O, D, C>
 {
     /// Draw the sprite scaled to the screen.
     ///
@@ -571,8 +578,8 @@ impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
 }
 
 /// Translation, previous translation and scaling.
-impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
-    SpriteContext<'_, L, Translation, PreviousTranslation, Empty, Scaling, O, C>
+impl<'shader, L: LoadMethod, O: Pivot, D: Shader<'shader>, C: IsUiCamera>
+    SpriteContext<'_, L, Translation, PreviousTranslation, Empty, Scaling, O, D, C>
 {
     /// Draw the sprite scaled to the screen, interpolating in the render step.
     ///
@@ -636,8 +643,8 @@ impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
 }
 
 /// Rotation and scaling.
-impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
-    SpriteContext<'_, L, Empty, Empty, Rotation, Scaling, O, C>
+impl<'shader, L: LoadMethod, O: Pivot, D: Shader<'shader>, C: IsUiCamera>
+    SpriteContext<'_, L, Empty, Empty, Rotation, Scaling, O, D, C>
 {
     /// Draw the sprite rotated and scaled to the screen at the zero coordinate of the camera.
     ///
@@ -702,7 +709,7 @@ impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
 
 /// Translation, rotation and scaling.
 impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
-    SpriteContext<'_, L, Translation, Empty, Rotation, Scaling, O, C>
+    SpriteContext<'_, L, Translation, Empty, Rotation, Scaling, O, ApplyShader<'_>, C>
 {
     /// Draw the sprite rotated and scaled to the screen.
     ///
@@ -740,10 +747,12 @@ impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
                 pivot_y,
             );
 
+            // Ensure the shader is loaded before using it
+            let shader = ctx.sprite_load_shader_if_not_exists(self.shader);
+
             // Push the graphics
             ctx.graphics
-                .instances
-                .push(affine_matrix, sprite.sub_rectangle, sprite.texture);
+                .push_instance(shader, affine_matrix, sprite.sub_rectangle, sprite.texture);
         });
     }
 
@@ -816,10 +825,13 @@ impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
                 pivot_y,
             );
 
+            // Ensure the shader is loaded before using it
+            let shader = ctx.sprite_load_shader_if_not_exists(self.shader);
+
             // Push the graphics
-            ctx.graphics
-                .instances
-                .extend(translations.map(Into::into).map(|(x_offset, y_offset)| {
+            ctx.graphics.extend_instances(
+                shader,
+                translations.map(Into::into).map(|(x_offset, y_offset)| {
                     // Copy the matrix
                     let mut affine_matrix_with_offset = affine_matrix;
                     affine_matrix_with_offset.translation.x += x_offset;
@@ -830,14 +842,15 @@ impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
                         sprite.sub_rectangle,
                         sprite.texture,
                     )
-                }));
+                }),
+            );
         });
     }
 }
 
 /// Translation, previous translation, rotation and scaling.
 impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
-    SpriteContext<'_, L, Translation, PreviousTranslation, Rotation, Scaling, O, C>
+    SpriteContext<'_, L, Translation, PreviousTranslation, Rotation, Scaling, O, ApplyShader<'_>, C>
 {
     /// Draw the sprite rotated and scaled to the screen, interpolating the position in the render step.
     ///
@@ -875,10 +888,12 @@ impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
                 pivot_y,
             );
 
+            // Ensure the shader is loaded before using it
+            let shader = ctx.sprite_load_shader_if_not_exists(self.shader);
+
             // Push the graphics
             ctx.graphics
-                .instances
-                .push(affine_matrix, sprite.sub_rectangle, sprite.texture);
+                .push_instance(shader, affine_matrix, sprite.sub_rectangle, sprite.texture);
         });
     }
 
@@ -951,10 +966,13 @@ impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
                 pivot_y,
             );
 
+            // Ensure the shader is loaded before using it
+            let shader = ctx.sprite_load_shader_if_not_exists(self.shader);
+
             // Push the graphics
-            ctx.graphics
-                .instances
-                .extend(translations.map(Into::into).map(|(x_offset, y_offset)| {
+            ctx.graphics.extend_instances(
+                shader,
+                translations.map(Into::into).map(|(x_offset, y_offset)| {
                     // Copy the matrix
                     let mut affine_matrix_with_offset = affine_matrix;
                     affine_matrix_with_offset.translation.x += x_offset;
@@ -965,7 +983,8 @@ impl<L: LoadMethod, O: Pivot, C: IsUiCamera>
                         sprite.sub_rectangle,
                         sprite.texture,
                     )
-                }));
+                }),
+            );
         });
     }
 }

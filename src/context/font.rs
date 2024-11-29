@@ -39,12 +39,13 @@ impl<'font, 'ctx> FontContext<'font, 'ctx> {
     pub fn glyph(
         &self,
         glyph: impl Into<usize>,
-    ) -> SpriteContext<'_, FromMemory, Empty, Empty, Empty, Empty, Pivoting, MainCamera> {
+    ) -> SpriteContext<'_, FromMemory, Empty, Empty, Empty, Empty, Pivoting, Empty, MainCamera>
+    {
         // Reduce compilation times
         fn inner<'ctx>(
             this: &FontContext<'_, 'ctx>,
             glyph: usize,
-        ) -> SpriteContext<'ctx, FromMemory, Empty, Empty, Empty, Empty, Pivoting, MainCamera>
+        ) -> SpriteContext<'ctx, FromMemory, Empty, Empty, Empty, Empty, Pivoting, Empty, MainCamera>
         {
             let sprite = this.ctx.write(|ctx| {
                 // Push the instance if the texture is already uploaded
@@ -64,6 +65,7 @@ impl<'font, 'ctx> FontContext<'font, 'ctx> {
                 rotation: Empty,
                 scaling: Empty,
                 pivot: Pivoting::new(SpritePivot::Center, SpritePivot::Center),
+                shader: Empty,
                 phantom: PhantomData,
             }
         }

@@ -3,31 +3,34 @@
 pub mod atlas;
 mod data;
 mod instance;
+mod pipeline;
 mod post_processing;
 mod uniform;
 
-use std::{borrow::Cow, sync::Arc};
+use std::sync::Arc;
 
+use data::TexturedVertex;
+use glam::Affine2;
+use hashbrown::HashMap;
 #[cfg(feature = "embed-assets")]
 use imgref::ImgVec;
+use pipeline::Pipeline;
 use rgb::RGBA8;
 use wgpu::util::DeviceExt as _;
 use winit::window::Window;
 
 use self::{
     atlas::{Atlas, TextureRef},
-    data::{ScreenInfo, TexturedVertex},
+    data::ScreenInfo,
     instance::Instances,
     post_processing::PostProcessingState,
     uniform::UniformState,
 };
 #[cfg(feature = "embed-assets")]
-use crate::assets::{
-    Id,
-    loader::{Loader as _, png::PngLoader},
-};
+use crate::assets::loader::{Loader as _, png::PngLoader};
 use crate::{
     AssetSource,
+    assets::Id,
     config::{Config, RotationAlgorithm},
 };
 
@@ -49,16 +52,16 @@ pub(crate) struct Graphics {
     pub(crate) queue: wgpu::Queue,
     /// GPU surface configuration.
     pub(crate) surface_config: wgpu::SurfaceConfiguration,
-    /// Pipeline of the rendering itself.
-    pub(crate) render_pipeline: wgpu::RenderPipeline,
     /// GPU buffer reference to the vertices of the texture squares.
     pub(crate) vertex_buffer: wgpu::Buffer,
     /// GPU buffer reference to the indices of the texture squares.
     pub(crate) index_buffer: wgpu::Buffer,
-    /// GPU buffer reference to all instances of the texture squares.
-    pub(crate) instance_buffer: wgpu::Buffer,
     /// Texture atlas.
     pub(crate) atlas: Atlas,
+    /// Pipeline for the default shader.
+    pub(crate) default_pipeline: Pipeline,
+    /// Shaders.
+    pub(crate) custom_pipelines: HashMap<Id, Pipeline>,
     /// Width of the final buffer to draw.
     ///
     /// Will be scaled with integer scaling and letterboxing to fit the screen.
@@ -71,8 +74,7 @@ pub(crate) struct Graphics {
     pub(crate) screen_info: UniformState<ScreenInfo>,
     /// Post processing effect to downscale the result to a viewport with the exact buffer size.
     pub(crate) downscale: PostProcessingState,
-    /// All instances to render.
-    pub(crate) instances: Instances,
+
     /// Letterbox output `(x, y, width, height)` for the final render pass viewport.
     pub(crate) letterbox: (f32, f32, f32, f32),
     /// Background color.
@@ -82,11 +84,6 @@ pub(crate) struct Graphics {
 }
 
 impl Graphics {
-    /// Upload a texture to the GPU.
-    pub fn upload_texture(&mut self, width: u32, height: u32, pixels: &[RGBA8]) -> TextureRef {
-        self.atlas.add_texture(width, height, pixels, &self.queue)
-    }
-
     /// Setup the GPU buffers and data structures.
     pub(crate) async fn new(
         Config {
@@ -148,26 +145,6 @@ impl Graphics {
             .await
             .unwrap();
 
-        let width = buffer_width as u32;
-        let height = buffer_height as u32;
-
-        // Configure the render surface
-        let surface_config = wgpu::SurfaceConfiguration {
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            format: PREFERRED_TEXTURE_FORMAT,
-            width,
-            height,
-            present_mode: if vsync {
-                wgpu::PresentMode::AutoVsync
-            } else {
-                wgpu::PresentMode::AutoNoVsync
-            },
-            desired_maximum_frame_latency: 2,
-            alpha_mode: swapchain_capabilities.alpha_modes[0],
-            view_formats: vec![PREFERRED_TEXTURE_FORMAT],
-        };
-        surface.configure(&device, &surface_config);
-
         // Setup the texture atlas
         let embedded_atlas = asset_source.embedded_atlas();
         #[allow(unused_mut)]
@@ -221,25 +198,25 @@ impl Graphics {
             }
         }
 
-        // Create the uniforms
-        let screen_info = UniformState::new(&device, &ScreenInfo {
-            width: buffer_width,
-            height: buffer_height,
-            half_width: buffer_width / 2.0,
-            half_height: buffer_height / 2.0,
-        });
+        let width = buffer_width as u32;
+        let height = buffer_height as u32;
 
-        // Create a new render pipeline first
-        let render_pipeline_layout =
-            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: Some("Component Render Pipeline Layout"),
-                bind_group_layouts: &[
-                    &atlas.bind_group_layout,
-                    &atlas.rects.bind_group_layout,
-                    &screen_info.bind_group_layout,
-                ],
-                push_constant_ranges: &[],
-            });
+        // Configure the render surface
+        let surface_config = wgpu::SurfaceConfiguration {
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            format: PREFERRED_TEXTURE_FORMAT,
+            width,
+            height,
+            present_mode: if vsync {
+                wgpu::PresentMode::AutoVsync
+            } else {
+                wgpu::PresentMode::AutoNoVsync
+            },
+            desired_maximum_frame_latency: 2,
+            alpha_mode: swapchain_capabilities.alpha_modes[0],
+            view_formats: vec![PREFERRED_TEXTURE_FORMAT],
+        };
+        surface.configure(&device, &surface_config);
 
         // Load the shaders from disk
         let shader_source = match rotation_algorithm {
@@ -251,67 +228,40 @@ impl Graphics {
             _ => include_str!(concat!(env!("OUT_DIR"), "/rotation.wgsl")),
         };
 
-        // Upload the shader to the GPU
-        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("Diffuse Texture Shader"),
-            source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(shader_source)),
+        // Create the still empty map for custom shaders
+        let custom_pipelines = HashMap::new();
+
+        // Create the uniforms
+        let screen_info = UniformState::new(&device, &ScreenInfo {
+            width: buffer_width,
+            height: buffer_height,
+            half_width: buffer_width / 2.0,
+            half_height: buffer_height / 2.0,
         });
 
-        // Create the pipeline for rendering textures
-        let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("Render Pipeline"),
-            layout: Some(&render_pipeline_layout),
-            vertex: wgpu::VertexState {
-                buffers: &[TexturedVertex::descriptor(), Instances::descriptor()],
-                module: &shader,
-                entry_point: None,
-                compilation_options: wgpu::PipelineCompilationOptions::default(),
-            },
-            fragment: Some(wgpu::FragmentState {
-                module: &shader,
-                entry_point: Some(match rotation_algorithm {
-                    RotationAlgorithm::CleanEdge => "fs_main_clean_edge",
-                    RotationAlgorithm::Scale3x => "fs_main_scale3x",
-                    RotationAlgorithm::Scale2x => "fs_main_scale2x",
-                    RotationAlgorithm::Diag2x => "fs_main_diag2x",
-                    RotationAlgorithm::NearestNeighbor => "fs_main_nearest_neighbor",
-                }),
-                targets: &[Some(wgpu::ColorTargetState {
-                    format: PREFERRED_TEXTURE_FORMAT,
-                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
-                    write_mask: wgpu::ColorWrites::ALL,
-                })],
-                compilation_options: wgpu::PipelineCompilationOptions::default(),
+        // Create the default shader pipeline
+        let default_pipeline = Pipeline::new(
+            shader_source,
+            Some(match rotation_algorithm {
+                RotationAlgorithm::CleanEdge => "fs_main_clean_edge",
+                RotationAlgorithm::Scale3x => "fs_main_scale3x",
+                RotationAlgorithm::Scale2x => "fs_main_scale2x",
+                RotationAlgorithm::Diag2x => "fs_main_diag2x",
+                RotationAlgorithm::NearestNeighbor => "fs_main_nearest_neighbor",
             }),
-            primitive: wgpu::PrimitiveState {
-                topology: wgpu::PrimitiveTopology::TriangleList,
-                strip_index_format: None,
-                front_face: wgpu::FrontFace::Cw,
-                // Irrelevant since we disable culling
-                cull_mode: None,
-                polygon_mode: wgpu::PolygonMode::Fill,
-                unclipped_depth: false,
-                conservative: false,
-            },
-            depth_stencil: None,
-            multisample: wgpu::MultisampleState {
-                // How many samples the pipeline will use
-                count: 1,
-                // Use all masks
-                mask: !0,
-                // Disable anti-aliasing
-                alpha_to_coverage_enabled: false,
-            },
-            multiview: None,
-            cache: None,
-        });
+            &device,
+            &screen_info,
+            &atlas,
+        );
 
-        // Create the initial empty instance buffer, will be resized by the render call
-        let instance_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Instance Buffer"),
-            contents: &[],
-            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-        });
+        // Create the postprocessing effects
+        let downscale = PostProcessingState::new(
+            width,
+            height,
+            &device,
+            &screen_info,
+            include_str!(concat!(env!("OUT_DIR"), "/downscale.wgsl")),
+        );
 
         // Vertices for a rectangle
         let vertices = [
@@ -342,18 +292,6 @@ impl Graphics {
             usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
         });
 
-        // Create the postprocessing effects
-        let downscale = PostProcessingState::new(
-            width,
-            height,
-            &device,
-            &screen_info,
-            include_str!(concat!(env!("OUT_DIR"), "/downscale.wgsl")),
-        );
-
-        // Create the instances list
-        let instances = Instances::default();
-
         // Full size letterbox, will be rescaled
         let letterbox = (0.0, 0.0, buffer_width * scaling, buffer_height * scaling);
 
@@ -367,16 +305,15 @@ impl Graphics {
             surface,
             queue,
             surface_config,
-            render_pipeline,
             vertex_buffer,
             index_buffer,
-            instance_buffer,
             atlas,
+            default_pipeline,
+            custom_pipelines,
             buffer_width,
             buffer_height,
             screen_info,
             downscale,
-            instances,
             letterbox,
             background_color,
             viewport_color,
@@ -400,10 +337,50 @@ impl Graphics {
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
-        // First pass, render all instances
-        self.render_instances(&mut encoder, None);
+        // Start the render pass
+        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("Main Render Pass"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: &self.downscale.texture_view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(self.background_color),
+                    store: wgpu::StoreOp::Store,
+                },
+            })],
+            depth_stencil_attachment: None,
+            timestamp_writes: None,
+            occlusion_query_set: None,
+        });
 
-        // Second pass, render the custom buffer to the viewport
+        // Draw the default shader
+        self.default_pipeline.render_instances(
+            &self.device,
+            &self.queue,
+            &self.vertex_buffer,
+            &self.index_buffer,
+            &mut render_pass,
+            &self.screen_info,
+            &self.atlas,
+        );
+
+        // Loop over all instances from the main shader and all custom shaders
+        for (_id, custom_pipeline) in &mut self.custom_pipelines {
+            custom_pipeline.render_instances(
+                &self.device,
+                &self.queue,
+                &self.vertex_buffer,
+                &self.index_buffer,
+                &mut render_pass,
+                &self.screen_info,
+                &self.atlas,
+            );
+        }
+
+        // End the render pass
+        drop(render_pass);
+
+        // Last pass, render the custom buffer to the viewport
         self.downscale.render(
             &mut encoder,
             &surface_view,
@@ -449,6 +426,7 @@ impl Graphics {
             // We don't want a scale smaller than one
             .max(1)
         };
+
         // Calculate the new size with the scale
         let scaled_buffer_width = buffer_width_u32 * scale;
         let scaled_buffer_height = buffer_height_u32 * scale;
@@ -492,88 +470,67 @@ impl Graphics {
         Some(((x - letterbox_x) / scale, (y - letterbox_y) / scale))
     }
 
-    /// Render the instances if applicable.
-    fn render_instances(
+    /// Upload a texture to the GPU.
+    pub(crate) fn upload_texture(
         &mut self,
-        encoder: &mut wgpu::CommandEncoder,
-        custom_view: Option<&wgpu::TextureView>,
+        width: u32,
+        height: u32,
+        pixels: &[RGBA8],
+    ) -> TextureRef {
+        self.atlas.add_texture(width, height, pixels, &self.queue)
+    }
+
+    /// Upload a shader to the GPU.
+    pub(crate) fn upload_shader(&mut self, id: &Id, mut shader_source: String) {
+        // Add the base text to the shader
+        shader_source.push_str(include_str!("../../shaders/custom_shader_base.wgsl"));
+
+        // Setup the pipeline
+        let pipeline = Pipeline::new(
+            &shader_source,
+            None,
+            &self.device,
+            &self.screen_info,
+            &self.atlas,
+        );
+
+        self.custom_pipelines.insert(id.clone(), pipeline);
+    }
+
+    /// Push an item to the the instance array.
+    pub(crate) fn push_instance(
+        &mut self,
+        custom_shader: Option<&str>,
+        transformation: Affine2,
+        sub_rectangle: (f32, f32, f32, f32),
+        texture_ref: TextureRef,
     ) {
-        if self.instances.is_empty() {
-            // Nothing to render when there's no instances
-            return;
+        match custom_shader {
+            Some(path) => self
+                .custom_pipelines
+                .get_mut(path)
+                .expect("Shader does not exist")
+                .push_instance(transformation, sub_rectangle, texture_ref),
+            None => self
+                .default_pipeline
+                .push_instance(transformation, sub_rectangle, texture_ref),
         }
+    }
 
-        // Get the instances
-        let (instances_bytes, instances_len) = {
-            // Construct the bytes of the instances to upload
-            (self.instances.bytes(), self.instances.len())
-        };
-
-        // Resize the buffer if needed
-        let instance_buffer_already_pushed =
-            if instances_bytes.len() as u64 > self.instance_buffer.size() {
-                // We have more instances than the buffer size, recreate the buffer
-                self.instance_buffer.destroy();
-                self.instance_buffer =
-                    self.device
-                        .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                            label: Some("Instance Buffer"),
-                            contents: instances_bytes,
-                            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-                        });
-
-                true
-            } else {
-                false
-            };
-
-        {
-            // Start the render pass
-            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("Main Render Pass"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: custom_view.unwrap_or(&self.downscale.texture_view),
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(self.background_color),
-                        store: wgpu::StoreOp::Store,
-                    },
-                })],
-                depth_stencil_attachment: None,
-                timestamp_writes: None,
-                occlusion_query_set: None,
-            });
-
-            // Set our pipeline
-            render_pass.set_pipeline(&self.render_pipeline);
-
-            // Bind the atlas texture
-            render_pass.set_bind_group(0, &self.atlas.bind_group, &[]);
-            // Bind the atlas texture info
-            render_pass.set_bind_group(1, &self.atlas.rects.bind_group, &[]);
-
-            // Bind the screen size
-            render_pass.set_bind_group(2, &self.screen_info.bind_group, &[]);
-
-            // Set the target vertices
-            render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-            // Set the instances
-            render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
-            // Set the target indices
-            render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-
-            // Draw the instances
-            render_pass.draw_indexed(0..6, 0, 0..instances_len as u32);
+    /// Extend the instances of the default shader or a custom shader.
+    pub(crate) fn extend_instances(
+        &mut self,
+        custom_shader: Option<&str>,
+        items: impl Iterator<Item = (Affine2, (f32, f32, f32, f32), TextureRef)>,
+    ) {
+        match custom_shader {
+            Some(path) => self
+                .custom_pipelines
+                .get_mut(path)
+                .expect("Shader does not exist")
+                .extend_instances(items),
+            None => self.default_pipeline.extend_instances(items),
         }
-
-        // Upload the instance buffer
-        if !instance_buffer_already_pushed {
-            self.queue
-                .write_buffer(&self.instance_buffer, 0, instances_bytes);
-        }
-
-        // Clear the instances to write a new frame
-        self.instances.clear();
     }
 }
 

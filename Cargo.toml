@@ -14,7 +14,7 @@ categories = [
 	"games",
 	"game-engines",
 ]
-rust-version = "1.79.0"
+rust-version = "1.83.0"
 include = ["/src", "build.rs", "/shaders"]
 
 [package.metadata.docs.rs]
@@ -55,7 +55,7 @@ downcast-rs = "1.2.1"
 fastrand = "2.2.0"
 gilrs = "0.11.0"
 glam = { version = "0.29.2", features = ["bytemuck", "fast-math"] }
-hashbrown = "0.15.1"
+hashbrown = "0.15.2"
 imgref = { version = "1.11.0", default-features = false, optional = true }
 kira = { version = "0.9.6", default-features = false, features = ["cpal", "ogg"] }
 nanoserde = "0.1.37"
@@ -72,14 +72,14 @@ winit = "0.30.5"
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 notify-debouncer-mini = "0.5.0"
 pollster = "0.4.0"
-wgpu = { version = "23.0.0", default-features = false, features = ["wgsl"] }
+wgpu = { version = "23.0.1", default-features = false, features = ["wgsl"] }
 
 # Dependencies specifically for the web platform
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1.7"
 wasm-bindgen-futures = "0.4.45"
 web-sys = { version = "0.3.72", features = ["Document", "Window", "Element"] }
-wgpu = { version = "23.0.0", default-features = false, features = ["webgl", "wgsl"] }
+wgpu = { version = "23.0.1", default-features = false, features = ["webgl", "wgsl"] }
 
 [build-dependencies]
 naga = { version = "23.0.0", default-features = false, features = ["wgsl-in", "wgsl-out"] }
@@ -293,7 +293,6 @@ trivially_copy_pass_by_ref = "warn"
 uninlined_format_args = "warn"
 unnecessary_box_returns = "warn"
 unnecessary_join = "warn"
-unnecessary_literal_bound = "warn"
 unnecessary_wraps = "warn"
 unnested_or_patterns = "warn"
 unused_async = "warn"
