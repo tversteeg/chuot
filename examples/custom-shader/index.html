@@ -1,0 +1,92 @@
+<!doctype html><html lang=en><head><script integrity=sha384-pb++s6uBRKaQv+iAXpgA/H3IlpLZdO14tTwuCI7uXmz4aaZdByoCcM+6BhynMq/1 src=https://tversteeg.nl/chuot/js/theme.min.js></script><link href="https://tversteeg.nl/chuot/abridge.css?h=7ebe03bbc2fffa1a8bb5" rel=stylesheet><meta charset=utf-8><meta content="ie=edge" http-equiv=x-ua-compatible><meta content="width=device-width,initial-scale=1" name=viewport><meta content=https://tversteeg.nl/chuot name=base><meta content=True name=HandheldFriendly><meta content=yes name=mobile-web-app-capable><meta content=yes name=apple-mobile-web-app-capable><meta content=default name=apple-mobile-web-app-status-bar-style><link href=https://tversteeg.nl/chuot/manifest.min.json rel=manifest><link href=https://tversteeg.nl/chuot/favicon-32x32.png rel=icon sizes=32x32 type=image/png><link href=https://tversteeg.nl/chuot/favicon-16x16.png rel=icon sizes=16x16 type=image/png><link title="Chuột Atom Feed" href=https://tversteeg.nl/chuot/atom.xml rel=alternate type=application/atom+xml><meta content="index, follow" name=robots><meta content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" name=googlebot><meta content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" name=bingbot><title> Custom Shader | Chuột</title><meta content=Chuột name=copyright><meta content="Chuột is an AGPL licensed and opinionated game engine for 2D pixel-art games." name=description><link href=https://tversteeg.nl/chuot/examples/custom-shader/ rel=canonical><meta content="Rust, Game Engine, Chuot" name=keywords><meta content="Your Google Site verification code." name=google-site-verification><meta content="Your Bing Site verification code." name=msvalidate.01><meta content=https://tversteeg.nl/chuot/examples/custom-shader/ property=og:url><meta content=https://tversteeg.nl/chuot/examples/custom-shader/ name=twitter:url><meta content="Chuột is an AGPL licensed and opinionated game engine for 2D pixel-art games." property=og:description><meta content="Chuột is an AGPL licensed and opinionated game engine for 2D pixel-art games." name=twitter:description><meta content=" Custom Shader | Chuột" property=og:title><meta content=" Custom Shader | Chuột" name=twitter:title><meta content=summary_large_image name=twitter:card><meta content=https://tversteeg.nl/chuot/banner.png name=twitter:image><meta content=https://tversteeg.nl/chuot/banner.png property=og:image><meta content=Chuột property=og:site_name><meta content=en_US property=og:locale><meta content=website property=og:type><meta content=2024-11-29 property=og:updated_time><meta content=@your-user-name name=twitter:site><meta content=@your-user-name name=twitter:creator><script src="https://tversteeg.nl/chuot/js/abridge_nosearch.min.js?h=ad12ee23e307ceab69c7" defer integrity=sha384-Tx8tS63Gi+6ol4Z1zqXm8sKrrMx8HySTgHzvr7M1yDvfeGIf2mOpvgTaZb4yxxBX></script><noscript><link href=https://tversteeg.nl/chuot/nojs.css rel=stylesheet></noscript><body><header><nav><div><h1><a href=https://tversteeg.nl/chuot title=Chuột>🐭 Chuột</a></h1></div><div><div><ul><li><a class=s110 href=https://tversteeg.nl/chuot/examples/> Examples </a><li><a class=s110 href=https://docs.rs/chuot> Docs </a><li><a class=s110 href=https://github.com/tversteeg/chuot> Source </a><li><i class="js svgs adjust" id=mode type=reset></i></ul></div><div></div></div></nav></header><main><article><h1><a href=https://tversteeg.nl/chuot/examples/custom-shader/> Custom Shader</a></h1><p>Show how to load a custom shader.<p><code>shader.wgsl</code>:<pre class=language-wgsl data-lang=wgsl style=color:#61676c;background-color:#fafafa><code class=language-wgsl data-lang=wgsl><span>
+</span><span>struct VertexOutput {
+</span><span>
+</span><span>    // These two fields must be here
+</span><span>
+</span><span>    @builtin(position) clip_position: vec4f,
+</span><span>
+</span><span>    @location(0) tex_coords: vec2f,
+</span><span>
+</span><span>}
+</span><span>
+</span><span>
+</span><span>
+</span><span>@vertex
+</span><span>
+</span><span>fn vs_main(
+</span><span>
+</span><span>    model: VertexInput,
+</span><span>
+</span><span>    instance: InstanceInput,
+</span><span>
+</span><span>) -> VertexOutput {
+</span><span>
+</span><span>    // This function needs this name and input types
+</span><span>
+</span><span>
+</span><span>
+</span><span>    // Use the complicated vertex shader setup from the engine
+</span><span>
+</span><span>    return vs_main_impl(model, instance);
+</span><span>
+</span><span>}
+</span><span>
+</span><span>
+</span><span>
+</span><span>@fragment
+</span><span>
+</span><span>fn fs_main(in: VertexOutput) -> @location(0) vec4f {
+</span><span>
+</span><span>    // This function needs this name and output types
+</span><span>
+</span><span>
+</span><span>
+</span><span>    // Return the pixel in a nearest-neighbor fashion
+</span><span>
+</span><span>    return textureSample(t_diffuse, s_diffuse, in.tex_coords)
+</span><span>
+</span><span>        // Add a red hue to the pixel
+</span><span>
+</span><span>        + vec4f(1.0, 0.0, 0.0, 0.0);
+</span><span>
+</span><span>}
+</span><span>
+</span></code></pre><script type=module>import a from"../../wasm/custom_shader.js";window.addEventListener(`load`,()=>{a()})</script><div style=width:720px;margin-left:auto;margin-right:auto><canvas id=chuot></canvas></div><h3 id=source><a href=https://github.com/tversteeg/chuot/blob/main/examples/custom_shader.rs rel=noopener target=_blank>Source</a></h3><pre class=language-rust data-lang=rust style=color:#61676c;background-color:#fafafa><code class=language-rust data-lang=rust><span style=color:#fa6e32>use </span><span>chuot</span><span style=color:#ed9366>::</span><span>{Config</span><span style=color:#61676ccc>,</span><span> Context</span><span style=color:#61676ccc>,</span><span> Game}</span><span style=color:#61676ccc>;
+</span><span>
+</span><span style=color:#abb0b6;font-style:italic>/// Define a game state for our example.
+</span><span style=color:#fa6e32>struct </span><span style=color:#399ee6>GameState</span><span style=color:#61676ccc>;
+</span><span>
+</span><span style=color:#fa6e32>impl </span><span>Game </span><span style=color:#fa6e32>for </span><span style=color:#399ee6>GameState </span><span>{
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>/// Render the game.
+</span><span>    </span><span style=color:#fa6e32>fn </span><span style=color:#f29718>render</span><span>(</span><span style=color:#ed9366>&</span><span style=color:#fa6e32>mut </span><span style=color:#ff8f40>self</span><span>, </span><span style=color:#ff8f40>ctx</span><span style=color:#61676ccc>:</span><span> Context) {
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Draw a sprite with a custom shader
+</span><span>        ctx</span><span style=color:#ed9366>.</span><span style=color:#f07171>sprite</span><span>(</span><span style=color:#86b300>"threeforms"</span><span>)
+</span><span>            </span><span style=color:#abb0b6;font-style:italic>// Use the custom shader
+</span><span>            </span><span style=color:#ed9366>.</span><span style=color:#f07171>shader</span><span>(</span><span style=color:#86b300>"shader"</span><span>)
+</span><span>            </span><span style=color:#ed9366>.</span><span style=color:#f07171>translate_x</span><span>(</span><span style=color:#ff8f40>50.0</span><span>)
+</span><span>            </span><span style=color:#ed9366>.</span><span style=color:#f07171>draw</span><span>()</span><span style=color:#61676ccc>;
+</span><span>
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Draw a sprite with the default shader
+</span><span>        ctx</span><span style=color:#ed9366>.</span><span style=color:#f07171>sprite</span><span>(</span><span style=color:#86b300>"threeforms"</span><span>)</span><span style=color:#ed9366>.</span><span style=color:#f07171>translate_x</span><span>(</span><span style=color:#ed9366>-</span><span style=color:#ff8f40>50.0</span><span>)</span><span style=color:#ed9366>.</span><span style=color:#f07171>draw</span><span>()</span><span style=color:#61676ccc>;
+</span><span>    }
+</span><span>
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>/// Do nothing during the update loop.
+</span><span>    </span><span style=color:#fa6e32>fn </span><span style=color:#f29718>update</span><span>(</span><span style=color:#ed9366>&</span><span style=color:#fa6e32>mut </span><span style=color:#ff8f40>self</span><span>, </span><span style=color:#ff8f40>_ctx</span><span style=color:#61676ccc>:</span><span> Context) {}
+</span><span>}
+</span><span>
+</span><span style=color:#abb0b6;font-style:italic>/// Open an empty window.
+</span><span style=color:#fa6e32>fn </span><span style=color:#f29718>main</span><span>() {
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>// Game configuration
+</span><span>    </span><span style=color:#fa6e32>let</span><span> config </span><span style=color:#ed9366>=</span><span> Config {
+</span><span>        buffer_width</span><span style=color:#61676ccc>: </span><span style=color:#ff8f40>240.0</span><span style=color:#61676ccc>,
+</span><span>        buffer_height</span><span style=color:#61676ccc>: </span><span style=color:#ff8f40>192.0</span><span style=color:#61676ccc>,
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Apply a minimum of 3 times scaling for the buffer
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Will result in a minimum, and on web exact, window size of 720x576
+</span><span>        scaling</span><span style=color:#61676ccc>: </span><span style=color:#ff8f40>3.0</span><span style=color:#61676ccc>,
+</span><span>        </span><span style=color:#ed9366>..</span><span style=color:#55b4d4;font-style:italic>Default</span><span style=color:#ed9366>::</span><span>default()
+</span><span>    }</span><span style=color:#61676ccc>;
+</span><span>
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>// Spawn the window and run the 'game'
+</span><span>    GameState</span><span style=color:#ed9366>.</span><span style=color:#f07171>run</span><span>(chuot</span><span style=color:#ed9366>::</span><span>load_assets</span><span style=color:#ed9366>!</span><span>()</span><span style=color:#61676ccc>,</span><span> config)</span><span style=color:#61676ccc>;
+</span><span>}
+</span></code></pre><h3 id=compatibility>Compatibility</h3><table><thead><tr><th>Chuột Version<th>Example Works<tbody><tr><td><a href=https://github.com/tversteeg/chuot/releases/tag/v0.3.0 rel=noopener target=_blank>0.3.0</a><td>🚫<tr><td><a href=https://github.com/tversteeg/chuot/releases/tag/v0.3.1 rel=noopener target=_blank>0.3.1</a><td>🚫<tr><td><a href=https://github.com/tversteeg/chuot rel=noopener target=_blank>Unreleased</a><td>✅</table><nav><div><a href=https://tversteeg.nl/chuot/examples/custom-asset/>‹ Custom Asset</a></div><div><a href=https://tversteeg.nl/chuot/examples/falling-sand/> Falling Sand ›</a></div></nav></article></main><footer><hr><div class=c><nav class=tpad><div><a title="Chuột Atom Feed" href=https://tversteeg.nl/chuot/atom.xml target=_blank type=application/atom+xml><i class="svg rss" title="Chuột Atom Feed" type=Button></i></a><a href=https://matrix.to/#/#chuot:matrix.org/ target=_blank title=Matrix><i class="svg matrix" title=Matrix type=Button></i></a><a href=https://github.com/tversteeg/chuot/ target=_blank title=Github><i class="svg github" title=Github type=Button></i></a></div></nav><nav class=vpad><a class=rpad href=https://tversteeg.nl/chuot/sitemap.xml target=_blank> Sitemap </a></nav><p class=s70>Powered by <a href=https://www.getzola.org/ target=_blank>Zola</a> & <a href=https://github.com/Jieiku/abridge/ target=_blank>Abridge</a></div></footer>

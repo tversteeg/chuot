@@ -1,0 +1,350 @@
+<!doctype html><html lang=en><head><script integrity=sha384-pb++s6uBRKaQv+iAXpgA/H3IlpLZdO14tTwuCI7uXmz4aaZdByoCcM+6BhynMq/1 src=https://tversteeg.nl/chuot/js/theme.min.js></script><link href="https://tversteeg.nl/chuot/abridge.css?h=7ebe03bbc2fffa1a8bb5" rel=stylesheet><meta charset=utf-8><meta content="ie=edge" http-equiv=x-ua-compatible><meta content="width=device-width,initial-scale=1" name=viewport><meta content=https://tversteeg.nl/chuot name=base><meta content=True name=HandheldFriendly><meta content=yes name=mobile-web-app-capable><meta content=yes name=apple-mobile-web-app-capable><meta content=default name=apple-mobile-web-app-status-bar-style><link href=https://tversteeg.nl/chuot/manifest.min.json rel=manifest><link href=https://tversteeg.nl/chuot/favicon-32x32.png rel=icon sizes=32x32 type=image/png><link href=https://tversteeg.nl/chuot/favicon-16x16.png rel=icon sizes=16x16 type=image/png><link title="Chuột Atom Feed" href=https://tversteeg.nl/chuot/atom.xml rel=alternate type=application/atom+xml><meta content="index, follow" name=robots><meta content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" name=googlebot><meta content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" name=bingbot><title> Falling Sand | Chuột</title><meta content=Chuột name=copyright><meta content="Chuột is an AGPL licensed and opinionated game engine for 2D pixel-art games." name=description><link href=https://tversteeg.nl/chuot/examples/falling-sand/ rel=canonical><meta content="Rust, Game Engine, Chuot" name=keywords><meta content="Your Google Site verification code." name=google-site-verification><meta content="Your Bing Site verification code." name=msvalidate.01><meta content=https://tversteeg.nl/chuot/examples/falling-sand/ property=og:url><meta content=https://tversteeg.nl/chuot/examples/falling-sand/ name=twitter:url><meta content="Chuột is an AGPL licensed and opinionated game engine for 2D pixel-art games." property=og:description><meta content="Chuột is an AGPL licensed and opinionated game engine for 2D pixel-art games." name=twitter:description><meta content=" Falling Sand | Chuột" property=og:title><meta content=" Falling Sand | Chuột" name=twitter:title><meta content=summary_large_image name=twitter:card><meta content=https://tversteeg.nl/chuot/banner.png name=twitter:image><meta content=https://tversteeg.nl/chuot/banner.png property=og:image><meta content=Chuột property=og:site_name><meta content=en_US property=og:locale><meta content=website property=og:type><meta content=2024-11-29 property=og:updated_time><meta content=@your-user-name name=twitter:site><meta content=@your-user-name name=twitter:creator><script src="https://tversteeg.nl/chuot/js/abridge_nosearch.min.js?h=ad12ee23e307ceab69c7" defer integrity=sha384-Tx8tS63Gi+6ol4Z1zqXm8sKrrMx8HySTgHzvr7M1yDvfeGIf2mOpvgTaZb4yxxBX></script><noscript><link href=https://tversteeg.nl/chuot/nojs.css rel=stylesheet></noscript><body><header><nav><div><h1><a href=https://tversteeg.nl/chuot title=Chuột>🐭 Chuột</a></h1></div><div><div><ul><li><a class=s110 href=https://tversteeg.nl/chuot/examples/> Examples </a><li><a class=s110 href=https://docs.rs/chuot> Docs </a><li><a class=s110 href=https://github.com/tversteeg/chuot> Source </a><li><i class="js svgs adjust" id=mode type=reset></i></ul></div><div></div></div></nav></header><main><article><h1><a href=https://tversteeg.nl/chuot/examples/falling-sand/> Falling Sand</a></h1><p>A simple falling sand game.</p><script type=module>import a from"../../wasm/falling_sand.js";window.addEventListener(`load`,()=>{a()})</script><div style=width:720px;margin-left:auto;margin-right:auto><canvas id=chuot></canvas></div><h3 id=source><a href=https://github.com/tversteeg/chuot/blob/main/examples/falling_sand.rs rel=noopener target=_blank>Source</a></h3><pre class=language-rust data-lang=rust style=color:#61676c;background-color:#fafafa><code class=language-rust data-lang=rust><span style=color:#fa6e32>use </span><span>chuot</span><span style=color:#ed9366>::</span><span>{Config</span><span style=color:#61676ccc>,</span><span> Context</span><span style=color:#61676ccc>,</span><span> Game</span><span style=color:#61676ccc>,</span><span> KeyCode</span><span style=color:#61676ccc>,</span><span> MouseButton</span><span style=color:#61676ccc>, </span><span style=color:#ff8f40>RGBA8</span><span>}</span><span style=color:#61676ccc>;
+</span><span>
+</span><span style=color:#abb0b6;font-style:italic>/// Width of the screen but also width of the sandbox simulation.
+</span><span style=color:#fa6e32>const </span><span style=color:#ff8f40>WIDTH</span><span style=color:#61676ccc>: </span><span style=color:#fa6e32>f32 </span><span style=color:#ed9366>= </span><span style=color:#ff8f40>240.0</span><span style=color:#61676ccc>;
+</span><span style=color:#abb0b6;font-style:italic>/// Height of the screen but also height of the sandbox simulation.
+</span><span style=color:#fa6e32>const </span><span style=color:#ff8f40>HEIGHT</span><span style=color:#61676ccc>: </span><span style=color:#fa6e32>f32 </span><span style=color:#ed9366>= </span><span style=color:#ff8f40>192.0</span><span style=color:#61676ccc>;
+</span><span style=color:#abb0b6;font-style:italic>/// How many cells to fill to draw when clicking.
+</span><span style=color:#fa6e32>const </span><span style=color:#ff8f40>BRUSH_SIZE</span><span style=color:#61676ccc>: </span><span style=color:#fa6e32>isize </span><span style=color:#ed9366>= </span><span style=color:#ff8f40>2</span><span style=color:#61676ccc>;
+</span><span>
+</span><span style=color:#abb0b6;font-style:italic>/// State of a single pixel in the sand box.
+</span><span style=color:#61676ccc>#</span><span>[</span><span style=color:#f29718>derive</span><span>(Clone</span><span style=color:#61676ccc>,</span><span> Copy)]
+</span><span style=color:#fa6e32>struct </span><span style=color:#399ee6>Cell </span><span>{
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>/// Type of the cell.
+</span><span>    element</span><span style=color:#61676ccc>:</span><span> Element,
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>/// Whether the cell is visited this update loop.
+</span><span>    visited</span><span style=color:#61676ccc>: </span><span style=color:#fa6e32>bool</span><span>,
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>/// Color of the cell.
+</span><span>    color</span><span style=color:#61676ccc>:</span><span> RGBA8,
+</span><span>}
+</span><span>
+</span><span style=color:#fa6e32>impl </span><span>Default </span><span style=color:#fa6e32>for </span><span style=color:#399ee6>Cell </span><span>{
+</span><span>    </span><span style=color:#fa6e32>fn </span><span style=color:#f29718>default</span><span>() </span><span style=color:#61676ccc>-> </span><span style=color:#fa6e32>Self </span><span>{
+</span><span>        </span><span style=color:#fa6e32>let</span><span> element </span><span style=color:#ed9366>= </span><span>Element</span><span style=color:#ed9366>::</span><span>Air</span><span style=color:#61676ccc>;
+</span><span>        </span><span style=color:#fa6e32>let</span><span> color </span><span style=color:#ed9366>=</span><span> element</span><span style=color:#ed9366>.</span><span style=color:#f07171>random_color</span><span>()</span><span style=color:#61676ccc>;
+</span><span>        </span><span style=color:#fa6e32>let</span><span> visited </span><span style=color:#ed9366>= </span><span style=color:#ff8f40>false</span><span style=color:#61676ccc>;
+</span><span>
+</span><span>        </span><span style=color:#fa6e32>Self </span><span>{
+</span><span>            element</span><span style=color:#61676ccc>,
+</span><span>            visited</span><span style=color:#61676ccc>,
+</span><span>            color</span><span style=color:#61676ccc>,
+</span><span>        }
+</span><span>    }
+</span><span>}
+</span><span>
+</span><span style=color:#abb0b6;font-style:italic>/// Type of a cell.
+</span><span style=color:#61676ccc>#</span><span>[</span><span style=color:#f29718>repr</span><span>(u8)]
+</span><span style=color:#61676ccc>#</span><span>[</span><span style=color:#f29718>derive</span><span>(Clone</span><span style=color:#61676ccc>,</span><span> Copy</span><span style=color:#61676ccc>,</span><span> Default</span><span style=color:#61676ccc>,</span><span> PartialEq</span><span style=color:#61676ccc>,</span><span> Eq)]
+</span><span style=color:#fa6e32>enum </span><span style=color:#399ee6>Element </span><span>{
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>/// Empty.
+</span><span>    </span><span style=color:#61676ccc>#</span><span>[</span><span style=color:#f29718>default</span><span>]
+</span><span>    Air</span><span style=color:#61676ccc>,
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>/// Solid powder material.
+</span><span>    Sand</span><span style=color:#61676ccc>,
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>/// Solid un-movable material.
+</span><span>    Rock</span><span style=color:#61676ccc>,
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>/// Fluid material.
+</span><span>    Water</span><span style=color:#61676ccc>,
+</span><span>}
+</span><span style=color:#fa6e32>impl </span><span style=color:#399ee6>Element </span><span>{
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>/// Create a random color based on the type
+</span><span>    </span><span style=color:#fa6e32>fn </span><span style=color:#f29718>random_color</span><span>(</span><span style=color:#ff8f40>self</span><span>) </span><span style=color:#61676ccc>-></span><span> RGBA8 {
+</span><span>        </span><span style=color:#fa6e32>match </span><span style=color:#55b4d4;font-style:italic>self </span><span>{
+</span><span>            </span><span style=color:#fa6e32>Self</span><span style=color:#ed9366>::</span><span>Air </span><span style=color:#ed9366>=> </span><span style=color:#ff8f40>RGBA8</span><span style=color:#ed9366>::</span><span>new(</span><span style=color:#ff8f40>0xCC</span><span style=color:#61676ccc>, </span><span style=color:#ff8f40>0xCC</span><span style=color:#61676ccc>, </span><span style=color:#ff8f40>0xFF</span><span style=color:#61676ccc>, </span><span style=color:#ff8f40>0xFF</span><span>)</span><span style=color:#61676ccc>,
+</span><span>            </span><span style=color:#fa6e32>Self</span><span style=color:#ed9366>::</span><span>Sand </span><span style=color:#ed9366>=> </span><span>{
+</span><span>                </span><span style=color:#fa6e32>let</span><span> variation </span><span style=color:#ed9366>= </span><span>chuot</span><span style=color:#ed9366>::</span><span>random(</span><span style=color:#ff8f40>0.0</span><span style=color:#61676ccc>, </span><span style=color:#ff8f40>15.0</span><span>) </span><span style=color:#ed9366>as </span><span style=color:#fa6e32>u8</span><span style=color:#61676ccc>;
+</span><span>
+</span><span>                </span><span style=color:#ff8f40>RGBA8</span><span style=color:#ed9366>::</span><span>new(</span><span style=color:#ff8f40>0xFF</span><span style=color:#61676ccc>, </span><span style=color:#ff8f40>0xFF </span><span style=color:#ed9366>-</span><span> variation</span><span style=color:#61676ccc>, </span><span style=color:#ff8f40>0x44 </span><span style=color:#ed9366>-</span><span> variation</span><span style=color:#61676ccc>, </span><span style=color:#ff8f40>0xFF </span><span style=color:#ed9366>-</span><span> variation)
+</span><span>            }
+</span><span>            </span><span style=color:#fa6e32>Self</span><span style=color:#ed9366>::</span><span>Rock </span><span style=color:#ed9366>=> </span><span>{
+</span><span>                </span><span style=color:#fa6e32>let</span><span> variation </span><span style=color:#ed9366>= </span><span>chuot</span><span style=color:#ed9366>::</span><span>random(</span><span style=color:#ff8f40>0.0</span><span style=color:#61676ccc>, </span><span style=color:#ff8f40>20.0</span><span>) </span><span style=color:#ed9366>as </span><span style=color:#fa6e32>u8</span><span style=color:#61676ccc>;
+</span><span>
+</span><span>                </span><span style=color:#ff8f40>RGBA8</span><span style=color:#ed9366>::</span><span>new(</span><span style=color:#ff8f40>0xAA </span><span style=color:#ed9366>-</span><span> variation</span><span style=color:#61676ccc>, </span><span style=color:#ff8f40>0xAA </span><span style=color:#ed9366>-</span><span> variation</span><span style=color:#61676ccc>, </span><span style=color:#ff8f40>0xAA </span><span style=color:#ed9366>-</span><span> variation</span><span style=color:#61676ccc>, </span><span style=color:#ff8f40>0xFF</span><span>)
+</span><span>            }
+</span><span>            </span><span style=color:#fa6e32>Self</span><span style=color:#ed9366>::</span><span>Water </span><span style=color:#ed9366>=> </span><span style=color:#ff8f40>RGBA8</span><span style=color:#ed9366>::</span><span>new(</span><span style=color:#ff8f40>0xAA</span><span style=color:#61676ccc>, </span><span style=color:#ff8f40>0xAA</span><span style=color:#61676ccc>, </span><span style=color:#ff8f40>0xFF</span><span style=color:#61676ccc>, </span><span style=color:#ff8f40>0xFF</span><span>)</span><span style=color:#61676ccc>,
+</span><span>        }
+</span><span>    }
+</span><span>}
+</span><span>
+</span><span style=color:#abb0b6;font-style:italic>/// Define a game state for our example.
+</span><span style=color:#fa6e32>struct </span><span style=color:#399ee6>GameState </span><span>{
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>/// What kind of element to draw when clicking.
+</span><span>    brush</span><span style=color:#61676ccc>:</span><span> Element,
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>/// Grid of pixels for each cell.
+</span><span>    sandbox</span><span style=color:#61676ccc>: </span><span style=color:#55b4d4;font-style:italic>Vec</span><span>&LTCell>,
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>/// Which horizontal direction to draw, toggles every update tick.
+</span><span>    update_horizontal_cells_forward</span><span style=color:#61676ccc>: </span><span style=color:#fa6e32>bool</span><span>,
+</span><span>}
+</span><span>
+</span><span style=color:#fa6e32>impl </span><span style=color:#399ee6>GameState </span><span>{
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>/// Setup the grid.
+</span><span>    </span><span style=color:#fa6e32>fn </span><span style=color:#f29718>new</span><span>() </span><span style=color:#61676ccc>-> </span><span style=color:#fa6e32>Self </span><span>{
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Fill the sandbox with air
+</span><span>        </span><span style=color:#fa6e32>let</span><span> sandbox </span><span style=color:#ed9366>= </span><span style=color:#f07171>vec!</span><span>[Cell</span><span style=color:#ed9366>::</span><span>default()</span><span style=color:#61676ccc>; </span><span>(</span><span style=color:#ff8f40>WIDTH </span><span style=color:#ed9366>* </span><span style=color:#ff8f40>HEIGHT</span><span>) </span><span style=color:#ed9366>as </span><span style=color:#fa6e32>usize</span><span>]</span><span style=color:#61676ccc>;
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// The default brush is sand
+</span><span>        </span><span style=color:#fa6e32>let</span><span> brush </span><span style=color:#ed9366>= </span><span>Element</span><span style=color:#ed9366>::</span><span>Sand</span><span style=color:#61676ccc>;
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Initial direction, value doesn't matter because it updates every update tick
+</span><span>        </span><span style=color:#fa6e32>let</span><span> draw_forward </span><span style=color:#ed9366>= </span><span style=color:#ff8f40>false</span><span style=color:#61676ccc>;
+</span><span>
+</span><span>        </span><span style=color:#fa6e32>Self </span><span>{
+</span><span>            brush</span><span style=color:#61676ccc>,
+</span><span>            sandbox</span><span style=color:#61676ccc>,
+</span><span>            update_horizontal_cells_forward</span><span style=color:#61676ccc>:</span><span> draw_forward</span><span style=color:#61676ccc>,
+</span><span>        }
+</span><span>    }
+</span><span>
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>/// Get the sandbox as a vector of pixels to draw.
+</span><span>    </span><span style=color:#fa6e32>fn </span><span style=color:#f29718>pixels</span><span>(</span><span style=color:#ed9366>&</span><span style=color:#ff8f40>self</span><span>) </span><span style=color:#61676ccc>-> </span><span style=color:#55b4d4;font-style:italic>Vec</span><span>&LTRGBA8> {
+</span><span>        </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span>sandbox</span><span style=color:#ed9366>.</span><span style=color:#f07171>iter</span><span>()</span><span style=color:#ed9366>.</span><span style=color:#f07171>map</span><span>(|</span><span style=color:#ff8f40>cell</span><span>| cell</span><span style=color:#ed9366>.</span><span>color)</span><span style=color:#ed9366>.</span><span style=color:#f07171>collect</span><span>()
+</span><span>    }
+</span><span>
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>/// Update the state of a single cell.
+</span><span>    </span><span style=color:#fa6e32>fn </span><span style=color:#f29718>update_cell</span><span>(</span><span style=color:#ed9366>&</span><span style=color:#fa6e32>mut </span><span style=color:#ff8f40>self</span><span>, </span><span style=color:#ff8f40>x</span><span style=color:#61676ccc>: </span><span style=color:#fa6e32>usize</span><span>, </span><span style=color:#ff8f40>y</span><span style=color:#61676ccc>: </span><span style=color:#fa6e32>usize</span><span>) {
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Reference to the cell
+</span><span>        </span><span style=color:#fa6e32>let </span><span style=color:#55b4d4;font-style:italic>Some</span><span>(cell) </span><span style=color:#ed9366>= </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span style=color:#f07171>cell</span><span>(x</span><span style=color:#61676ccc>,</span><span> y) </span><span style=color:#fa6e32>else </span><span>{
+</span><span>            </span><span style=color:#fa6e32>return</span><span style=color:#61676ccc>;
+</span><span>        }</span><span style=color:#61676ccc>;
+</span><span>
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Do nothing if the cell is already updated this loop or a static type
+</span><span>        </span><span style=color:#fa6e32>if</span><span> cell</span><span style=color:#ed9366>.</span><span>element </span><span style=color:#ed9366>== </span><span>Element</span><span style=color:#ed9366>::</span><span>Air </span><span style=color:#ed9366>||</span><span> cell</span><span style=color:#ed9366>.</span><span>element </span><span style=color:#ed9366>== </span><span>Element</span><span style=color:#ed9366>::</span><span>Rock </span><span style=color:#ed9366>||</span><span> cell</span><span style=color:#ed9366>.</span><span>visited {
+</span><span>            </span><span style=color:#fa6e32>return</span><span style=color:#61676ccc>;
+</span><span>        }
+</span><span>
+</span><span>        </span><span style=color:#fa6e32>match</span><span> cell</span><span style=color:#ed9366>.</span><span>element {
+</span><span>            </span><span style=color:#abb0b6;font-style:italic>// Sand is a powder so it falls down in a triangle shape
+</span><span>            Element</span><span style=color:#ed9366>::</span><span>Sand </span><span style=color:#ed9366>=> </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span style=color:#f07171>handle_powder</span><span>(x</span><span style=color:#61676ccc>,</span><span> y)</span><span style=color:#61676ccc>,
+</span><span>            </span><span style=color:#abb0b6;font-style:italic>// Water is a fluid so it also moves horizontally
+</span><span>            Element</span><span style=color:#ed9366>::</span><span>Water </span><span style=color:#ed9366>=> </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span style=color:#f07171>handle_fluid</span><span>(x</span><span style=color:#61676ccc>,</span><span> y)</span><span style=color:#61676ccc>,
+</span><span>            </span><span style=color:#abb0b6;font-style:italic>// These have been handled already by the check above
+</span><span>            Element</span><span style=color:#ed9366>::</span><span>Rock </span><span style=color:#ed9366>| </span><span>Element</span><span style=color:#ed9366>::</span><span>Air </span><span style=color:#ed9366>=> </span><span style=color:#f07171>unreachable!</span><span>()</span><span style=color:#61676ccc>,
+</span><span>        }
+</span><span>    }
+</span><span>
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>/// Update the cell as a powder.
+</span><span>    </span><span style=color:#fa6e32>fn </span><span style=color:#f29718>handle_powder</span><span>(</span><span style=color:#ed9366>&</span><span style=color:#fa6e32>mut </span><span style=color:#ff8f40>self</span><span>, </span><span style=color:#ff8f40>x</span><span style=color:#61676ccc>: </span><span style=color:#fa6e32>usize</span><span>, </span><span style=color:#ff8f40>y</span><span style=color:#61676ccc>: </span><span style=color:#fa6e32>usize</span><span>) {
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Check if we can move down
+</span><span>        </span><span style=color:#fa6e32>if let </span><span style=color:#55b4d4;font-style:italic>Some</span><span>(below) </span><span style=color:#ed9366>= </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span style=color:#f07171>cell</span><span>(x</span><span style=color:#61676ccc>,</span><span> y </span><span style=color:#ed9366>+ </span><span style=color:#ff8f40>1</span><span>) {
+</span><span>            </span><span style=color:#fa6e32>if</span><span> below</span><span style=color:#ed9366>.</span><span>element </span><span style=color:#ed9366>== </span><span>Element</span><span style=color:#ed9366>::</span><span>Air </span><span style=color:#ed9366>||</span><span> below</span><span style=color:#ed9366>.</span><span>element </span><span style=color:#ed9366>== </span><span>Element</span><span style=color:#ed9366>::</span><span>Water {
+</span><span>                </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span style=color:#f07171>swap</span><span>(x</span><span style=color:#61676ccc>,</span><span> y</span><span style=color:#61676ccc>,</span><span> x</span><span style=color:#61676ccc>,</span><span> y </span><span style=color:#ed9366>+ </span><span style=color:#ff8f40>1</span><span>)</span><span style=color:#61676ccc>;
+</span><span>                </span><span style=color:#fa6e32>return</span><span style=color:#61676ccc>;
+</span><span>            }
+</span><span>        }
+</span><span>
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Choose a random diagonal direction to see if we can move there
+</span><span>        </span><span style=color:#fa6e32>let</span><span> direction </span><span style=color:#ed9366>= </span><span>chuot</span><span style=color:#ed9366>::</span><span>random(</span><span style=color:#ed9366>-</span><span style=color:#ff8f40>1.0</span><span style=color:#61676ccc>, </span><span style=color:#ff8f40>1.0</span><span>)</span><span style=color:#ed9366>.</span><span style=color:#f07171>signum</span><span>() </span><span style=color:#ed9366>as </span><span style=color:#fa6e32>isize</span><span style=color:#61676ccc>;
+</span><span>        </span><span style=color:#fa6e32>if let </span><span style=color:#55b4d4;font-style:italic>Some</span><span>(diagonal_next) </span><span style=color:#ed9366>= </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span style=color:#f07171>cell</span><span>(x</span><span style=color:#ed9366>.</span><span style=color:#f07171>wrapping_add_signed</span><span>(direction)</span><span style=color:#61676ccc>,</span><span> y </span><span style=color:#ed9366>+ </span><span style=color:#ff8f40>1</span><span>) {
+</span><span>            </span><span style=color:#fa6e32>if</span><span> diagonal_next</span><span style=color:#ed9366>.</span><span>element </span><span style=color:#ed9366>== </span><span>Element</span><span style=color:#ed9366>::</span><span>Air </span><span style=color:#ed9366>||</span><span> diagonal_next</span><span style=color:#ed9366>.</span><span>element </span><span style=color:#ed9366>== </span><span>Element</span><span style=color:#ed9366>::</span><span>Water {
+</span><span>                </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span style=color:#f07171>swap</span><span>(x</span><span style=color:#61676ccc>,</span><span> y</span><span style=color:#61676ccc>,</span><span> x</span><span style=color:#ed9366>.</span><span style=color:#f07171>wrapping_add_signed</span><span>(direction)</span><span style=color:#61676ccc>,</span><span> y </span><span style=color:#ed9366>+ </span><span style=color:#ff8f40>1</span><span>)</span><span style=color:#61676ccc>;
+</span><span>                </span><span style=color:#fa6e32>return</span><span style=color:#61676ccc>;
+</span><span>            }
+</span><span>        }
+</span><span>
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Choose the other diagonal direction to see if we can move there
+</span><span>        </span><span style=color:#fa6e32>if let </span><span style=color:#55b4d4;font-style:italic>Some</span><span>(diagonal_mirror) </span><span style=color:#ed9366>= </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span style=color:#f07171>cell</span><span>(x</span><span style=color:#ed9366>.</span><span style=color:#f07171>wrapping_add_signed</span><span>(</span><span style=color:#ed9366>-</span><span>direction)</span><span style=color:#61676ccc>,</span><span> y </span><span style=color:#ed9366>+ </span><span style=color:#ff8f40>1</span><span>) {
+</span><span>            </span><span style=color:#fa6e32>if</span><span> diagonal_mirror</span><span style=color:#ed9366>.</span><span>element </span><span style=color:#ed9366>== </span><span>Element</span><span style=color:#ed9366>::</span><span>Air </span><span style=color:#ed9366>||</span><span> diagonal_mirror</span><span style=color:#ed9366>.</span><span>element </span><span style=color:#ed9366>== </span><span>Element</span><span style=color:#ed9366>::</span><span>Water
+</span><span>            {
+</span><span>                </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span style=color:#f07171>swap</span><span>(x</span><span style=color:#61676ccc>,</span><span> y</span><span style=color:#61676ccc>,</span><span> x</span><span style=color:#ed9366>.</span><span style=color:#f07171>wrapping_add_signed</span><span>(</span><span style=color:#ed9366>-</span><span>direction)</span><span style=color:#61676ccc>,</span><span> y </span><span style=color:#ed9366>+ </span><span style=color:#ff8f40>1</span><span>)</span><span style=color:#61676ccc>;
+</span><span>            }
+</span><span>        }
+</span><span>    }
+</span><span>
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>/// Update the cell as a fluid.
+</span><span>    </span><span style=color:#fa6e32>fn </span><span style=color:#f29718>handle_fluid</span><span>(</span><span style=color:#ed9366>&</span><span style=color:#fa6e32>mut </span><span style=color:#ff8f40>self</span><span>, </span><span style=color:#ff8f40>x</span><span style=color:#61676ccc>: </span><span style=color:#fa6e32>usize</span><span>, </span><span style=color:#ff8f40>y</span><span style=color:#61676ccc>: </span><span style=color:#fa6e32>usize</span><span>) {
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Check if we can move down
+</span><span>        </span><span style=color:#fa6e32>if let </span><span style=color:#55b4d4;font-style:italic>Some</span><span>(below) </span><span style=color:#ed9366>= </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span style=color:#f07171>cell</span><span>(x</span><span style=color:#61676ccc>,</span><span> y </span><span style=color:#ed9366>+ </span><span style=color:#ff8f40>1</span><span>) {
+</span><span>            </span><span style=color:#fa6e32>if</span><span> below</span><span style=color:#ed9366>.</span><span>element </span><span style=color:#ed9366>== </span><span>Element</span><span style=color:#ed9366>::</span><span>Air {
+</span><span>                </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span style=color:#f07171>swap</span><span>(x</span><span style=color:#61676ccc>,</span><span> y</span><span style=color:#61676ccc>,</span><span> x</span><span style=color:#61676ccc>,</span><span> y </span><span style=color:#ed9366>+ </span><span style=color:#ff8f40>1</span><span>)</span><span style=color:#61676ccc>;
+</span><span>                </span><span style=color:#fa6e32>return</span><span style=color:#61676ccc>;
+</span><span>            }
+</span><span>        }
+</span><span>
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Choose a random diagonal direction to see if we can move there
+</span><span>        </span><span style=color:#fa6e32>let</span><span> direction </span><span style=color:#ed9366>= </span><span>chuot</span><span style=color:#ed9366>::</span><span>random(</span><span style=color:#ed9366>-</span><span style=color:#ff8f40>1.0</span><span style=color:#61676ccc>, </span><span style=color:#ff8f40>1.0</span><span>)</span><span style=color:#ed9366>.</span><span style=color:#f07171>signum</span><span>() </span><span style=color:#ed9366>as </span><span style=color:#fa6e32>isize</span><span style=color:#61676ccc>;
+</span><span>        </span><span style=color:#fa6e32>if let </span><span style=color:#55b4d4;font-style:italic>Some</span><span>(diagonal_next) </span><span style=color:#ed9366>= </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span style=color:#f07171>cell</span><span>(x</span><span style=color:#ed9366>.</span><span style=color:#f07171>wrapping_add_signed</span><span>(direction)</span><span style=color:#61676ccc>,</span><span> y </span><span style=color:#ed9366>+ </span><span style=color:#ff8f40>1</span><span>) {
+</span><span>            </span><span style=color:#fa6e32>if</span><span> diagonal_next</span><span style=color:#ed9366>.</span><span>element </span><span style=color:#ed9366>== </span><span>Element</span><span style=color:#ed9366>::</span><span>Air {
+</span><span>                </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span style=color:#f07171>swap</span><span>(x</span><span style=color:#61676ccc>,</span><span> y</span><span style=color:#61676ccc>,</span><span> x</span><span style=color:#ed9366>.</span><span style=color:#f07171>wrapping_add_signed</span><span>(direction)</span><span style=color:#61676ccc>,</span><span> y </span><span style=color:#ed9366>+ </span><span style=color:#ff8f40>1</span><span>)</span><span style=color:#61676ccc>;
+</span><span>                </span><span style=color:#fa6e32>return</span><span style=color:#61676ccc>;
+</span><span>            }
+</span><span>        }
+</span><span>
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Choose the other diagonal direction to see if we can move there
+</span><span>        </span><span style=color:#fa6e32>if let </span><span style=color:#55b4d4;font-style:italic>Some</span><span>(diagonal_mirror) </span><span style=color:#ed9366>= </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span style=color:#f07171>cell</span><span>(x</span><span style=color:#ed9366>.</span><span style=color:#f07171>wrapping_add_signed</span><span>(</span><span style=color:#ed9366>-</span><span>direction)</span><span style=color:#61676ccc>,</span><span> y </span><span style=color:#ed9366>+ </span><span style=color:#ff8f40>1</span><span>) {
+</span><span>            </span><span style=color:#fa6e32>if</span><span> diagonal_mirror</span><span style=color:#ed9366>.</span><span>element </span><span style=color:#ed9366>== </span><span>Element</span><span style=color:#ed9366>::</span><span>Air {
+</span><span>                </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span style=color:#f07171>swap</span><span>(x</span><span style=color:#61676ccc>,</span><span> y</span><span style=color:#61676ccc>,</span><span> x</span><span style=color:#ed9366>.</span><span style=color:#f07171>wrapping_add_signed</span><span>(</span><span style=color:#ed9366>-</span><span>direction)</span><span style=color:#61676ccc>,</span><span> y </span><span style=color:#ed9366>+ </span><span style=color:#ff8f40>1</span><span>)</span><span style=color:#61676ccc>;
+</span><span>                </span><span style=color:#fa6e32>return</span><span style=color:#61676ccc>;
+</span><span>            }
+</span><span>        }
+</span><span>
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Choose a random diagonal direction to see if we can move there
+</span><span>        </span><span style=color:#fa6e32>let</span><span> direction </span><span style=color:#ed9366>= </span><span>chuot</span><span style=color:#ed9366>::</span><span>random(</span><span style=color:#ed9366>-</span><span style=color:#ff8f40>1.0</span><span style=color:#61676ccc>, </span><span style=color:#ff8f40>1.0</span><span>)</span><span style=color:#ed9366>.</span><span style=color:#f07171>signum</span><span>() </span><span style=color:#ed9366>as </span><span style=color:#fa6e32>isize</span><span style=color:#61676ccc>;
+</span><span>        </span><span style=color:#fa6e32>if let </span><span style=color:#55b4d4;font-style:italic>Some</span><span>(horizontal_next) </span><span style=color:#ed9366>= </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span style=color:#f07171>cell</span><span>(x</span><span style=color:#ed9366>.</span><span style=color:#f07171>wrapping_add_signed</span><span>(direction)</span><span style=color:#61676ccc>,</span><span> y) {
+</span><span>            </span><span style=color:#fa6e32>if</span><span> horizontal_next</span><span style=color:#ed9366>.</span><span>element </span><span style=color:#ed9366>== </span><span>Element</span><span style=color:#ed9366>::</span><span>Air {
+</span><span>                </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span style=color:#f07171>swap</span><span>(x</span><span style=color:#61676ccc>,</span><span> y</span><span style=color:#61676ccc>,</span><span> x</span><span style=color:#ed9366>.</span><span style=color:#f07171>wrapping_add_signed</span><span>(direction)</span><span style=color:#61676ccc>,</span><span> y)</span><span style=color:#61676ccc>;
+</span><span>                </span><span style=color:#fa6e32>return</span><span style=color:#61676ccc>;
+</span><span>            }
+</span><span>        }
+</span><span>
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Choose the other diagonal direction to see if we can move there
+</span><span>        </span><span style=color:#fa6e32>if let </span><span style=color:#55b4d4;font-style:italic>Some</span><span>(horizontal_mirror) </span><span style=color:#ed9366>= </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span style=color:#f07171>cell</span><span>(x</span><span style=color:#ed9366>.</span><span style=color:#f07171>wrapping_add_signed</span><span>(</span><span style=color:#ed9366>-</span><span>direction)</span><span style=color:#61676ccc>,</span><span> y) {
+</span><span>            </span><span style=color:#fa6e32>if</span><span> horizontal_mirror</span><span style=color:#ed9366>.</span><span>element </span><span style=color:#ed9366>== </span><span>Element</span><span style=color:#ed9366>::</span><span>Air {
+</span><span>                </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span style=color:#f07171>swap</span><span>(x</span><span style=color:#61676ccc>,</span><span> y</span><span style=color:#61676ccc>,</span><span> x</span><span style=color:#ed9366>.</span><span style=color:#f07171>wrapping_add_signed</span><span>(</span><span style=color:#ed9366>-</span><span>direction)</span><span style=color:#61676ccc>,</span><span> y)</span><span style=color:#61676ccc>;
+</span><span>            }
+</span><span>        }
+</span><span>    }
+</span><span>
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>/// Get the cell at the position.
+</span><span>    </span><span style=color:#fa6e32>fn </span><span style=color:#f29718>cell</span><span>(</span><span style=color:#ed9366>&</span><span style=color:#ff8f40>self</span><span>, </span><span style=color:#ff8f40>x</span><span style=color:#61676ccc>: </span><span style=color:#fa6e32>usize</span><span>, </span><span style=color:#ff8f40>y</span><span style=color:#61676ccc>: </span><span style=color:#fa6e32>usize</span><span>) </span><span style=color:#61676ccc>-> </span><span style=color:#55b4d4;font-style:italic>Option</span><span>&LTCell> {
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Ignore cells at the edges
+</span><span>        </span><span style=color:#fa6e32>if</span><span> x </span><span style=color:#ed9366>>= </span><span style=color:#ff8f40>WIDTH </span><span style=color:#ed9366>as </span><span style=color:#fa6e32>usize </span><span style=color:#ed9366>||</span><span> y </span><span style=color:#ed9366>>= </span><span style=color:#ff8f40>HEIGHT </span><span style=color:#ed9366>as </span><span style=color:#fa6e32>usize </span><span>{
+</span><span>            </span><span style=color:#fa6e32>return </span><span style=color:#55b4d4;font-style:italic>None</span><span style=color:#61676ccc>;
+</span><span>        }
+</span><span>
+</span><span>        </span><span style=color:#55b4d4;font-style:italic>Some</span><span>(</span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span>sandbox[</span><span style=color:#fa6e32>Self</span><span style=color:#ed9366>::</span><span>cell_index(x</span><span style=color:#61676ccc>,</span><span> y)])
+</span><span>    }
+</span><span>
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>/// Swap two cells.
+</span><span>    </span><span style=color:#fa6e32>fn </span><span style=color:#f29718>swap</span><span>(</span><span style=color:#ed9366>&</span><span style=color:#fa6e32>mut </span><span style=color:#ff8f40>self</span><span>, </span><span style=color:#ff8f40>x1</span><span style=color:#61676ccc>: </span><span style=color:#fa6e32>usize</span><span>, </span><span style=color:#ff8f40>y1</span><span style=color:#61676ccc>: </span><span style=color:#fa6e32>usize</span><span>, </span><span style=color:#ff8f40>x2</span><span style=color:#61676ccc>: </span><span style=color:#fa6e32>usize</span><span>, </span><span style=color:#ff8f40>y2</span><span style=color:#61676ccc>: </span><span style=color:#fa6e32>usize</span><span>) {
+</span><span>        </span><span style=color:#fa6e32>let</span><span> index1 </span><span style=color:#ed9366>= </span><span style=color:#fa6e32>Self</span><span style=color:#ed9366>::</span><span>cell_index(x1</span><span style=color:#61676ccc>,</span><span> y1)</span><span style=color:#61676ccc>;
+</span><span>        </span><span style=color:#fa6e32>let</span><span> index2 </span><span style=color:#ed9366>= </span><span style=color:#fa6e32>Self</span><span style=color:#ed9366>::</span><span>cell_index(x2</span><span style=color:#61676ccc>,</span><span> y2)</span><span style=color:#61676ccc>;
+</span><span>
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Mark them as visited
+</span><span>        </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span>sandbox[index1]</span><span style=color:#ed9366>.</span><span>visited </span><span style=color:#ed9366>= </span><span style=color:#ff8f40>true</span><span style=color:#61676ccc>;
+</span><span>        </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span>sandbox[index2]</span><span style=color:#ed9366>.</span><span>visited </span><span style=color:#ed9366>= </span><span style=color:#ff8f40>true</span><span style=color:#61676ccc>;
+</span><span>
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Swap the elements in the array
+</span><span>        </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span>sandbox</span><span style=color:#ed9366>.</span><span style=color:#f07171>swap</span><span>(index1</span><span style=color:#61676ccc>,</span><span> index2)</span><span style=color:#61676ccc>;
+</span><span>    }
+</span><span>
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>/// Calculate the cell index for a coordinate.
+</span><span>    </span><span style=color:#fa6e32>const fn </span><span style=color:#f29718>cell_index</span><span>(</span><span style=color:#ff8f40>x</span><span style=color:#61676ccc>: </span><span style=color:#fa6e32>usize</span><span>, </span><span style=color:#ff8f40>y</span><span style=color:#61676ccc>: </span><span style=color:#fa6e32>usize</span><span>) </span><span style=color:#61676ccc>-> </span><span style=color:#fa6e32>usize </span><span>{
+</span><span>        x </span><span style=color:#ed9366>+</span><span> y </span><span style=color:#ed9366>* </span><span style=color:#ff8f40>WIDTH </span><span style=color:#ed9366>as </span><span style=color:#fa6e32>usize
+</span><span>    }
+</span><span>}
+</span><span>
+</span><span style=color:#fa6e32>impl </span><span>Game </span><span style=color:#fa6e32>for </span><span style=color:#399ee6>GameState </span><span>{
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>/// Create the texture once at startup.
+</span><span>    </span><span style=color:#fa6e32>fn </span><span style=color:#f29718>init</span><span>(</span><span style=color:#ed9366>&</span><span style=color:#fa6e32>mut </span><span style=color:#ff8f40>self</span><span>, </span><span style=color:#ff8f40>ctx</span><span style=color:#61676ccc>:</span><span> Context) {
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Create a new sprite with the size of the screen, pivoting at the top left
+</span><span>        ctx</span><span style=color:#ed9366>.</span><span style=color:#f07171>sprite</span><span>(</span><span style=color:#86b300>"sandbox"</span><span>)
+</span><span>            </span><span style=color:#ed9366>.</span><span style=color:#f07171>create</span><span>((</span><span style=color:#ff8f40>WIDTH</span><span style=color:#61676ccc>, </span><span style=color:#ff8f40>HEIGHT</span><span>)</span><span style=color:#61676ccc>, </span><span>(</span><span style=color:#ff8f40>0.0</span><span style=color:#61676ccc>, </span><span style=color:#ff8f40>0.0</span><span>)</span><span style=color:#61676ccc>, </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span style=color:#f07171>pixels</span><span>())</span><span style=color:#61676ccc>;
+</span><span>    }
+</span><span>
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>/// Update the sandbox and handle input in the update loop.
+</span><span>    </span><span style=color:#fa6e32>fn </span><span style=color:#f29718>update</span><span>(</span><span style=color:#ed9366>&</span><span style=color:#fa6e32>mut </span><span style=color:#ff8f40>self</span><span>, </span><span style=color:#ff8f40>ctx</span><span style=color:#61676ccc>:</span><span> Context) {
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Only handle the mouse when it's on the buffer
+</span><span>        </span><span style=color:#fa6e32>if let </span><span style=color:#55b4d4;font-style:italic>Some</span><span>((mouse_x</span><span style=color:#61676ccc>,</span><span> mouse_y)) </span><span style=color:#ed9366>=</span><span> ctx</span><span style=color:#ed9366>.</span><span style=color:#f07171>mouse</span><span>() {
+</span><span>            </span><span style=color:#abb0b6;font-style:italic>// Set the pixels to the selected element
+</span><span>            </span><span style=color:#fa6e32>if</span><span> ctx</span><span style=color:#ed9366>.</span><span style=color:#f07171>mouse_held</span><span>(MouseButton</span><span style=color:#ed9366>::</span><span>Left) {
+</span><span>                </span><span style=color:#abb0b6;font-style:italic>// Draw a square of pixels
+</span><span>                </span><span style=color:#fa6e32>for</span><span> y </span><span style=color:#ed9366>in -</span><span style=color:#ff8f40>BRUSH_SIZE</span><span style=color:#ed9366>..</span><span style=color:#ff8f40>BRUSH_SIZE </span><span>{
+</span><span>                    </span><span style=color:#fa6e32>for</span><span> x </span><span style=color:#ed9366>in -</span><span style=color:#ff8f40>BRUSH_SIZE</span><span style=color:#ed9366>..</span><span style=color:#ff8f40>BRUSH_SIZE </span><span>{
+</span><span>                        </span><span style=color:#abb0b6;font-style:italic>// Convert mouse coordinates to index into the sandbox
+</span><span>                        </span><span style=color:#fa6e32>let</span><span> cell_index </span><span style=color:#ed9366>= </span><span style=color:#fa6e32>Self</span><span style=color:#ed9366>::</span><span>cell_index(
+</span><span>                            (mouse_x </span><span style=color:#ed9366>+</span><span> x </span><span style=color:#ed9366>as </span><span style=color:#fa6e32>f32</span><span>)</span><span style=color:#ed9366>.</span><span style=color:#f07171>clamp</span><span>(</span><span style=color:#ff8f40>0.0</span><span style=color:#61676ccc>, </span><span style=color:#ff8f40>WIDTH </span><span style=color:#ed9366>- </span><span style=color:#ff8f40>1.0</span><span>) </span><span style=color:#ed9366>as </span><span style=color:#fa6e32>usize</span><span style=color:#61676ccc>,
+</span><span>                            (mouse_y </span><span style=color:#ed9366>+</span><span> y </span><span style=color:#ed9366>as </span><span style=color:#fa6e32>f32</span><span>)</span><span style=color:#ed9366>.</span><span style=color:#f07171>clamp</span><span>(</span><span style=color:#ff8f40>0.0</span><span style=color:#61676ccc>, </span><span style=color:#ff8f40>HEIGHT </span><span style=color:#ed9366>- </span><span style=color:#ff8f40>1.0</span><span>) </span><span style=color:#ed9366>as </span><span style=color:#fa6e32>usize</span><span style=color:#61676ccc>,
+</span><span>                        )</span><span style=color:#61676ccc>;
+</span><span>
+</span><span>                        </span><span style=color:#abb0b6;font-style:italic>// Create a cell for the brush
+</span><span>                        </span><span style=color:#fa6e32>let</span><span> element </span><span style=color:#ed9366>= </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span>brush</span><span style=color:#61676ccc>;
+</span><span>
+</span><span>                        </span><span style=color:#abb0b6;font-style:italic>// Create a color from the element
+</span><span>                        </span><span style=color:#fa6e32>let</span><span> color </span><span style=color:#ed9366>=</span><span> element</span><span style=color:#ed9366>.</span><span style=color:#f07171>random_color</span><span>()</span><span style=color:#61676ccc>;
+</span><span>
+</span><span>                        </span><span style=color:#abb0b6;font-style:italic>// Set the cell under the mouse
+</span><span>                        </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span>sandbox[cell_index] </span><span style=color:#ed9366>=</span><span> Cell {
+</span><span>                            element</span><span style=color:#61676ccc>,
+</span><span>                            color</span><span style=color:#61676ccc>,
+</span><span>                            </span><span style=color:#ed9366>..</span><span style=color:#55b4d4;font-style:italic>Default</span><span style=color:#ed9366>::</span><span>default()
+</span><span>                        }</span><span style=color:#61676ccc>;
+</span><span>                    }
+</span><span>                }
+</span><span>            }
+</span><span>        }
+</span><span>
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Handle changing the brush with the keyboard
+</span><span>        </span><span style=color:#fa6e32>if</span><span> ctx</span><span style=color:#ed9366>.</span><span style=color:#f07171>key_released</span><span>(KeyCode</span><span style=color:#ed9366>::</span><span>Digit1) </span><span style=color:#ed9366>||</span><span> ctx</span><span style=color:#ed9366>.</span><span style=color:#f07171>key_released</span><span>(KeyCode</span><span style=color:#ed9366>::</span><span>KeyS) {
+</span><span>            </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span>brush </span><span style=color:#ed9366>= </span><span>Element</span><span style=color:#ed9366>::</span><span>Sand</span><span style=color:#61676ccc>;
+</span><span>        }
+</span><span>        </span><span style=color:#fa6e32>if</span><span> ctx</span><span style=color:#ed9366>.</span><span style=color:#f07171>key_released</span><span>(KeyCode</span><span style=color:#ed9366>::</span><span>Digit2) </span><span style=color:#ed9366>||</span><span> ctx</span><span style=color:#ed9366>.</span><span style=color:#f07171>key_released</span><span>(KeyCode</span><span style=color:#ed9366>::</span><span>KeyW) {
+</span><span>            </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span>brush </span><span style=color:#ed9366>= </span><span>Element</span><span style=color:#ed9366>::</span><span>Water</span><span style=color:#61676ccc>;
+</span><span>        }
+</span><span>        </span><span style=color:#fa6e32>if</span><span> ctx</span><span style=color:#ed9366>.</span><span style=color:#f07171>key_released</span><span>(KeyCode</span><span style=color:#ed9366>::</span><span>Digit3) </span><span style=color:#ed9366>||</span><span> ctx</span><span style=color:#ed9366>.</span><span style=color:#f07171>key_released</span><span>(KeyCode</span><span style=color:#ed9366>::</span><span>KeyR) {
+</span><span>            </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span>brush </span><span style=color:#ed9366>= </span><span>Element</span><span style=color:#ed9366>::</span><span>Rock</span><span style=color:#61676ccc>;
+</span><span>        }
+</span><span>        </span><span style=color:#fa6e32>if</span><span> ctx</span><span style=color:#ed9366>.</span><span style=color:#f07171>key_released</span><span>(KeyCode</span><span style=color:#ed9366>::</span><span>Digit4) </span><span style=color:#ed9366>||</span><span> ctx</span><span style=color:#ed9366>.</span><span style=color:#f07171>key_released</span><span>(KeyCode</span><span style=color:#ed9366>::</span><span>KeyA) {
+</span><span>            </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span>brush </span><span style=color:#ed9366>= </span><span>Element</span><span style=color:#ed9366>::</span><span>Air</span><span style=color:#61676ccc>;
+</span><span>        }
+</span><span>
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Reset the state for each cell to start the simulation
+</span><span>        </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span>sandbox
+</span><span>            </span><span style=color:#ed9366>.</span><span style=color:#f07171>iter_mut</span><span>()
+</span><span>            </span><span style=color:#ed9366>.</span><span style=color:#f07171>for_each</span><span>(|</span><span style=color:#ff8f40>cell</span><span>| cell</span><span style=color:#ed9366>.</span><span>visited </span><span style=color:#ed9366>= </span><span style=color:#ff8f40>false</span><span>)</span><span style=color:#61676ccc>;
+</span><span>
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Perform the simulation
+</span><span>        </span><span style=color:#fa6e32>for</span><span> y </span><span style=color:#ed9366>in </span><span style=color:#ff8f40>0</span><span style=color:#ed9366>..</span><span>(</span><span style=color:#ff8f40>HEIGHT </span><span style=color:#ed9366>as </span><span style=color:#fa6e32>usize</span><span>) {
+</span><span>            </span><span style=color:#fa6e32>if </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span>update_horizontal_cells_forward {
+</span><span>                </span><span style=color:#fa6e32>for</span><span> x </span><span style=color:#ed9366>in </span><span style=color:#ff8f40>0</span><span style=color:#ed9366>..</span><span>(</span><span style=color:#ff8f40>WIDTH </span><span style=color:#ed9366>as </span><span style=color:#fa6e32>usize</span><span>) {
+</span><span>                    </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span style=color:#f07171>update_cell</span><span>(x</span><span style=color:#61676ccc>,</span><span> y)</span><span style=color:#61676ccc>;
+</span><span>                }
+</span><span>            } </span><span style=color:#fa6e32>else </span><span>{
+</span><span>                </span><span style=color:#fa6e32>for</span><span> x </span><span style=color:#ed9366>in </span><span>(</span><span style=color:#ff8f40>0</span><span style=color:#ed9366>..</span><span>(</span><span style=color:#ff8f40>WIDTH </span><span style=color:#ed9366>as </span><span style=color:#fa6e32>usize</span><span>))</span><span style=color:#ed9366>.</span><span style=color:#f07171>rev</span><span>() {
+</span><span>                    </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span style=color:#f07171>update_cell</span><span>(x</span><span style=color:#61676ccc>,</span><span> y)</span><span style=color:#61676ccc>;
+</span><span>                }
+</span><span>            }
+</span><span>        }
+</span><span>
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Toggle the forward updates so it switches every tick
+</span><span>        </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span>update_horizontal_cells_forward </span><span style=color:#ed9366>= !</span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span>update_horizontal_cells_forward</span><span style=color:#61676ccc>;
+</span><span>    }
+</span><span>
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>/// Render the game.
+</span><span>    </span><span style=color:#fa6e32>fn </span><span style=color:#f29718>render</span><span>(</span><span style=color:#ed9366>&</span><span style=color:#fa6e32>mut </span><span style=color:#ff8f40>self</span><span>, </span><span style=color:#ff8f40>ctx</span><span style=color:#61676ccc>:</span><span> Context) {
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Update the sandbox texture's pixels
+</span><span>        ctx</span><span style=color:#ed9366>.</span><span style=color:#f07171>sprite</span><span>(</span><span style=color:#86b300>"sandbox"</span><span>)
+</span><span>            </span><span style=color:#ed9366>.</span><span style=color:#f07171>update_pixels</span><span>((</span><span style=color:#ff8f40>0.0</span><span style=color:#61676ccc>, </span><span style=color:#ff8f40>0.0</span><span style=color:#61676ccc>, </span><span style=color:#ff8f40>WIDTH</span><span style=color:#61676ccc>, </span><span style=color:#ff8f40>HEIGHT</span><span>)</span><span style=color:#61676ccc>, </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span style=color:#f07171>pixels</span><span>())</span><span style=color:#61676ccc>;
+</span><span>
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Draw the sandbox
+</span><span>        ctx</span><span style=color:#ed9366>.</span><span style=color:#f07171>sprite</span><span>(</span><span style=color:#86b300>"sandbox"</span><span>)
+</span><span>            </span><span style=color:#abb0b6;font-style:italic>// Use the UI camera which draws the center in the top left
+</span><span>            </span><span style=color:#ed9366>.</span><span style=color:#f07171>use_ui_camera</span><span>()
+</span><span>            </span><span style=color:#ed9366>.</span><span style=color:#f07171>draw</span><span>()</span><span style=color:#61676ccc>;
+</span><span>
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Show the keyboard buttons for the brush as text on the screen
+</span><span>        ctx</span><span style=color:#ed9366>.</span><span style=color:#f07171>text</span><span>(
+</span><span>            </span><span style=color:#86b300>"Beachball"</span><span style=color:#61676ccc>,
+</span><span>            </span><span style=color:#ed9366>&</span><span style=color:#f07171>format!</span><span>(
+</span><span>                </span><span style=color:#86b300>"FPS: </span><span style=color:#ff8f40>{:.0}</span><span style=color:#4cbf99>\n</span><span style=color:#86b300>Active: </span><span style=color:#ff8f40>{}</span><span style=color:#4cbf99>\n</span><span style=color:#86b300>1: Sand</span><span style=color:#4cbf99>\n</span><span style=color:#86b300>2: Water</span><span style=color:#4cbf99>\n</span><span style=color:#86b300>3: Rock</span><span style=color:#4cbf99>\n</span><span style=color:#86b300>4: Air"</span><span style=color:#61676ccc>,
+</span><span>                ctx</span><span style=color:#ed9366>.</span><span style=color:#f07171>frames_per_second</span><span>()</span><span style=color:#61676ccc>,
+</span><span>                </span><span style=color:#fa6e32>match </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span>brush {
+</span><span>                    Element</span><span style=color:#ed9366>::</span><span>Air </span><span style=color:#ed9366>=> </span><span style=color:#86b300>"Air"</span><span style=color:#61676ccc>,
+</span><span>                    Element</span><span style=color:#ed9366>::</span><span>Sand </span><span style=color:#ed9366>=> </span><span style=color:#86b300>"Sand"</span><span style=color:#61676ccc>,
+</span><span>                    Element</span><span style=color:#ed9366>::</span><span>Rock </span><span style=color:#ed9366>=> </span><span style=color:#86b300>"Rock"</span><span style=color:#61676ccc>,
+</span><span>                    Element</span><span style=color:#ed9366>::</span><span>Water </span><span style=color:#ed9366>=> </span><span style=color:#86b300>"Water"</span><span style=color:#61676ccc>,
+</span><span>                }
+</span><span>            )</span><span style=color:#61676ccc>,
+</span><span>        )
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Use the UI camera which draws the center in the top left
+</span><span>        </span><span style=color:#ed9366>.</span><span style=color:#f07171>use_ui_camera</span><span>()
+</span><span>        </span><span style=color:#ed9366>.</span><span style=color:#f07171>translate</span><span>((</span><span style=color:#ff8f40>1.0</span><span style=color:#61676ccc>, </span><span style=color:#ff8f40>1.0</span><span>))
+</span><span>        </span><span style=color:#ed9366>.</span><span style=color:#f07171>draw</span><span>()</span><span style=color:#61676ccc>;
+</span><span>    }
+</span><span>}
+</span><span>
+</span><span style=color:#abb0b6;font-style:italic>/// Open an empty window.
+</span><span style=color:#fa6e32>fn </span><span style=color:#f29718>main</span><span>() {
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>// Game configuration
+</span><span>    </span><span style=color:#fa6e32>let</span><span> config </span><span style=color:#ed9366>=</span><span> Config {
+</span><span>        buffer_width</span><span style=color:#61676ccc>: </span><span style=color:#ff8f40>WIDTH</span><span style=color:#61676ccc>,
+</span><span>        buffer_height</span><span style=color:#61676ccc>: </span><span style=color:#ff8f40>HEIGHT</span><span style=color:#61676ccc>,
+</span><span>        scaling</span><span style=color:#61676ccc>: </span><span style=color:#ff8f40>3.0</span><span style=color:#61676ccc>,
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Use a slightly darker viewport color than the color of air
+</span><span>        viewport_color</span><span style=color:#61676ccc>: </span><span style=color:#ff8f40>RGBA8</span><span style=color:#ed9366>::</span><span>new(</span><span style=color:#ff8f40>0xAA</span><span style=color:#61676ccc>, </span><span style=color:#ff8f40>0xAA</span><span style=color:#61676ccc>, </span><span style=color:#ff8f40>0xFF</span><span style=color:#61676ccc>, </span><span style=color:#ff8f40>0xFF</span><span>)</span><span style=color:#61676ccc>,
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Update 100 times per second
+</span><span>        update_delta_time</span><span style=color:#61676ccc>: </span><span style=color:#ff8f40>100.0_</span><span style=color:#fa6e32>f32</span><span style=color:#ed9366>.</span><span style=color:#f07171>recip</span><span>()</span><span style=color:#61676ccc>,
+</span><span>        </span><span style=color:#ed9366>..</span><span style=color:#55b4d4;font-style:italic>Default</span><span style=color:#ed9366>::</span><span>default()
+</span><span>    }</span><span style=color:#61676ccc>;
+</span><span>
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>// Spawn the window and run the game
+</span><span>    GameState</span><span style=color:#ed9366>::</span><span>new()</span><span style=color:#ed9366>.</span><span style=color:#f07171>run</span><span>(chuot</span><span style=color:#ed9366>::</span><span>load_assets</span><span style=color:#ed9366>!</span><span>()</span><span style=color:#61676ccc>,</span><span> config)</span><span style=color:#61676ccc>;
+</span><span>}
+</span></code></pre><h3 id=compatibility>Compatibility</h3><table><thead><tr><th>Chuột Version<th>Example Works<tbody><tr><td><a href=https://github.com/tversteeg/chuot/releases/tag/v0.3.0 rel=noopener target=_blank>0.3.0</a><td>✅<tr><td><a href=https://github.com/tversteeg/chuot/releases/tag/v0.3.1 rel=noopener target=_blank>0.3.1</a><td>✅<tr><td><a href=https://github.com/tversteeg/chuot rel=noopener target=_blank>Unreleased</a><td>✅</table><nav><div><a href=https://tversteeg.nl/chuot/examples/custom-shader/>‹ Custom Shader</a></div><div><a href=https://tversteeg.nl/chuot/examples/fps/> Fps ›</a></div></nav></article></main><footer><hr><div class=c><nav class=tpad><div><a title="Chuột Atom Feed" href=https://tversteeg.nl/chuot/atom.xml target=_blank type=application/atom+xml><i class="svg rss" title="Chuột Atom Feed" type=Button></i></a><a href=https://matrix.to/#/#chuot:matrix.org/ target=_blank title=Matrix><i class="svg matrix" title=Matrix type=Button></i></a><a href=https://github.com/tversteeg/chuot/ target=_blank title=Github><i class="svg github" title=Github type=Button></i></a></div></nav><nav class=vpad><a class=rpad href=https://tversteeg.nl/chuot/sitemap.xml target=_blank> Sitemap </a></nav><p class=s70>Powered by <a href=https://www.getzola.org/ target=_blank>Zola</a> & <a href=https://github.com/Jieiku/abridge/ target=_blank>Abridge</a></div></footer>

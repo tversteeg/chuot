@@ -1,0 +1,127 @@
+<!doctype html><html lang=en><head><script integrity=sha384-pb++s6uBRKaQv+iAXpgA/H3IlpLZdO14tTwuCI7uXmz4aaZdByoCcM+6BhynMq/1 src=https://tversteeg.nl/chuot/js/theme.min.js></script><link href="https://tversteeg.nl/chuot/abridge.css?h=7ebe03bbc2fffa1a8bb5" rel=stylesheet><meta charset=utf-8><meta content="ie=edge" http-equiv=x-ua-compatible><meta content="width=device-width,initial-scale=1" name=viewport><meta content=https://tversteeg.nl/chuot name=base><meta content=True name=HandheldFriendly><meta content=yes name=mobile-web-app-capable><meta content=yes name=apple-mobile-web-app-capable><meta content=default name=apple-mobile-web-app-status-bar-style><link href=https://tversteeg.nl/chuot/manifest.min.json rel=manifest><link href=https://tversteeg.nl/chuot/favicon-32x32.png rel=icon sizes=32x32 type=image/png><link href=https://tversteeg.nl/chuot/favicon-16x16.png rel=icon sizes=16x16 type=image/png><link title="Chuột Atom Feed" href=https://tversteeg.nl/chuot/atom.xml rel=alternate type=application/atom+xml><meta content="index, follow" name=robots><meta content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" name=googlebot><meta content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" name=bingbot><title> Bunnymark | Chuột</title><meta content=Chuột name=copyright><meta content="Chuột is an AGPL licensed and opinionated game engine for 2D pixel-art games." name=description><link href=https://tversteeg.nl/chuot/examples/bunnymark/ rel=canonical><meta content="Rust, Game Engine, Chuot" name=keywords><meta content="Your Google Site verification code." name=google-site-verification><meta content="Your Bing Site verification code." name=msvalidate.01><meta content=https://tversteeg.nl/chuot/examples/bunnymark/ property=og:url><meta content=https://tversteeg.nl/chuot/examples/bunnymark/ name=twitter:url><meta content="Chuột is an AGPL licensed and opinionated game engine for 2D pixel-art games." property=og:description><meta content="Chuột is an AGPL licensed and opinionated game engine for 2D pixel-art games." name=twitter:description><meta content=" Bunnymark | Chuột" property=og:title><meta content=" Bunnymark | Chuột" name=twitter:title><meta content=summary_large_image name=twitter:card><meta content=https://tversteeg.nl/chuot/banner.png name=twitter:image><meta content=https://tversteeg.nl/chuot/banner.png property=og:image><meta content=Chuột property=og:site_name><meta content=en_US property=og:locale><meta content=website property=og:type><meta content=2024-11-29 property=og:updated_time><meta content=@your-user-name name=twitter:site><meta content=@your-user-name name=twitter:creator><script src="https://tversteeg.nl/chuot/js/abridge_nosearch.min.js?h=ad12ee23e307ceab69c7" defer integrity=sha384-Tx8tS63Gi+6ol4Z1zqXm8sKrrMx8HySTgHzvr7M1yDvfeGIf2mOpvgTaZb4yxxBX></script><noscript><link href=https://tversteeg.nl/chuot/nojs.css rel=stylesheet></noscript><body><header><nav><div><h1><a href=https://tversteeg.nl/chuot title=Chuột>🐭 Chuột</a></h1></div><div><div><ul><li><a class=s110 href=https://tversteeg.nl/chuot/examples/> Examples </a><li><a class=s110 href=https://docs.rs/chuot> Docs </a><li><a class=s110 href=https://github.com/tversteeg/chuot> Source </a><li><i class="js svgs adjust" id=mode type=reset></i></ul></div><div></div></div></nav></header><main><article><h1><a href=https://tversteeg.nl/chuot/examples/bunnymark/> Bunnymark</a></h1><p>An inaccurate benchmark, but still fun to show.<p>The <code>bunnymark.png</code> sprite image for this example is:</p><img alt=Sprite height=32 loading=lazy src=https://tversteeg.nl/chuot/assets/bunnymark.png width=25><p>With the following <code>bunnymark.ron</code> RON configuration file for positioning the center of the sprite:<pre class=language-ron data-lang=ron style=color:#61676c;background-color:#fafafa><code class=language-ron data-lang=ron><span>
+</span><span>(pivot_x: Center, pivot_y: Center)
+</span><span>
+</span></code></pre><script type=module>import a from"../../wasm/bunnymark.js";window.addEventListener(`load`,()=>{a()})</script><div style=width:720px;margin-left:auto;margin-right:auto><canvas id=chuot></canvas></div><h3 id=source><a href=https://github.com/tversteeg/chuot/blob/main/examples/bunnymark.rs rel=noopener target=_blank>Source</a></h3><pre class=language-rust data-lang=rust style=color:#61676c;background-color:#fafafa><code class=language-rust data-lang=rust><span style=color:#fa6e32>use </span><span>chuot</span><span style=color:#ed9366>::</span><span>{Config</span><span style=color:#61676ccc>,</span><span> Context</span><span style=color:#61676ccc>,</span><span> Game</span><span style=color:#61676ccc>,</span><span> MouseButton</span><span style=color:#61676ccc>, </span><span>config</span><span style=color:#ed9366>::</span><span>RotationAlgorithm}</span><span style=color:#61676ccc>;
+</span><span>
+</span><span style=color:#abb0b6;font-style:italic>/// How many bunnies to spawn per frame when clicking.
+</span><span style=color:#fa6e32>const </span><span style=color:#ff8f40>BUNNIES_TO_SPAWN</span><span style=color:#61676ccc>: </span><span style=color:#fa6e32>usize </span><span style=color:#ed9366>= </span><span style=color:#ff8f40>500</span><span style=color:#61676ccc>;
+</span><span style=color:#abb0b6;font-style:italic>/// How much gravity is applied each second.
+</span><span style=color:#fa6e32>const </span><span style=color:#ff8f40>GRAVITY</span><span style=color:#61676ccc>: </span><span style=color:#fa6e32>f32 </span><span style=color:#ed9366>= </span><span style=color:#ff8f40>98.1</span><span style=color:#61676ccc>;
+</span><span style=color:#abb0b6;font-style:italic>/// Border at which the bunnies bounce off from the edges.
+</span><span style=color:#fa6e32>const </span><span style=color:#ff8f40>BORDER</span><span style=color:#61676ccc>: </span><span style=color:#fa6e32>f32 </span><span style=color:#ed9366>= </span><span style=color:#ff8f40>10.0</span><span style=color:#61676ccc>;
+</span><span>
+</span><span style=color:#abb0b6;font-style:italic>/// A single bunny instance to draw.
+</span><span style=color:#fa6e32>struct </span><span style=color:#399ee6>Bunny </span><span>{
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>/// Absolute X position in pixels on the buffer.
+</span><span>    x</span><span style=color:#61676ccc>: </span><span style=color:#fa6e32>f32</span><span>,
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>/// Absolute Y position in pixels on the buffer.
+</span><span>    y</span><span style=color:#61676ccc>: </span><span style=color:#fa6e32>f32</span><span>,
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>/// Horizontal velocity applied every second.
+</span><span>    velocity_x</span><span style=color:#61676ccc>: </span><span style=color:#fa6e32>f32</span><span>,
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>/// Vertical velocity applied every second.
+</span><span>    velocity_y</span><span style=color:#61676ccc>: </span><span style=color:#fa6e32>f32</span><span>,
+</span><span>}
+</span><span>
+</span><span style=color:#abb0b6;font-style:italic>/// Define a game state for our example.
+</span><span style=color:#61676ccc>#</span><span>[</span><span style=color:#f29718>derive</span><span>(Default)]
+</span><span style=color:#fa6e32>struct </span><span style=color:#399ee6>GameState </span><span>{
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>/// Bunnies to draw.
+</span><span>    bunnies</span><span style=color:#61676ccc>: </span><span style=color:#55b4d4;font-style:italic>Vec</span><span>&LTBunny>,
+</span><span>}
+</span><span>
+</span><span style=color:#fa6e32>impl </span><span>Game </span><span style=color:#fa6e32>for </span><span style=color:#399ee6>GameState </span><span>{
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>/// Update the game.
+</span><span>    </span><span style=color:#fa6e32>fn </span><span style=color:#f29718>update</span><span>(</span><span style=color:#ed9366>&</span><span style=color:#fa6e32>mut </span><span style=color:#ff8f40>self</span><span>, </span><span style=color:#ff8f40>ctx</span><span style=color:#61676ccc>:</span><span> Context) {
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Spawn the bunnies from the mouse
+</span><span>        </span><span style=color:#fa6e32>if</span><span> ctx</span><span style=color:#ed9366>.</span><span style=color:#f07171>mouse_held</span><span>(MouseButton</span><span style=color:#ed9366>::</span><span>Left) {
+</span><span>            </span><span style=color:#abb0b6;font-style:italic>// Spawn many bunnies when clicking
+</span><span>            </span><span style=color:#fa6e32>for </span><span style=color:#ed9366>_ in </span><span style=color:#ff8f40>0</span><span style=color:#ed9366>..</span><span style=color:#ff8f40>BUNNIES_TO_SPAWN </span><span>{
+</span><span>                </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span>bunnies</span><span style=color:#ed9366>.</span><span style=color:#f07171>push</span><span>(Bunny {
+</span><span>                    x</span><span style=color:#61676ccc>: </span><span style=color:#ff8f40>BORDER</span><span style=color:#61676ccc>,
+</span><span>                    y</span><span style=color:#61676ccc>: </span><span style=color:#ff8f40>BORDER</span><span style=color:#61676ccc>,
+</span><span>                    velocity_x</span><span style=color:#61676ccc>: </span><span>chuot</span><span style=color:#ed9366>::</span><span>random(</span><span style=color:#ff8f40>20.0</span><span style=color:#61676ccc>, </span><span style=color:#ff8f40>100.0</span><span>)</span><span style=color:#61676ccc>,
+</span><span>                    velocity_y</span><span style=color:#61676ccc>: </span><span>chuot</span><span style=color:#ed9366>::</span><span>random(</span><span style=color:#ed9366>-</span><span style=color:#ff8f40>1.0</span><span style=color:#61676ccc>, </span><span style=color:#ff8f40>1.0</span><span>)</span><span style=color:#61676ccc>,
+</span><span>                })</span><span style=color:#61676ccc>;
+</span><span>            }
+</span><span>        }
+</span><span>
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Load the context values outside of a hot loop, since all `ctx.` calls go through an `Rc&LTRefcell<..>>`
+</span><span>
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Get the deltatime once
+</span><span>        </span><span style=color:#fa6e32>let</span><span> dt </span><span style=color:#ed9366>=</span><span> ctx</span><span style=color:#ed9366>.</span><span style=color:#f07171>delta_time</span><span>()</span><span style=color:#61676ccc>;
+</span><span>
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Get the size once
+</span><span>        </span><span style=color:#fa6e32>let</span><span> boundary_width </span><span style=color:#ed9366>=</span><span> ctx</span><span style=color:#ed9366>.</span><span style=color:#f07171>width</span><span>() </span><span style=color:#ed9366>- </span><span style=color:#ff8f40>BORDER</span><span style=color:#61676ccc>;
+</span><span>        </span><span style=color:#fa6e32>let</span><span> boundary_height </span><span style=color:#ed9366>=</span><span> ctx</span><span style=color:#ed9366>.</span><span style=color:#f07171>height</span><span>() </span><span style=color:#ed9366>- </span><span style=color:#ff8f40>BORDER</span><span style=color:#61676ccc>;
+</span><span>
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Remove all bunnies that are dead, and update all other bunnies
+</span><span>        </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span>bunnies</span><span style=color:#ed9366>.</span><span style=color:#f07171>iter_mut</span><span>()</span><span style=color:#ed9366>.</span><span style=color:#f07171>for_each</span><span>(|</span><span style=color:#ff8f40>bunny</span><span>| {
+</span><span>            </span><span style=color:#abb0b6;font-style:italic>// Update the bunny
+</span><span>            bunny</span><span style=color:#ed9366>.</span><span>x </span><span style=color:#ed9366>+=</span><span> bunny</span><span style=color:#ed9366>.</span><span>velocity_x </span><span style=color:#ed9366>*</span><span> dt</span><span style=color:#61676ccc>;
+</span><span>            bunny</span><span style=color:#ed9366>.</span><span>y </span><span style=color:#ed9366>+=</span><span> bunny</span><span style=color:#ed9366>.</span><span>velocity_y </span><span style=color:#ed9366>*</span><span> dt</span><span style=color:#61676ccc>;
+</span><span>
+</span><span>            </span><span style=color:#abb0b6;font-style:italic>// Bounce the bunnies on the left and right edges of the screen
+</span><span>            </span><span style=color:#fa6e32>if</span><span> bunny</span><span style=color:#ed9366>.</span><span>x </span><span style=color:#ed9366>< </span><span style=color:#ff8f40>BORDER </span><span>{
+</span><span>                bunny</span><span style=color:#ed9366>.</span><span>x </span><span style=color:#ed9366>= </span><span style=color:#ff8f40>BORDER</span><span style=color:#61676ccc>;
+</span><span>                bunny</span><span style=color:#ed9366>.</span><span>velocity_x </span><span style=color:#ed9366>= -</span><span>bunny</span><span style=color:#ed9366>.</span><span>velocity_x</span><span style=color:#61676ccc>;
+</span><span>            } </span><span style=color:#fa6e32>else if</span><span> bunny</span><span style=color:#ed9366>.</span><span>x </span><span style=color:#ed9366>></span><span> boundary_width {
+</span><span>                bunny</span><span style=color:#ed9366>.</span><span>x </span><span style=color:#ed9366>=</span><span> boundary_width</span><span style=color:#61676ccc>;
+</span><span>                bunny</span><span style=color:#ed9366>.</span><span>velocity_x </span><span style=color:#ed9366>= -</span><span>bunny</span><span style=color:#ed9366>.</span><span>velocity_x</span><span style=color:#61676ccc>;
+</span><span>            }
+</span><span>
+</span><span>            </span><span style=color:#abb0b6;font-style:italic>// Bounce the bunnies when they hit the bottom of the screen
+</span><span>            </span><span style=color:#fa6e32>if</span><span> bunny</span><span style=color:#ed9366>.</span><span>y </span><span style=color:#ed9366>></span><span> boundary_height {
+</span><span>                bunny</span><span style=color:#ed9366>.</span><span>y </span><span style=color:#ed9366>=</span><span> boundary_height</span><span style=color:#61676ccc>;
+</span><span>                bunny</span><span style=color:#ed9366>.</span><span>velocity_y </span><span style=color:#ed9366>= -</span><span>bunny</span><span style=color:#ed9366>.</span><span>velocity_y</span><span style=color:#61676ccc>;
+</span><span>            }
+</span><span>
+</span><span>            </span><span style=color:#abb0b6;font-style:italic>// Apply gravity
+</span><span>            bunny</span><span style=color:#ed9366>.</span><span>velocity_y </span><span style=color:#ed9366>+= </span><span style=color:#ff8f40>GRAVITY </span><span style=color:#ed9366>*</span><span> dt</span><span style=color:#61676ccc>;
+</span><span>        })</span><span style=color:#61676ccc>;
+</span><span>    }
+</span><span>
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>/// Render the game.
+</span><span>    </span><span style=color:#fa6e32>fn </span><span style=color:#f29718>render</span><span>(</span><span style=color:#ed9366>&</span><span style=color:#fa6e32>mut </span><span style=color:#ff8f40>self</span><span>, </span><span style=color:#ff8f40>ctx</span><span style=color:#61676ccc>:</span><span> Context) {
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Draw all bunnies
+</span><span>        ctx</span><span style=color:#ed9366>.</span><span style=color:#f07171>sprite</span><span>(</span><span style=color:#86b300>"bunnymark"</span><span>)
+</span><span>            </span><span style=color:#ed9366>.</span><span style=color:#f07171>draw_multiple_translated</span><span>(</span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span>bunnies</span><span style=color:#ed9366>.</span><span style=color:#f07171>iter</span><span>()</span><span style=color:#ed9366>.</span><span style=color:#f07171>map</span><span>(|</span><span style=color:#ff8f40>bunny</span><span>| (bunny</span><span style=color:#ed9366>.</span><span>x</span><span style=color:#61676ccc>,</span><span> bunny</span><span style=color:#ed9366>.</span><span>y)))</span><span style=color:#61676ccc>;
+</span><span>
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Draw a basic FPS counter with the amount of bunnies
+</span><span>        ctx</span><span style=color:#ed9366>.</span><span style=color:#f07171>text</span><span>(
+</span><span>            </span><span style=color:#86b300>"Beachball"</span><span style=color:#61676ccc>,
+</span><span>            </span><span style=color:#ed9366>&</span><span style=color:#f07171>format!</span><span>(
+</span><span>                </span><span style=color:#86b300>"FPS: </span><span style=color:#ff8f40>{:.1}</span><span style=color:#4cbf99>\n</span><span style=color:#86b300>Bunnies (left click): </span><span style=color:#ff8f40>{}</span><span style=color:#86b300>"</span><span style=color:#61676ccc>,
+</span><span>                ctx</span><span style=color:#ed9366>.</span><span style=color:#f07171>frames_per_second</span><span>()</span><span style=color:#61676ccc>,
+</span><span>                </span><span style=color:#55b4d4;font-style:italic>self</span><span style=color:#ed9366>.</span><span>bunnies</span><span style=color:#ed9366>.</span><span style=color:#f07171>len</span><span>()
+</span><span>            )</span><span style=color:#61676ccc>,
+</span><span>        )
+</span><span>        </span><span style=color:#ed9366>.</span><span style=color:#f07171>use_ui_camera</span><span>()
+</span><span>        </span><span style=color:#ed9366>.</span><span style=color:#f07171>draw</span><span>()</span><span style=color:#61676ccc>;
+</span><span>    }
+</span><span>
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>/// Configure the camera.
+</span><span>    </span><span style=color:#fa6e32>fn </span><span style=color:#f29718>init</span><span>(</span><span style=color:#ed9366>&</span><span style=color:#fa6e32>mut </span><span style=color:#ff8f40>self</span><span>, </span><span style=color:#ff8f40>ctx</span><span style=color:#61676ccc>:</span><span> Context) {
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Draw the bunnies with absolute coordinates from the top left
+</span><span>        ctx</span><span style=color:#ed9366>.</span><span style=color:#f07171>main_camera</span><span>()</span><span style=color:#ed9366>.</span><span style=color:#f07171>set_top_left</span><span>()</span><span style=color:#61676ccc>;
+</span><span>    }
+</span><span>}
+</span><span>
+</span><span style=color:#abb0b6;font-style:italic>/// Setup and run the game.
+</span><span style=color:#fa6e32>fn </span><span style=color:#f29718>main</span><span>() {
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>// Game configuration
+</span><span>    </span><span style=color:#fa6e32>let</span><span> config </span><span style=color:#ed9366>=</span><span> Config {
+</span><span>        buffer_width</span><span style=color:#61676ccc>: </span><span style=color:#ff8f40>360.0</span><span style=color:#61676ccc>,
+</span><span>        buffer_height</span><span style=color:#61676ccc>: </span><span style=color:#ff8f40>288.0</span><span style=color:#61676ccc>,
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Scale the pixels two times
+</span><span>        scaling</span><span style=color:#61676ccc>: </span><span style=color:#ff8f40>2.0</span><span style=color:#61676ccc>,
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// Disable vsync so we can see the effect of the bunnies on the FPS
+</span><span>        vsync</span><span style=color:#61676ccc>: </span><span style=color:#ff8f40>false</span><span style=color:#61676ccc>,
+</span><span>        </span><span style=color:#abb0b6;font-style:italic>// We don't rotate the sprites so use the best performing algorithm
+</span><span>        rotation_algorithm</span><span style=color:#61676ccc>: </span><span>RotationAlgorithm</span><span style=color:#ed9366>::</span><span>NearestNeighbor</span><span style=color:#61676ccc>,
+</span><span>        </span><span style=color:#ed9366>..</span><span style=color:#55b4d4;font-style:italic>Default</span><span style=color:#ed9366>::</span><span>default()
+</span><span>    }</span><span style=color:#61676ccc>;
+</span><span>
+</span><span>    </span><span style=color:#abb0b6;font-style:italic>// Spawn the window and run the 'game'
+</span><span>    GameState</span><span style=color:#ed9366>::</span><span>default()</span><span style=color:#ed9366>.</span><span style=color:#f07171>run</span><span>(chuot</span><span style=color:#ed9366>::</span><span>load_assets</span><span style=color:#ed9366>!</span><span>()</span><span style=color:#61676ccc>,</span><span> config)</span><span style=color:#61676ccc>;
+</span><span>}
+</span></code></pre><h3 id=compatibility>Compatibility</h3><table><thead><tr><th>Chuột Version<th>Example Works<tbody><tr><td><a href=https://github.com/tversteeg/chuot/releases/tag/v0.3.0 rel=noopener target=_blank>0.3.0</a><td>✅<tr><td><a href=https://github.com/tversteeg/chuot/releases/tag/v0.3.1 rel=noopener target=_blank>0.3.1</a><td>✅<tr><td><a href=https://github.com/tversteeg/chuot rel=noopener target=_blank>Unreleased</a><td>✅</table><nav><div><a href=https://tversteeg.nl/chuot/examples/audio/>‹ Audio</a></div><div><a href=https://tversteeg.nl/chuot/examples/camera/> Camera ›</a></div></nav></article></main><footer><hr><div class=c><nav class=tpad><div><a title="Chuột Atom Feed" href=https://tversteeg.nl/chuot/atom.xml target=_blank type=application/atom+xml><i class="svg rss" title="Chuột Atom Feed" type=Button></i></a><a href=https://matrix.to/#/#chuot:matrix.org/ target=_blank title=Matrix><i class="svg matrix" title=Matrix type=Button></i></a><a href=https://github.com/tversteeg/chuot/ target=_blank title=Github><i class="svg github" title=Github type=Button></i></a></div></nav><nav class=vpad><a class=rpad href=https://tversteeg.nl/chuot/sitemap.xml target=_blank> Sitemap </a></nav><p class=s70>Powered by <a href=https://www.getzola.org/ target=_blank>Zola</a> & <a href=https://github.com/Jieiku/abridge/ target=_blank>Abridge</a></div></footer>
