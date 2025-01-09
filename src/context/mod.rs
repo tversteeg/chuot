@@ -12,7 +12,7 @@ pub mod text;
 use std::{cell::RefCell, rc::Rc, sync::Arc};
 
 use gilrs::GamepadId;
-use kira::manager::{AudioManager, AudioManagerSettings, DefaultBackend};
+use kira::{AudioManager, AudioManagerSettings, DefaultBackend};
 use smallvec::SmallVec;
 use winit::window::{Fullscreen, Window};
 

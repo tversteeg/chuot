@@ -1,6 +1,6 @@
 //! Zero-cost abstraction types for building more complicated audio playbacks.
 
-use kira::sound::Region;
+use kira::{Decibels, Panning, sound::Region};
 
 use crate::Context;
 
@@ -103,12 +103,12 @@ impl AudioContext<'_, '_> {
 
             // Set the volume
             if let Some(volume) = self.volume {
-                settings = settings.volume(volume as f64);
+                settings = settings.volume(Decibels::from(volume));
             }
 
             // Set the panning
             if let Some(panning) = self.panning {
-                settings = settings.panning(panning as f64);
+                settings = settings.panning(Panning::from(panning));
             }
 
             // Set the loop region
