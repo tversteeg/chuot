@@ -85,8 +85,6 @@ wgpu = { version = "23.0.1", default-features = false, features = ["webgl", "wgs
 naga = { version = "23.1.0", default-features = false, features = ["wgsl-in", "wgsl-out"] }
 wgsl-minifier = "0.6.0"
 
-[workspace]
-members = ["crates/macros", "crates/packer", "run-wasm"]
 
 # Ensure audio performance is not too poor when running in dev mode
 [profile.dev.package]
@@ -104,6 +102,29 @@ codegen-units = 1
 opt-level = "z"
 lto = true
 strip = true
+
+[workspace]
+members = ["crates/macros", "crates/packer", "run-wasm"]
+
+# Run with `bacon clippy`
+[workspace.metadata.bacon.jobs.clippy]
+command = ["cargo", "+nightly", "clippy", "--all-targets", "--all-features"]
+
+# Run with `bacon wasm-example -- **EXAMPLE**`
+[workspace.metadata.bacon.jobs.wasm-example]
+command = ["cargo", "run", "--package", "run-wasm", "--release", "--", "--features", "embed-assets", "--example"]
+need_stdout = true
+background = false
+on_change_strategy = "kill_then_restart"
+watch = ["assets", "shaders"]
+
+# Run with `bacon example -- **EXAMPLE**`
+[workspace.metadata.bacon.jobs.example]
+command = ["cargo", "run", "--example"]
+need_stdout = true
+background = false
+on_change_strategy = "kill_then_restart"
+watch = ["shaders"]
 
 # Extra lints that must be adhered to
 [workspace.lints.rust]
