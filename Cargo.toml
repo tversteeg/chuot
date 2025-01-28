@@ -14,7 +14,7 @@ categories = [
 	"games",
 	"game-engines",
 ]
-rust-version = "1.83.0"
+rust-version = "1.84.0"
 include = ["/src", "build.rs", "/shaders"]
 
 [package.metadata.docs.rs]
@@ -57,7 +57,7 @@ gilrs = "0.11.0"
 glam = { version = "0.29.2", features = ["bytemuck", "fast-math"] }
 hashbrown = "0.15.2"
 imgref = { version = "1.11.0", default-features = false, optional = true }
-kira = { version = "0.10.1", default-features = false, features = ["cpal", "ogg"] }
+kira = { version = "0.10.2", default-features = false, features = ["cpal", "ogg"] }
 nanoserde = "0.1.37"
 num-integer = "0.1.46"
 phf = "0.11.3"
@@ -72,14 +72,14 @@ winit = "0.30.8"
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 notify-debouncer-mini = "0.6.0"
 pollster = "0.4.0"
-wgpu = { version = "24.0.0", default-features = false, features = ["wgsl"] }
+wgpu = { version = "24.0.1", default-features = false, features = ["wgsl"] }
 
 # Dependencies specifically for the web platform
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1.7"
-wasm-bindgen-futures = "0.4.49"
-web-sys = { version = "0.3.76", features = ["Document", "Window", "Element"] }
-wgpu = { version = "24.0.0", default-features = false, features = ["webgl", "wgsl"] }
+wasm-bindgen-futures = "0.4.50"
+web-sys = { version = "0.3.77", features = ["Document", "Window", "Element"] }
+wgpu = { version = "24.0.1", default-features = false, features = ["webgl", "wgsl"] }
 
 [build-dependencies]
 naga = { version = "24.0.0", default-features = false, features = ["wgsl-in", "wgsl-out"] }
@@ -147,6 +147,7 @@ iter_on_empty_collections = "warn"
 iter_on_single_items = "warn"
 iter_with_drain = "warn"
 large_stack_frames = "warn"
+literal_string_with_formatting_args = "warn"
 missing_const_for_fn = "warn"
 mutex_integer = "warn"
 needless_collect = "warn"
@@ -195,6 +196,7 @@ get_unwrap = "warn"
 if_then_some_else_none = "warn"
 lossy_float_literal = "warn"
 map_err_ignore = "warn"
+map_with_unused_argument_over_ranges = "warn"
 mem_forget = "warn"
 missing_asserts_for_indexing = "warn"
 missing_inline_in_public_items = "warn"
@@ -314,6 +316,7 @@ trivially_copy_pass_by_ref = "warn"
 uninlined_format_args = "warn"
 unnecessary_box_returns = "warn"
 unnecessary_join = "warn"
+unnecessary_literal_bound = "warn"
 unnecessary_wraps = "warn"
 unnested_or_patterns = "warn"
 unused_async = "warn"

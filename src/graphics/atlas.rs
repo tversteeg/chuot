@@ -155,7 +155,7 @@ impl Atlas {
         // Write the sub-texture to the atlas location
         queue.write_texture(
             // Where to copy the pixel data
-            wgpu::ImageCopyTexture {
+            wgpu::TexelCopyTextureInfo {
                 texture: &self.texture,
                 mip_level: 0,
                 origin: wgpu::Origin3d { x, y, z: 0 },
@@ -164,7 +164,7 @@ impl Atlas {
             // Actual pixel data
             bytemuck::cast_slice(pixels),
             // Layout of the texture
-            wgpu::ImageDataLayout {
+            wgpu::TexelCopyBufferLayout {
                 offset: 0,
                 bytes_per_row: Some(4 * width),
                 rows_per_image: Some(height),
@@ -290,7 +290,7 @@ impl Atlas {
         // Write the new texture section to the GPU
         queue.write_texture(
             // Where to copy the pixel data
-            wgpu::ImageCopyTexture {
+            wgpu::TexelCopyTextureInfo {
                 texture: &self.texture,
                 mip_level: 0,
                 origin: wgpu::Origin3d { x, y, z: 0 },
@@ -299,7 +299,7 @@ impl Atlas {
             // Actual pixel data
             bytemuck::cast_slice(pixels),
             // Layout of the texture
-            wgpu::ImageDataLayout {
+            wgpu::TexelCopyBufferLayout {
                 offset: 0,
                 bytes_per_row: Some(4 * width),
                 rows_per_image: Some(height),
