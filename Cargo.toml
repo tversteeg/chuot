@@ -83,7 +83,7 @@ wgpu = { version = "24.0.1", default-features = false, features = ["webgl", "wgs
 
 [build-dependencies]
 naga = { version = "24.0.0", default-features = false, features = ["wgsl-in", "wgsl-out"] }
-wgsl-minifier = "0.6.0"
+wgsl-minifier = "0.7.0"
 
 
 # Ensure audio performance is not too poor when running in dev mode
