@@ -82,7 +82,7 @@ web-sys = { version = "0.3.77", features = ["Document", "Window", "Element"] }
 wgpu = { version = "25.0.0", default-features = false, features = ["webgl", "wgsl"] }
 
 [build-dependencies]
-naga = { version = "25.0.0", default-features = false, features = ["wgsl-in", "wgsl-out"] }
+naga = { version = "26.0.0", default-features = false, features = ["wgsl-in", "wgsl-out"] }
 wgsl-minifier = "0.7.0"
 
 
