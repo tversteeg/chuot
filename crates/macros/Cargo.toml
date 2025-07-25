@@ -19,7 +19,7 @@ proc-macro = true
 embed-assets = ["dep:png", "dep:sprite_dicing", "dep:bytemuck", "dep:oxipng", "dep:phf_codegen"]
 
 [dependencies]
-litrs = "0.4.1"
+litrs = "0.5.0"
 quote = "1.0.38"
 proc-macro2 = "1.0.93"
 walkdir = "2.5.0"
