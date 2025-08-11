@@ -23,7 +23,7 @@ jobs:
     name: Code style check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: dtolnay/rust-toolchain@nightly
         with:
@@ -58,7 +58,7 @@ jobs:
         os: [ubuntu-latest, macOS-latest, windows-latest]
     steps:
       # Checkout the branch being tested
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Install required libraries
       - name: Install dependencies
@@ -87,7 +87,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Checkout the branch being tested
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Install required libraries
       - name: Install dependencies
