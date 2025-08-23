@@ -60,7 +60,7 @@ imgref = { version = "1.11.0", default-features = false, optional = true }
 kira = { version = "0.10.2", default-features = false, features = ["cpal", "ogg"] }
 nanoserde = "0.2.0"
 num-integer = "0.1.46"
-phf = "0.12.0"
+phf = "0.13.0"
 png = "0.17.16"
 rgb = { version = "0.8.50", features = ["bytemuck"], default-features = false }
 smallvec = { version = "1.13.2", features = ["const_new", "union"] }
