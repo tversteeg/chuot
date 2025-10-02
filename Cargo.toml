@@ -72,14 +72,14 @@ winit = "0.30.8"
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 notify-debouncer-mini = "0.7.0"
 pollster = "0.4.0"
-wgpu = { version = "26.0.0", default-features = false, features = ["wgsl"] }
+wgpu = { version = "27.0.0", default-features = false, features = ["wgsl"] }
 
 # Dependencies specifically for the web platform
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1.7"
 wasm-bindgen-futures = "0.4.50"
 web-sys = { version = "0.3.77", features = ["Document", "Window", "Element"] }
-wgpu = { version = "26.0.0", default-features = false, features = ["webgl", "wgsl"] }
+wgpu = { version = "27.0.0", default-features = false, features = ["webgl", "wgsl"] }
 
 [build-dependencies]
 naga = { version = "27.0.0", default-features = false, features = ["wgsl-in", "wgsl-out"] }
